@@ -283,6 +283,11 @@
             }
         }
 
+        async function refreshView() {
+            pdfBytes = await pdfDoc.save();
+            await renderPdf(pdfBytes);
+        }
+
         function handlePageClick(e, index) {
             selectedPageIndex = index;
 
@@ -297,22 +302,32 @@
         }
 
         async function rotateCurrentPage() {
-            const page = pdfDoc.getPage(selectedPageIndex);
-            const currentRotation = page.getRotation().angle;
-            page.setRotation(PDFLib.degrees(currentRotation + 90));
+            try {
+                const page = pdfDoc.getPage(selectedPageIndex);
+                const currentRotation = page.getRotation().angle;
+                page.setRotation(PDFLib.degrees(currentRotation + 90));
 
-            await refreshView();
+                await refreshView();
+            } catch (e) {
+                alert("Error rotating page: " + e.message);
+                console.error(e);
+            }
         }
 
         async function deleteCurrentPage() {
-            if (pdfDoc.getPageCount() <= 1) {
-                alert("Cannot delete the last page.");
-                return;
-            }
-            pdfDoc.removePage(selectedPageIndex);
-            selectedPageIndex = Math.max(0, selectedPageIndex - 1);
+            try {
+                if (pdfDoc.getPageCount() <= 1) {
+                    alert("Cannot delete the last page.");
+                    return;
+                }
+                pdfDoc.removePage(selectedPageIndex);
+                selectedPageIndex = Math.max(0, selectedPageIndex - 1);
 
-            await refreshView();
+                await refreshView();
+            } catch (e) {
+                alert("Error deleting page: " + e.message);
+                console.error(e);
+            }
         }
 
         async function movePageUp() {
