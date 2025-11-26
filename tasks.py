@@ -8,6 +8,18 @@ from extract_tables_to_csv import extract_tables as extract_tables_to_csv
 from translation_utils import translate_text, install_languages
 import subprocess
 
+def get_unique_filename(directory, filename):
+    """
+    Returns a unique filename by appending (n) if the file already exists.
+    """
+    base, ext = os.path.splitext(filename)
+    counter = 1
+    new_filename = filename
+    while os.path.exists(os.path.join(directory, new_filename)):
+        new_filename = f"{base}({counter}){ext}"
+        counter += 1
+    return new_filename
+
 # Ensure languages are installed (could be done on startup)
 try:
     install_languages()
@@ -63,6 +75,14 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
                                      self.update_state(state='PROCESSING', meta={'status': f'Translating tables... ({int(processed_items/total_items*100)}%)', 'current': progress, 'total': 100})
                  
                  doc.save(output_path)
+                 
+                 # Append language code to filename
+                 directory, filename = os.path.split(output_path)
+                 name, ext = os.path.splitext(filename)
+                 new_filename = f"{name}_{target_lang}{ext}"
+                 new_output_path = os.path.join(directory, new_filename)
+                 os.rename(output_path, new_output_path)
+                 output_path = new_output_path
 
             if extraction_type == 'odt':
                 self.update_state(state='PROCESSING', meta={'status': 'Converting to ODT...'})
@@ -72,11 +92,11 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
                 output_path = odt_path
 
             # Move the file to the output folder
-            destination = os.path.join(output_folder, os.path.basename(output_path))
-            if os.path.exists(destination):
-                os.remove(destination)
+            final_filename = get_unique_filename(output_folder, os.path.basename(output_path))
+            destination = os.path.join(output_folder, final_filename)
+            
             shutil.move(output_path, destination)
-            result_file = os.path.basename(output_path)
+            result_file = final_filename
 
         elif extraction_type == 'csv':
             self.update_state(state='PROCESSING', meta={'status': 'Extracting tables...', 'current': 10, 'total': 100})
@@ -87,11 +107,11 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
             shutil.make_archive(zip_filename, 'zip', output_dir_path)
             
             # Move the zip file to the output folder
-            destination = os.path.join(output_folder, f"{zip_filename}.zip")
-            if os.path.exists(destination):
-                os.remove(destination)
+            final_filename = get_unique_filename(output_folder, f"{zip_filename}.zip")
+            destination = os.path.join(output_folder, final_filename)
+            
             shutil.move(f"{zip_filename}.zip", destination)
-            result_file = f"{zip_filename}.zip"
+            result_file = final_filename
 
             # Clean up the original CSV directory
             shutil.rmtree(output_dir_path)
