@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Editor - {{ filename }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #editor-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 320px;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #main-preview {
+            flex: 1;
+            background: #525659;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        #pdf-viewer {
+            position: relative;
+        }
+
+        .page-container {
+            position: relative;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .text-annotation {
+            position: absolute;
+            border: 1px dashed #007bff;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px;
+            cursor: move;
+            min-width: 50px;
+            min-height: 20px;
+            font-size: 16px;
+            font-family: sans-serif;
+            color: black;
+        }
+
+        .text-annotation:focus {
+            outline: 2px solid #007bff;
+            border: none;
+            background: white;
+        }
+
+        /* Blur Mask Overlay */
+        #processing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .progress {
+            width: 50%;
+            height: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Overlay -->
+    <div id="processing-overlay">
+        <h3 class="mb-4">Processing Document...</h3>
+        <div class="progress mb-3">
+            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                style="width: 0%">0%</div>
+        </div>
+        <p id="status-text" class="lead">Starting...</p>
+    </div>
+
+    <nav class="navbar navbar-dark bg-dark px-3">
+        <a class="navbar-brand" href="/">PDF Extractor</a>
+        <span class="navbar-text text-light">{{ filename }}</span>
+        <div class="ms-auto">
+            <button class="btn btn-success btn-sm me-2" onclick="saveChanges()">
+                <i class="bi bi-save"></i> Save Changes
+            </button>
+        </div>
+    </nav>
+
+    <div id="editor-container">
+        <div id="sidebar">
+            <h5 class="mb-3">Tools</h5>
+            <div class="d-grid gap-2 mb-4">
+                <button class="btn btn-outline-secondary" onclick="rotateCurrentPage()">
+                    <i class="bi bi-arrow-clockwise"></i> Rotate Page (90°)
+                </button>
+                <button class="btn btn-outline-danger" onclick="deleteCurrentPage()">
+                    <i class="bi bi-trash"></i> Delete Page
+                </button>
+                <button class="btn btn-outline-primary" id="add-text-btn" onclick="toggleTextMode()">
+                    <i class="bi bi-type"></i> Add Text
+                </button>
+                <button class="btn btn-outline-secondary" onclick="movePageUp()">
+                    <i class="bi bi-arrow-up"></i> Move Page Up
+                </button>
+                <button class="btn btn-outline-secondary" onclick="movePageDown()">
+                    <i class="bi bi-arrow-down"></i> Move Page Down
+                </button>
+                <div class="input-group">
+                    <input type="file" class="form-control" id="image-upload" accept="image/*" style="display: none;"
+                        onchange="handleImageUpload(this)">
+                    <button class="btn btn-outline-success w-100"
+                        onclick="document.getElementById('image-upload').click()">
+                        <i class="bi bi-image"></i> Add Image
+                    </button>
+                </div>
+                <div class="input-group">
+                    <input type="file" class="form-control" id="pdf-append" accept=".pdf" style="display: none;"
+                        onchange="handleAppendPdf(this)">
+                    <button class="btn btn-outline-secondary w-100"
+                        onclick="document.getElementById('pdf-append').click()">
+                        <i class="bi bi-files"></i> Append PDF
+                    </button>
+                </div>
+                <button class="btn btn-outline-danger" id="redact-btn" onclick="toggleRedactMode()">
+                    <i class="bi bi-eraser"></i> Redact Text
+                </button>
+                <button class="btn btn-outline-warning" id="highlight-btn" onclick="toggleHighlightMode()">
+                    <i class="bi bi-pencil-fill"></i> Highlight
+                </button>
+                <button class="btn btn-outline-info" onclick="addTextField()">
+                    <i class="bi bi-input-cursor-text"></i> Add Form Field
+                </button>
+                <button class="btn btn-outline-info" onclick="addCheckbox()">
+                    <i class="bi bi-check-square"></i> Add Checkbox
+                </button>
+            </div>
+
+            <div class="alert alert-info small">
+                <i class="bi bi-info-circle"></i> Click on a page to select it.
+            </div>
+
+            <hr>
+
+            <h5 class="mb-3">Process Document</h5>
+            <form action="/process_request" method="post" id="process-form">
+                <input type="hidden" name="filename" value="{{ filename }}">
+
+                <div class="mb-3">
+                    <label class="form-label">Extraction Type</label>
+                    <select class="form-select" name="extraction_type">
+                        <option value="word">Word (.docx)</option>
+                        <option value="odt">OpenDocument (.odt)</option>
+                        <option value="csv">Tables to CSV</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Source Language</label>
+                    <select class="form-select" name="source_lang">
+                        <option value="en" selected>English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="pl">Polish</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Translate To</label>
+                    <select class="form-select" name="target_lang">
+                        <option value="none">None</option>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="pl">Polish</option>
+                    </select>
+                </div>
+
+                <button type="button" class="btn btn-primary w-100" onclick="submitProcessing()">
+                    Start Processing
+                </button>
+            </form>
+        </div>
+
+        <div id="main-preview">
+            <div id="pdf-viewer"></div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const filename = "{{ filename }}";
+        const url = `/uploads/${filename}`;
+        const container = document.getElementById('pdf-viewer');
+
+        let pdfDoc = null; // pdf-lib document
+        let pdfBytes = null;
+        let selectedPageIndex = 0; // 0-based index
+        let textMode = false;
+        let redactMode = false;
+        let highlightMode = false;
+
+        // Initialize
+        async function init() {
+            const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+            pdfBytes = existingPdfBytes;
+            await loadPdf(pdfBytes);
+        }
+
+        async function loadPdf(bytes) {
+            // Load into pdf-lib
+            pdfDoc = await PDFLib.PDFDocument.load(bytes);
+
+            // Render with pdf.js
+            await renderPdf(bytes);
+        }
+
+        async function renderPdf(bytes) {
+            container.innerHTML = '';
+            const loadingTask = pdfjsLib.getDocument({ data: bytes });
+            const pdf = await loadingTask.promise;
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const scale = 1.0;
+                const viewport = page.getViewport({ scale: scale });
+
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'page-container';
+                pageContainer.style.width = `${viewport.width}px`;
+                pageContainer.style.height = `${viewport.height}px`;
+                pageContainer.dataset.pageIndex = i - 1;
+                pageContainer.onclick = (e) => handlePageClick(e, i - 1);
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+
+                pageContainer.appendChild(canvas);
+                container.appendChild(pageContainer);
+
+                page.render(renderContext);
+            }
+        }
+
+        function handlePageClick(e, index) {
+            selectedPageIndex = index;
+
+            // Highlight selected page
+            document.querySelectorAll('.page-container').forEach((el, i) => {
+                el.style.outline = i === index ? '3px solid #007bff' : 'none';
+            });
+
+            if (textMode) {
+                addTextAnnotation(e, index);
+            }
+        }
+
+        async function rotateCurrentPage() {
+            const page = pdfDoc.getPage(selectedPageIndex);
+            const currentRotation = page.getRotation().angle;
+            page.setRotation(PDFLib.degrees(currentRotation + 90));
+
+            await refreshView();
+        }
+
+        async function deleteCurrentPage() {
+            if (pdfDoc.getPageCount() <= 1) {
+                alert("Cannot delete the last page.");
+                return;
+            }
+            pdfDoc.removePage(selectedPageIndex);
+            selectedPageIndex = Math.max(0, selectedPageIndex - 1);
+
+            await refreshView();
+        }
+
+        async function movePageUp() {
+            if (selectedPageIndex <= 0) return;
+
+            // pdf-lib doesn't have a direct "move" but we can copy and remove
+            // Actually, we can just re-add it at new index
+            // But removing and adding is safer for now or swapping
+
+            // Simpler approach: Create new doc, copy pages in new order
+            const pageCount = pdfDoc.getPageCount();
+            const newOrder = [];
+            for (let i = 0; i < pageCount; i++) newOrder.push(i);
+
+            // Swap
+            [newOrder[selectedPageIndex], newOrder[selectedPageIndex - 1]] = [newOrder[selectedPageIndex - 1], newOrder[selectedPageIndex]];
+
+            await reorderPages(newOrder);
+            selectedPageIndex--;
+            await refreshView();
+        }
+
+        async function movePageDown() {
+            if (selectedPageIndex >= pdfDoc.getPageCount() - 1) return;
+
+            const pageCount = pdfDoc.getPageCount();
+            const newOrder = [];
+            for (let i = 0; i < pageCount; i++) newOrder.push(i);
+
+            // Swap
+            [newOrder[selectedPageIndex], newOrder[selectedPageIndex + 1]] = [newOrder[selectedPageIndex + 1], newOrder[selectedPageIndex]];
+
+            await reorderPages(newOrder);
+            selectedPageIndex++;
+            await refreshView();
+        }
+
+        async function reorderPages(newOrder) {
+            const newPdf = await PDFLib.PDFDocument.create();
+            const copiedPages = await newPdf.copyPages(pdfDoc, newOrder);
+            copiedPages.forEach(page => newPdf.addPage(page));
+            pdfDoc = newPdf;
+        }
+
+        async function handleImageUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+
+                reader.onload = async function (e) {
+                    const imageBytes = new Uint8Array(e.target.result);
+                    let image;
+                    try {
+                        if (file.type === 'image/jpeg') {
+                            image = await pdfDoc.embedJpg(imageBytes);
+                        } else {
+                            image = await pdfDoc.embedPng(imageBytes);
+                        }
+                    } catch (err) {
+                        alert("Error embedding image: " + err);
+                        return;
+                    }
+
+                    const page = pdfDoc.getPage(selectedPageIndex);
+                    const { width, height } = page.getSize();
+
+                    // Scale image to fit if too large
+                    let imgWidth = image.width;
+                    let imgHeight = image.height;
+                    if (imgWidth > width / 2) {
+                        const scale = (width / 2) / imgWidth;
+                        imgWidth *= scale;
+                        imgHeight *= scale;
+                    }
+
+                    page.drawImage(image, {
+                        x: width / 2 - imgWidth / 2,
+                        y: height / 2 - imgHeight / 2,
+                        width: imgWidth,
+                        height: imgHeight,
+                    });
+
+                    await refreshView();
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
+            input.value = ''; // Reset
+        }
+
+        async function handleAppendPdf(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const arrayBuffer = await file.arrayBuffer();
+
+                try {
+                    const sourcePdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                    const copiedPages = await pdfDoc.copyPages(sourcePdf, sourcePdf.getPageIndices());
+                    copiedPages.forEach((page) => pdfDoc.addPage(page));
+
+                    await refreshView();
+                    alert(`Appended ${copiedPages.length} pages.`);
+                } catch (err) {
+                    alert("Error appending PDF: " + err);
+                }
+            }
+            input.value = '';
+        }
+
+        function toggleRedactMode() {
+            redactMode = !redactMode;
+            textMode = false; highlightMode = false;
+            updateButtonStates();
+        }
+
+        function toggleHighlightMode() {
+            highlightMode = !highlightMode;
+            textMode = false; redactMode = false;
+            updateButtonStates();
+        }
+
+        function updateButtonStates() {
+            const redactBtn = document.getElementById('redact-btn');
+            const highlightBtn = document.getElementById('highlight-btn');
+            const textBtn = document.getElementById('add-text-btn');
+
+            redactBtn.className = redactMode ? 'btn btn-danger' : 'btn btn-outline-danger';
+            highlightBtn.className = highlightMode ? 'btn btn-warning' : 'btn btn-outline-warning';
+            textBtn.className = textMode ? 'btn btn-primary' : 'btn btn-outline-primary';
+
+            document.body.style.cursor = (redactMode || highlightMode || textMode) ? 'crosshair' : 'default';
+        }
+
+        // Modified handlePageClick to support new modes
+        function handlePageClick(e, index) {
+            selectedPageIndex = index;
+
+            document.querySelectorAll('.page-container').forEach((el, i) => {
+                el.style.outline = i === index ? '3px solid #007bff' : 'none';
+            });
+
+            if (textMode) addTextAnnotation(e, index);
+            else if (redactMode) addRedaction(e, index);
+            else if (highlightMode) addHighlight(e, index);
+        }
+
+        function addRedaction(e, pageIndex) {
+            addRectangle(e, pageIndex, 'white', 1);
+        }
+
+        function addHighlight(e, pageIndex) {
+            addRectangle(e, pageIndex, 'yellow', 0.4);
+        }
+
+        function addRectangle(e, pageIndex, color, opacity) {
+            const pageContainer = document.querySelectorAll('.page-container')[pageIndex];
+            const rect = pageContainer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const div = document.createElement('div');
+            div.className = 'annotation-rect';
+            div.style.left = `${x}px`;
+            div.style.top = `${y}px`;
+            div.style.width = '100px';
+            div.style.height = '20px';
+            div.style.backgroundColor = color;
+            div.style.opacity = opacity;
+            div.style.position = 'absolute';
+            div.style.border = '1px solid #ccc';
+            div.dataset.type = color === 'white' ? 'redact' : 'highlight';
+
+            // Allow resizing/moving logic would go here
+
+            pageContainer.appendChild(div);
+
+            // Turn off mode
+            if (color === 'white') toggleRedactMode();
+            else toggleHighlightMode();
+        }
+
+        async function addTextField() {
+            const form = pdfDoc.getForm();
+            const page = pdfDoc.getPage(selectedPageIndex);
+            const { width, height } = page.getSize();
+
+            const textField = form.createTextField(`text_field_${Date.now()}`);
+            textField.setText('Enter text');
+            textField.addToPage(page, { x: 50, y: height - 100, width: 200, height: 50 });
+
+            await refreshView();
+        }
+
+        async function addCheckbox() {
+            const form = pdfDoc.getForm();
+            const page = pdfDoc.getPage(selectedPageIndex);
+            const { width, height } = page.getSize();
+
+            const checkBox = form.createCheckBox(`checkbox_${Date.now()}`);
+            checkBox.addToPage(page, { x: 50, y: height - 150, width: 20, height: 20 });
+
+            await refreshView();
+        }
+
+        async function saveChanges() {
+            // Burn annotations into PDF
+            const pages = pdfDoc.getPages();
+            const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+            document.querySelectorAll('.page-container').forEach((container, index) => {
+                const page = pages[index];
+                const { height } = page.getSize();
+
+                // Text Annotations
+                container.querySelectorAll('.text-annotation').forEach(note => {
+                    const text = note.innerText;
+                    const x = parseFloat(note.style.left);
+                    const y = parseFloat(note.style.top);
+                    page.drawText(text, { x: x, y: height - y - 12, size: 16, font: font, color: PDFLib.rgb(0, 0, 0) });
+                });
+
+                // Rectangles (Redact/Highlight)
+                container.querySelectorAll('.annotation-rect').forEach(rect => {
+                    const x = parseFloat(rect.style.left);
+                    const y = parseFloat(rect.style.top);
+                    const w = parseFloat(rect.style.width);
+                    const h = parseFloat(rect.style.height);
+                    const type = rect.dataset.type;
+
+                    page.drawRectangle({
+                        x: x,
+                        y: height - y - h,
+                        width: w,
+                        height: h,
+                        color: type === 'redact' ? PDFLib.rgb(1, 1, 1) : PDFLib.rgb(1, 1, 0),
+                        opacity: type === 'redact' ? 1 : 0.4,
+                    });
+                });
+            });
+
+            const savedBytes = await pdfDoc.save();
+            pdfBytes = await pdfDoc.save();
+            await renderPdf(pdfBytes);
+        }
+
+        function toggleTextMode() {
+            textMode = !textMode;
+            const btn = document.getElementById('add-text-btn');
+            if (textMode) {
+                btn.classList.replace('btn-outline-primary', 'btn-primary');
+                document.body.style.cursor = 'text';
+            } else {
+                btn.classList.replace('btn-primary', 'btn-outline-primary');
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        function addTextAnnotation(e, pageIndex) {
+            // Don't add if clicking on existing annotation
+            if (e.target.classList.contains('text-annotation')) return;
+
+            const pageContainer = document.querySelectorAll('.page-container')[pageIndex];
+            const rect = pageContainer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const input = document.createElement('div');
+            input.contentEditable = true;
+            input.className = 'text-annotation';
+            input.style.left = `${x}px`;
+            input.style.top = `${y}px`;
+            input.innerText = "Type here";
+
+            // Allow moving
+            input.onmousedown = function (event) {
+                if (textMode) return; // Editing mode, don't move
+                // Implement simple drag if needed, for now just placement
+            };
+
+            pageContainer.appendChild(input);
+            input.focus();
+
+            // Turn off text mode after adding one
+            toggleTextMode();
+        }
+
+        async function saveChanges() {
+            // Burn annotations into PDF
+            const pages = pdfDoc.getPages();
+            const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+            document.querySelectorAll('.page-container').forEach((container, index) => {
+                const page = pages[index];
+                const { height } = page.getSize();
+
+                container.querySelectorAll('.text-annotation').forEach(note => {
+                    const text = note.innerText;
+                    const x = parseFloat(note.style.left);
+                    const y = parseFloat(note.style.top);
+
+                    // PDF coordinates are from bottom-left, HTML from top-left
+                    // Need to adjust for scale if viewport was scaled
+
+                    page.drawText(text, {
+                        x: x,
+                        y: height - y - 12, // Adjust for font size approx
+                        size: 16,
+                        font: font,
+                        color: PDFLib.rgb(0, 0, 0),
+                    });
+                });
+            });
+
+            const savedBytes = await pdfDoc.save();
+
+            // Upload back to server
+            const blob = new Blob([savedBytes], { type: 'application/pdf' });
+            const formData = new FormData();
+            formData.append('pdf_file', blob, filename);
+
+            await fetch('/save_pdf', {
+                method: 'POST',
+                body: formData
+            });
+
+            alert('Changes saved successfully!');
+            location.reload();
+        }
+
+        async function submitProcessing() {
+            // Show overlay
+            document.getElementById('processing-overlay').style.display = 'flex';
+
+            const form = document.getElementById('process-form');
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/process_request', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                const taskId = data.task_id;
+
+                pollStatus(taskId);
+            } catch (e) {
+                alert("Error starting process: " + e);
+                document.getElementById('processing-overlay').style.display = 'none';
+            }
+        }
+
+        function pollStatus(taskId) {
+            const progressBar = document.getElementById('progress-bar');
+            const statusText = document.getElementById('status-text');
+
+            const interval = setInterval(() => {
+                fetch(`/status/${taskId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.state === 'SUCCESS') {
+                            clearInterval(interval);
+                            progressBar.style.width = '100%';
+                            progressBar.innerText = '100%';
+                            statusText.innerText = 'Complete! Redirecting...';
+                            setTimeout(() => {
+                                window.location.href = `/results_view/${data.result_file}`;
+                            }, 1000);
+                        } else if (data.state === 'FAILURE') {
+                            clearInterval(interval);
+                            alert('Processing failed: ' + data.status);
+                            document.getElementById('processing-overlay').style.display = 'none';
+                        } else {
+                            // Update progress
+                            const percent = data.current || 0;
+                            progressBar.style.width = `${percent}%`;
+                            progressBar.innerText = `${percent}%`;
+                            statusText.innerText = data.status || 'Processing...';
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                    });
+            }, 1000);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

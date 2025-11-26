@@ -1,0 +1,8 @@
+docling-main
+prompt.md
+.history
+__pycache__
+!outputs/
+outputs/*
+!uploads/
+uploads/*

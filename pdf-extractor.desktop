@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=PDF Extractor
+Exec=/home/matis/Desktop/projects/pdf/start_app.sh
+Icon=text-editor
+Terminal=true
+Categories=Utility;Development;
+Comment=Extracts tables and content from PDF files.
