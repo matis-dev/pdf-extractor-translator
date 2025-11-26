@@ -243,7 +243,7 @@
         // History Stacks
         const undoStack = [];
         const redoStack = [];
-        const MAX_HISTORY = 20;
+        const MAX_HISTORY = 50;
 
         // Initialize
         async function init() {
@@ -545,7 +545,9 @@
             addRectangle(e, pageIndex, 'yellow', 0.4);
         }
 
-        function addRectangle(e, pageIndex, color, opacity) {
+        async function addRectangle(e, pageIndex, color, opacity) {
+            await saveState();
+
             const pageContainer = document.querySelectorAll('.page-container')[pageIndex];
             const rect = pageContainer.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -693,9 +695,11 @@
             }
         }
 
-        function addTextAnnotation(e, pageIndex) {
+        async function addTextAnnotation(e, pageIndex) {
             // Don't add if clicking on existing annotation
             if (e.target.classList.contains('text-annotation')) return;
+
+            await saveState();
 
             const pageContainer = document.querySelectorAll('.page-container')[pageIndex];
             const rect = pageContainer.getBoundingClientRect();
