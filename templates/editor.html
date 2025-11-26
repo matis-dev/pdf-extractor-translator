@@ -111,6 +111,12 @@
             <button class="btn btn-success btn-sm me-2" onclick="saveChanges()">
                 <i class="bi bi-save"></i> Save Changes
             </button>
+            <button class="btn btn-outline-light btn-sm me-1" onclick="undo()" id="undo-btn" disabled>
+                <i class="bi bi-arrow-counterclockwise"></i> Undo
+            </button>
+            <button class="btn btn-outline-light btn-sm" onclick="redo()" id="redo-btn" disabled>
+                <i class="bi bi-arrow-clockwise"></i> Redo
+            </button>
         </div>
     </nav>
 
@@ -234,6 +240,11 @@
         let redactMode = false;
         let highlightMode = false;
 
+        // History Stacks
+        const undoStack = [];
+        const redoStack = [];
+        const MAX_HISTORY = 20;
+
         // Initialize
         async function init() {
             const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
@@ -301,8 +312,53 @@
             }
         }
 
+        async function saveState() {
+            // Commit current annotations before saving state
+            await commitAnnotations();
+
+            const currentBytes = await pdfDoc.save();
+            undoStack.push(currentBytes);
+            if (undoStack.length > MAX_HISTORY) undoStack.shift();
+
+            // Clear redo stack on new action
+            redoStack.length = 0;
+            updateHistoryButtons();
+        }
+
+        async function undo() {
+            if (undoStack.length === 0) return;
+
+            // Save current state to redo stack
+            await commitAnnotations();
+            const currentBytes = await pdfDoc.save();
+            redoStack.push(currentBytes);
+
+            const prevBytes = undoStack.pop();
+            await loadPdf(prevBytes);
+            updateHistoryButtons();
+        }
+
+        async function redo() {
+            if (redoStack.length === 0) return;
+
+            // Save current state to undo stack
+            await commitAnnotations();
+            const currentBytes = await pdfDoc.save();
+            undoStack.push(currentBytes);
+
+            const nextBytes = redoStack.pop();
+            await loadPdf(nextBytes);
+            updateHistoryButtons();
+        }
+
+        function updateHistoryButtons() {
+            document.getElementById('undo-btn').disabled = undoStack.length === 0;
+            document.getElementById('redo-btn').disabled = redoStack.length === 0;
+        }
+
         async function rotateCurrentPage() {
             try {
+                await saveState();
                 const page = pdfDoc.getPage(selectedPageIndex);
                 const currentRotation = page.getRotation().angle;
                 page.setRotation(PDFLib.degrees(currentRotation + 90));
@@ -316,6 +372,7 @@
 
         async function deleteCurrentPage() {
             try {
+                await saveState();
                 if (pdfDoc.getPageCount() <= 1) {
                     alert("Cannot delete the last page.");
                     return;
@@ -345,6 +402,7 @@
             // Swap
             [newOrder[selectedPageIndex], newOrder[selectedPageIndex - 1]] = [newOrder[selectedPageIndex - 1], newOrder[selectedPageIndex]];
 
+            await saveState();
             await reorderPages(newOrder);
             selectedPageIndex--;
             await refreshView();
@@ -360,6 +418,7 @@
             // Swap
             [newOrder[selectedPageIndex], newOrder[selectedPageIndex + 1]] = [newOrder[selectedPageIndex + 1], newOrder[selectedPageIndex]];
 
+            await saveState();
             await reorderPages(newOrder);
             selectedPageIndex++;
             await refreshView();
@@ -379,6 +438,9 @@
 
                 reader.onload = async function (e) {
                     const imageBytes = new Uint8Array(e.target.result);
+
+                    await saveState();
+
                     let image;
                     try {
                         if (file.type === 'image/jpeg') {
@@ -424,6 +486,7 @@
                 const arrayBuffer = await file.arrayBuffer();
 
                 try {
+                    await saveState();
                     const sourcePdf = await PDFLib.PDFDocument.load(arrayBuffer);
                     const copiedPages = await pdfDoc.copyPages(sourcePdf, sourcePdf.getPageIndices());
                     copiedPages.forEach((page) => pdfDoc.addPage(page));
@@ -514,6 +577,7 @@
             const page = pdfDoc.getPage(selectedPageIndex);
             const { width, height } = page.getSize();
 
+            await saveState();
             const textField = form.createTextField(`text_field_${Date.now()}`);
             textField.setText('Enter text');
             textField.addToPage(page, { x: 50, y: height - 100, width: 200, height: 50 });
@@ -526,6 +590,7 @@
             const page = pdfDoc.getPage(selectedPageIndex);
             const { width, height } = page.getSize();
 
+            await saveState();
             const checkBox = form.createCheckBox(`checkbox_${Date.now()}`);
             checkBox.addToPage(page, { x: 50, y: height - 150, width: 20, height: 20 });
 
@@ -567,10 +632,53 @@
                     });
                 });
             });
+        }
 
-            const savedBytes = await pdfDoc.save();
-            pdfBytes = await pdfDoc.save();
-            await renderPdf(pdfBytes);
+        async function commitAnnotations() {
+            // Burn annotations into PDF
+            const pages = pdfDoc.getPages();
+            const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+            document.querySelectorAll('.page-container').forEach((container, index) => {
+                const page = pages[index];
+                const { height } = page.getSize();
+
+                // Text Annotations
+                container.querySelectorAll('.text-annotation').forEach(note => {
+                    const text = note.innerText;
+                    const x = parseFloat(note.style.left);
+                    const y = parseFloat(note.style.top);
+
+                    page.drawText(text, {
+                        x: x,
+                        y: height - y - 12, // Adjust for font size approx
+                        size: 16,
+                        font: font,
+                        color: PDFLib.rgb(0, 0, 0),
+                    });
+                });
+
+                // Rectangles (Redact/Highlight)
+                container.querySelectorAll('.annotation-rect').forEach(rect => {
+                    const x = parseFloat(rect.style.left);
+                    const y = parseFloat(rect.style.top);
+                    const w = parseFloat(rect.style.width);
+                    const h = parseFloat(rect.style.height);
+                    const type = rect.dataset.type;
+
+                    page.drawRectangle({
+                        x: x,
+                        y: height - y - h,
+                        width: w,
+                        height: h,
+                        color: type === 'redact' ? PDFLib.rgb(1, 1, 1) : PDFLib.rgb(1, 1, 0),
+                        opacity: type === 'redact' ? 1 : 0.4,
+                    });
+                });
+            });
+
+            // Clear DOM annotations after committing
+            document.querySelectorAll('.text-annotation, .annotation-rect').forEach(el => el.remove());
         }
 
         function toggleTextMode() {
@@ -615,32 +723,7 @@
         }
 
         async function saveChanges() {
-            // Burn annotations into PDF
-            const pages = pdfDoc.getPages();
-            const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-
-            document.querySelectorAll('.page-container').forEach((container, index) => {
-                const page = pages[index];
-                const { height } = page.getSize();
-
-                container.querySelectorAll('.text-annotation').forEach(note => {
-                    const text = note.innerText;
-                    const x = parseFloat(note.style.left);
-                    const y = parseFloat(note.style.top);
-
-                    // PDF coordinates are from bottom-left, HTML from top-left
-                    // Need to adjust for scale if viewport was scaled
-
-                    page.drawText(text, {
-                        x: x,
-                        y: height - y - 12, // Adjust for font size approx
-                        size: 16,
-                        font: font,
-                        color: PDFLib.rgb(0, 0, 0),
-                    });
-                });
-            });
-
+            await commitAnnotations();
             const savedBytes = await pdfDoc.save();
 
             // Upload back to server
