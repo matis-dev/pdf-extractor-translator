@@ -124,5 +124,65 @@ def save_pdf():
         file.save(pdf_path)
         return "Saved", 200
 
+@app.route('/extract_text_region', methods=['POST'])
+def extract_text_region():
+    import pdfplumber
+    
+    filename = request.form.get('filename')
+    page_index = int(request.form.get('page_index'))
+    x = float(request.form.get('x'))
+    y = float(request.form.get('y'))
+    w = float(request.form.get('w'))
+    h = float(request.form.get('h'))
+    page_width_dom = float(request.form.get('page_width'))
+    page_height_dom = float(request.form.get('page_height'))
+    
+    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            page = pdf.pages[page_index]
+            
+            # Coordinate conversion
+            # DOM (0,0) is top-left. PDF (0,0) is usually bottom-left, but pdfplumber uses top-left for bbox usually?
+            # pdfplumber bbox: (x0, top, x1, bottom)
+            
+            # Scale factors
+            scale_x = page.width / page_width_dom
+            scale_y = page.height / page_height_dom
+            
+            # Calculate PDF coordinates
+            pdf_x = x * scale_x
+            pdf_y = y * scale_y
+            pdf_w = w * scale_x
+            pdf_h = h * scale_y
+            
+            # BBox for pdfplumber: (x0, top, x1, bottom)
+            bbox = (pdf_x, pdf_y, pdf_x + pdf_w, pdf_y + pdf_h)
+            
+            cropped_page = page.crop(bbox)
+            text = cropped_page.extract_text()
+            
+            return {'text': text}
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+@app.route('/translate_content', methods=['POST'])
+def translate_content():
+    from translation_utils import translate_text
+    
+    text = request.form.get('text')
+    source_lang = request.form.get('source_lang')
+    target_lang = request.form.get('target_lang')
+    
+    if not text:
+        return {'error': 'No text provided'}, 400
+        
+    try:
+        translated = translate_text(text, target_lang, source_lang)
+        return {'text': translated}
+    except Exception as e:
+        return {'error': str(e)}, 500
+
 if __name__ == '__main__':
     app.run(debug=True)
