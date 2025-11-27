@@ -335,6 +335,7 @@
 
                     <div class="mt-3 text-end">
                         <button class="btn btn-secondary" onclick="closePageExtractionModal()">Cancel</button>
+                        <button class="btn btn-success" onclick="saveSinglePagePdf()">Save Page as PDF</button>
                         <button class="btn btn-primary" onclick="submitPageExtraction()">Start Extraction</button>
                     </div>
                 </div>
@@ -729,6 +730,34 @@
 
         function closePageExtractionModal() {
             document.getElementById('page-extraction-modal').style.display = 'none';
+        }
+
+        async function saveSinglePagePdf() {
+            try {
+                const newPdf = await PDFLib.PDFDocument.create();
+                const [page] = await newPdf.copyPages(pdfDoc, [pageToExtractIndex]);
+                newPdf.addPage(page);
+                const pdfBytes = await newPdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+                // Strip extension from original filename if present
+                let baseName = '{{ filename }}';
+                if (baseName.toLowerCase().endsWith('.pdf')) {
+                    baseName = baseName.slice(0, -4);
+                }
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${baseName}-page${pageToExtractIndex + 1}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                closePageExtractionModal();
+            } catch (e) {
+                alert("Error saving PDF page: " + e.message);
+            }
         }
 
         async function submitPageExtraction() {
