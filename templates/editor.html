@@ -68,9 +68,59 @@
             outline: 2px solid #007bff;
             border: none;
             background: white;
+            z-index: 10;
+        }
+
+        .image-annotation {
+            position: absolute;
+            cursor: move;
+            border: 1px dashed #28a745;
+            z-index: 5;
+        }
+
+        .image-annotation:hover {
+            border: 2px solid #28a745;
         }
 
         /* Blur Mask Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Context Menu */
+        #context-menu {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 5px 0;
+            min-width: 120px;
+        }
+
+        #context-menu .item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+        }
+
+        #context-menu .item:hover {
+            background-color: #f0f0f0;
+        }
+
         #processing-overlay {
             position: absolute;
             top: 0;
@@ -123,7 +173,12 @@
     <div id="editor-container">
         <div id="sidebar">
             <h5 class="mb-3">Tools</h5>
-            <div class="d-grid gap-2 mb-4">
+            <!-- Context Menu -->
+            <div id="context-menu">
+                <div class="item" id="delete-item">Delete</div>
+            </div>
+
+            <div class="container-fluid h-100 d-flex flex-column">
                 <button class="btn btn-outline-secondary" onclick="rotateCurrentPage()">
                     <i class="bi bi-arrow-clockwise"></i> Rotate Page (90°)
                 </button>
@@ -247,9 +302,51 @@
 
         // Initialize
         async function init() {
+            // Load PDF
+            const url = '/uploads/{{ filename }}';
             const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
-            pdfBytes = existingPdfBytes;
-            await loadPdf(pdfBytes);
+            pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+
+            // Initialize history
+            undoStack.push(await pdfDoc.save());
+            updateHistoryButtons();
+
+            await refreshView();
+
+            // Context Menu Logic
+            const contextMenu = document.getElementById('context-menu');
+            const deleteItem = document.getElementById('delete-item');
+            let targetElement = null;
+
+            document.addEventListener('contextmenu', (e) => {
+                if (e.target.classList.contains('text-annotation') ||
+                    e.target.classList.contains('image-annotation') ||
+                    e.target.classList.contains('annotation-rect')) {
+
+                    e.preventDefault();
+                    targetElement = e.target;
+
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = `${e.pageX}px`;
+                    contextMenu.style.top = `${e.pageY}px`;
+                } else {
+                    contextMenu.style.display = 'none';
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('#context-menu')) return;
+                contextMenu.style.display = 'none';
+            });
+
+            deleteItem.addEventListener('click', async () => {
+                if (targetElement) {
+                    await saveState(); // Save before deleting
+                    targetElement.remove();
+                    contextMenu.style.display = 'none';
+                    targetElement = null;
+                }
+            });
         }
 
         async function loadPdf(bytes) {
@@ -437,45 +534,39 @@
                 const reader = new FileReader();
 
                 reader.onload = async function (e) {
-                    const imageBytes = new Uint8Array(e.target.result);
+                    // Create DOM element instead of burning immediately
+                    const pageContainer = document.querySelectorAll('.page-container')[selectedPageIndex];
+                    const { width, height } = pdfDoc.getPage(selectedPageIndex).getSize(); // PDF size
+                    // Note: pageContainer size might be different if scaled, but here we assume 1.0 scale for simplicity
+                    // or we rely on the container style width/height which matches viewport
 
-                    await saveState();
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'image-annotation';
 
-                    let image;
-                    try {
-                        if (file.type === 'image/jpeg') {
-                            image = await pdfDoc.embedJpg(imageBytes);
-                        } else {
-                            image = await pdfDoc.embedPng(imageBytes);
+                    // Default size or scaled
+                    img.onload = function () {
+                        let imgWidth = img.naturalWidth;
+                        let imgHeight = img.naturalHeight;
+
+                        // Scale if too big
+                        if (imgWidth > 200) {
+                            const scale = 200 / imgWidth;
+                            imgWidth *= scale;
+                            imgHeight *= scale;
                         }
-                    } catch (err) {
-                        alert("Error embedding image: " + err);
-                        return;
-                    }
 
-                    const page = pdfDoc.getPage(selectedPageIndex);
-                    const { width, height } = page.getSize();
+                        img.style.width = `${imgWidth}px`;
+                        img.style.height = `${imgHeight}px`;
+                        img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2}px`;
+                        img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2}px`;
 
-                    // Scale image to fit if too large
-                    let imgWidth = image.width;
-                    let imgHeight = image.height;
-                    if (imgWidth > width / 2) {
-                        const scale = (width / 2) / imgWidth;
-                        imgWidth *= scale;
-                        imgHeight *= scale;
-                    }
-
-                    page.drawImage(image, {
-                        x: width / 2 - imgWidth / 2,
-                        y: height / 2 - imgHeight / 2,
-                        width: imgWidth,
-                        height: imgHeight,
-                    });
-
-                    await refreshView();
+                        makeDraggable(img);
+                        pageContainer.appendChild(img);
+                    };
                 };
 
-                reader.readAsArrayBuffer(file);
+                reader.readAsDataURL(file);
             }
             input.value = ''; // Reset
         }
@@ -641,7 +732,9 @@
             const pages = pdfDoc.getPages();
             const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
 
-            document.querySelectorAll('.page-container').forEach((container, index) => {
+            const containers = document.querySelectorAll('.page-container');
+            for (let index = 0; index < containers.length; index++) {
+                const container = containers[index];
                 const page = pages[index];
                 const { height } = page.getSize();
 
@@ -677,10 +770,80 @@
                         opacity: type === 'redact' ? 1 : 0.4,
                     });
                 });
-            });
+
+                // Images
+                const imagePromises = Array.from(container.querySelectorAll('.image-annotation')).map(async (img) => {
+                    const x = parseFloat(img.style.left);
+                    const y = parseFloat(img.style.top);
+                    const w = parseFloat(img.style.width);
+                    const h = parseFloat(img.style.height);
+
+                    // Fetch image data
+                    const imageBytes = await fetch(img.src).then(res => res.arrayBuffer());
+                    let pdfImage;
+                    try {
+                        // Guess type or try both
+                        // Since we used DataURL, we can check prefix, but simpler to try embedJpg then Png
+                        // Or just use embedPng if it's png, etc.
+                        // For robustness, let's look at the src header
+                        if (img.src.startsWith('data:image/jpeg')) {
+                            pdfImage = await pdfDoc.embedJpg(imageBytes);
+                        } else {
+                            pdfImage = await pdfDoc.embedPng(imageBytes);
+                        }
+                    } catch (e) {
+                        // Fallback
+                        try { pdfImage = await pdfDoc.embedPng(imageBytes); } catch (e2) { pdfImage = await pdfDoc.embedJpg(imageBytes); }
+                    }
+
+                    if (pdfImage) {
+                        page.drawImage(pdfImage, {
+                            x: x,
+                            y: height - y - h,
+                            width: w,
+                            height: h,
+                        });
+                    }
+                });
+
+                await Promise.all(imagePromises);
+            }
 
             // Clear DOM annotations after committing
-            document.querySelectorAll('.text-annotation, .annotation-rect').forEach(el => el.remove());
+            document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation').forEach(el => el.remove());
+        }
+
+        function makeDraggable(el) {
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            el.addEventListener('mousedown', (e) => {
+                // If text annotation and in text mode, don't drag (allow edit)
+                if (el.classList.contains('text-annotation') && textMode) return;
+
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialLeft = parseFloat(el.style.left || 0);
+                initialTop = parseFloat(el.style.top || 0);
+                el.style.zIndex = 100; // Bring to front
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault(); // Prevent selection
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                el.style.left = `${initialLeft + dx}px`;
+                el.style.top = `${initialTop + dy}px`;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    el.style.zIndex = ''; // Reset
+                }
+            });
         }
 
         function toggleTextMode() {
@@ -714,10 +877,7 @@
             input.innerText = "Type here";
 
             // Allow moving
-            input.onmousedown = function (event) {
-                if (textMode) return; // Editing mode, don't move
-                // Implement simple drag if needed, for now just placement
-            };
+            makeDraggable(input);
 
             pageContainer.appendChild(input);
             input.focus();
