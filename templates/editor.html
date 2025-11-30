@@ -7,6 +7,7 @@
     <title>PDF Editor - {{ filename }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body {
             height: 100vh;
@@ -372,6 +373,9 @@
                 <button class="btn btn-outline-info" id="extract-btn" onclick="toggleExtractMode()">
                     <i class="bi bi-textarea-t"></i> Extract Text
                 </button>
+                <button class="btn btn-outline-primary" onclick="shardPdf()">
+                    <i class="bi bi-grid-3x3"></i> Split PDF (Shard)
+                </button>
                 <button class="btn btn-outline-warning" id="highlight-btn" onclick="toggleHighlightMode()">
                     <i class="bi bi-pencil-fill"></i> Highlight
                 </button>
@@ -730,6 +734,49 @@
 
         function closePageExtractionModal() {
             document.getElementById('page-extraction-modal').style.display = 'none';
+        }
+
+        async function shardPdf() {
+            if (!confirm("This will split the PDF into individual pages and download them as a ZIP file. Continue?")) return;
+
+            document.getElementById('processing-overlay').style.display = 'flex';
+
+            try {
+                const zip = new JSZip();
+                const pageCount = pdfDoc.getPageCount();
+
+                // Strip extension from original filename
+                let baseName = '{{ filename }}';
+                if (baseName.toLowerCase().endsWith('.pdf')) {
+                    baseName = baseName.slice(0, -4);
+                }
+
+                for (let i = 0; i < pageCount; i++) {
+                    const newPdf = await PDFLib.PDFDocument.create();
+                    const [page] = await newPdf.copyPages(pdfDoc, [i]);
+                    newPdf.addPage(page);
+                    const pdfBytes = await newPdf.save();
+
+                    zip.file(`${baseName}-page${i + 1}.pdf`, pdfBytes);
+                }
+
+                const content = await zip.generateAsync({ type: "blob" });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${baseName}-sharded.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                alert("PDF split successfully!");
+            } catch (e) {
+                alert("Error splitting PDF: " + e.message);
+                console.error(e);
+            } finally {
+                document.getElementById('processing-overlay').style.display = 'none';
+            }
         }
 
         async function saveSinglePagePdf() {
