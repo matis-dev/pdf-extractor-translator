@@ -21,10 +21,40 @@ from pathlib import Path
 import pandas as pd
 from docling.document_converter import DocumentConverter
 from docx import Document
-from docx.shared import Inches
+from docx.shared import Mm, Pt
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 _log = logging.getLogger(__name__)
 
+def set_cell_margins(cell, top=0, start=0, bottom=0, end=0):
+    """
+    Sets the margins (padding) of a table cell to zero.
+    """
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    tcMar = OxmlElement('w:tcMar')
+    
+    for tag, value in [('w:top', top), ('w:start', start), ('w:bottom', bottom), ('w:end', end)]:
+        node = OxmlElement(tag)
+        node.set(qn('w:w'), str(value))
+        node.set(qn('w:type'), 'dxa')
+        tcMar.append(node)
+    
+    tcPr.append(tcMar)
+
+def format_paragraph(paragraph):
+    """
+    Sets font to 10pt Arial and removes extra spacing.
+    """
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.space_after = Pt(0)
+    paragraph.paragraph_format.line_spacing = 1.0
+    
+    for run in paragraph.runs:
+        run.font.name = 'Arial'
+        run.font.size = Pt(10)
 
 def extract_full_document_to_word(pdf_path: str):
     """
@@ -39,11 +69,6 @@ def extract_full_document_to_word(pdf_path: str):
         tessdata_prefix = "/usr/share/tesseract-ocr/5/tessdata/"
         if os.path.exists(tessdata_prefix):
             os.environ["TESSDATA_PREFIX"] = tessdata_prefix
-        else:
-            _log.warning(
-                f"TESSDATA_PREFIX not set and default path '{tessdata_prefix}' not found. "
-                "OCR may fail if Tesseract is not configured correctly."
-            )
 
     input_doc_path = Path(pdf_path)
     if not input_doc_path.exists():
@@ -66,7 +91,13 @@ def extract_full_document_to_word(pdf_path: str):
             element_map[element.self_ref] = element
 
     document = Document()
-    document.add_heading(f"Content Extracted from {input_doc_path.name}", 0)
+    
+    # Set Page Margins (5mm)
+    for section in document.sections:
+        section.top_margin = Mm(5)
+        section.bottom_margin = Mm(5)
+        section.left_margin = Mm(5)
+        section.right_margin = Mm(5)
 
     # Process elements in the order they appear in the document body
     for child_ref in docling_doc.body.children:
@@ -77,37 +108,52 @@ def extract_full_document_to_word(pdf_path: str):
             continue
 
         if element_type == "texts":
+            p = document.add_paragraph(element.text)
+            format_paragraph(p)
+            
             if hasattr(element, 'label') and element.label == "section_header":
-                document.add_heading(element.text, level=element.level or 1)
+                for run in p.runs:
+                    run.bold = True
             elif hasattr(element, 'label') and element.label == "list_item":
-                document.add_paragraph(element.text, style='List Bullet')
-            else:
-                document.add_paragraph(element.text)
+                p.style = 'List Bullet'
+                format_paragraph(p) # Re-apply format to override style defaults if needed
 
         elif element_type == "tables":
-            document.add_heading(f"Table", level=2)
             table_df: pd.DataFrame = element.export_to_dataframe(doc=docling_doc)
             
             if not table_df.empty:
                 # Add a table to the document
-                doc_table = document.add_table(rows=1, cols=len(table_df.columns))
+                rows = len(table_df) + 1 # +1 for header
+                cols = len(table_df.columns)
+                doc_table = document.add_table(rows=rows, cols=cols)
                 doc_table.style = 'Table Grid'
+                doc_table.autofit = True
+                doc_table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
-                # Add the header row
+                # Header
                 for j, col_name in enumerate(table_df.columns):
-                    doc_table.cell(0, j).text = str(col_name)
+                    cell = doc_table.cell(0, j)
+                    cell.text = str(col_name)
+                    set_cell_margins(cell, 0, 0, 0, 0)
+                    for p in cell.paragraphs:
+                        format_paragraph(p)
+                        for run in p.runs:
+                            run.bold = True
 
-                # Add the data rows
-                for i, row in table_df.iterrows():
-                    row_cells = doc_table.add_row().cells
+                # Data
+                for i, row in enumerate(table_df.itertuples(index=False)):
                     for j, cell_value in enumerate(row):
-                        row_cells[j].text = str(cell_value)
-            document.add_paragraph() # Add some space after the table
+                        cell = doc_table.cell(i+1, j)
+                        cell.text = str(cell_value) if cell_value is not None else ""
+                        set_cell_margins(cell, 0, 0, 0, 0)
+                        for p in cell.paragraphs:
+                            format_paragraph(p)
+                
+                document.add_paragraph() # Spacer
 
     document.save(output_docx_path)
     _log.info(f"Successfully extracted full document content to '{output_docx_path}'.")
     return output_docx_path
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
