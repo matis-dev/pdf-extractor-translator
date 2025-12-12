@@ -1,68 +1,109 @@
-# PDF Content and Table Extraction Scripts
+# PDF Content Extractor & Translator
 
-This repository contains Python scripts and a Flask web application to extract content from PDF documents using the Docling library. You can extract just the tables into separate CSV files, or extract the entire document structure (headings, paragraphs, tables, etc.) into a Microsoft Word (`.docx`) file.
+A powerful, privacy-focused tool to extract structured content from PDF documents. It converts PDFs into editable formats like Microsoft Word (`.docx`), OpenDocument Text (`.odt`), and CSV (for tables), with built-in offline translation capabilities.
 
-## Prerequisites
+Powered by [Docling](https://github.com/DS4SD/docling) for advanced document parsing, **Flask** for the web interface, and **Celery** for background task processing.
 
-Before using these tools, ensure you have the following installed:
+## 🚀 Key Features
 
-1.  **Python 3:** All scripts and the web application are written in Python 3.
-2.  **Redis:** Required for background task processing.
-    -   **Docker (Recommended):** `docker run -d -p 6379:6379 --name redis-pdf-extractor --restart always redis`
-    -   Or install via your package manager.
-3.  **Pandoc:** Required for ODT conversion.
-    -   **Conda:** `conda install -c conda-forge pandoc`
-    -   Or `sudo apt-get install pandoc`
-4.  **Python Dependencies:**
-    ```bash
-    pip install "docling[tesserocr]" pandas python-docx Flask celery redis argostranslate
-    ```
-5.  **Tesseract OCR Engine:** (See original instructions below)
-
-    -   **On Debian/Ubuntu-based Linux:**
-        ```bash
-        sudo apt-get update && sudo apt-get install tesseract-ocr
-        ```
-    -   **On macOS (using Homebrew):**
-        ```bash
-        brew install tesseract
-        ```
-    -   **On Windows:** Download and run the installer from the [Tesseract at UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki) page.
-
-    After installing Tesseract, you may need to set the `TESSDATA_PREFIX` environment variable.
+*   **Full Document Extraction:** Converts PDFs to `.docx` preserving structure (headings, paragraphs, lists) and styling.
+*   **Table Extraction:** Detects tables and exports them to CSV files or directly into Word documents.
+*   **Offline Translation:** Translate extracted content (including tables!) to **Spanish**, **French**, or **German** locally using `argostranslate`. No API keys required.
+*   **Format Conversion:** Supports `.odt` output (requires `pandoc`).
+*   **Asynchronous Processing:** Handles large files efficiently using background workers (Redis + Celery).
+*   **Dual Mode:** Run as a user-friendly Web Application or as standalone Command-Line Scripts.
 
 ---
 
-## Web Application
+## 🛠️ Prerequisites & Installation
 
-The `app.py` script provides a user-friendly web interface for extracting content from PDF files.
+### 1. System Dependencies
 
-**Script:** `app.py`
+You need to install a few system-level tools before running the python scripts.
 
-**Description:**
-A Flask web application that allows users to upload a PDF file through a web browser. It uses asynchronous background processing (Celery) to handle large files without blocking.
+*   **Redis:** Required for the background worker queue.
+    *   *Docker:* `docker run -d -p 6379:6379 --name redis-pdf-extractor --restart always redis`
+    *   *Linux (apt):* `sudo apt-get install redis-server`
+*   **Pandoc:** Required for `.odt` conversion.
+    *   *Linux (apt):* `sudo apt-get install pandoc`
+    *   *Conda:* `conda install -c conda-forge pandoc`
+*   **Tesseract OCR:** Required by Docling for OCR capabilities.
+    *   *Linux (apt):* `sudo apt-get install tesseract-ocr`
+    *   *macOS:* `brew install tesseract`
+    *   *Windows:* [Installer](https://github.com/UB-Mannheim/tesseract/wiki)
 
-**Features:**
-1.  **Extract to Word (.docx):** Preserves document structure.
-2.  **Extract to ODT (.odt):** OpenDocument Text format (requires Pandoc).
-3.  **Extract Tables to CSV:** Saves tables as separate CSV files in a ZIP.
-4.  **Offline Translation:** Optionally translate extracted content to Spanish, French, or German using `argostranslate` (runs locally, no API keys required).
+### 2. Python Dependencies
 
-### How to Run
+Clone the repository and install the required Python packages.
 
-1.  **Start Redis:** Ensure your Redis server/container is running.
-2.  **Start the Worker:**
+```bash
+# Recommended: Create a virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install "docling[tesserocr]" pandas python-docx Flask celery redis argostranslate pdfplumber
+```
+
+> **Note:** If you encounter errors related to `tesserocr`, ensure you have the Tesseract development headers installed (e.g., `sudo apt-get install libtesseract-dev` on Ubuntu).
+
+---
+
+## 🖥️ Usage: Web Application
+
+The web interface is the easiest way to use the tool, offering a simple drag-and-drop UI.
+
+1.  **Start Redis:** Ensure your Redis server is running.
+2.  **Start the Background Worker:**
     ```bash
     ./start_worker.sh
     ```
-3.  **Start the Flask App:**
+3.  **Start the Web Server:**
     ```bash
     python app.py
+    # or ./start_app.sh
     ```
-4.  **Open Browser:** Go to [http://127.0.0.1:5000](http://127.0.0.1:5000)
+4.  **Access the App:** Open your browser and navigate to **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
 
 ---
 
-## Command-Line Scripts
+## 💻 Usage: Command-Line Interface (CLI)
 
-(Scripts `extract_full_document_to_word.py` and `extract_tables_to_csv.py` can still be used directly for basic extraction without translation/async features.)
+You can run the extraction scripts directly if you don't need the web UI or translation features.
+
+### Extract Full Document to Word
+Converts the entire PDF into a Word document.
+```bash
+python extract_full_document_to_word.py input_document.pdf
+```
+*Output:* `input_document_full_content.docx`
+
+### Extract Tables to CSV
+Extracts all tables found in the PDF into separate CSV files.
+```bash
+python extract_tables_to_csv.py input_document.pdf
+```
+*Output:* A folder named `input_document_tables/` containing CSV files.
+
+### Extract Tables to Word
+Extracts only the tables into a Word document.
+```bash
+python extract_tables_to_word.py input_document.pdf
+```
+*Output:* `input_document_tables.docx`
+
+---
+
+## 📂 Project Structure
+
+*   `app.py`: Main Flask application entry point.
+*   `tasks.py`: Celery tasks for handling long-running extractions and translations.
+*   `extract_*.py`: Core logic scripts for Docling-based extraction.
+*   `templates/`: HTML templates for the web interface.
+*   `uploads/` & `outputs/`: Directories for storing temporary files.
+*   `translation_utils.py`: Helper functions for `argostranslate`.
+
+## ⚠️ Troubleshooting
+
+*   **Tesseract Error:** If you see errors about `TESSDATA_PREFIX`, make sure the environment variable is set to your tessdata directory (e.g., `/usr/share/tesseract-ocr/5/tessdata/`).
+*   **Redis Connection:** If the worker fails to connect, check if Redis is running on `localhost:6379`.
