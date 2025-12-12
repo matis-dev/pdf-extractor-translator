@@ -1,3 +1,5 @@
+![Status](https://img.shields.io/badge/Status-Beta-yellow) ![License](https://img.shields.io/badge/License-MIT-blue) ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+
 # PDF Content Extractor & Translator
 
 A powerful, privacy-focused tool to extract structured content from PDF documents. It converts PDFs into editable formats like Microsoft Word (`.docx`), OpenDocument Text (`.odt`), and CSV (for tables), with built-in offline translation capabilities.
