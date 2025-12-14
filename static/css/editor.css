@@ -1,0 +1,561 @@
+:root {
+    --bg-body: #fff;
+    --bg-sidebar: #f8f9fa;
+    --text-color: #212529;
+    --border-color: #dee2e6;
+    --card-bg: #fff;
+    --thumbnail-hover: #e9ecef;
+    --thumbnail-active-bg: #e7f1ff;
+    --thumbnail-active-border: #0d6efd;
+    --modal-bg: #fefefe;
+    --modal-text: #000;
+}
+
+[data-theme="dark"] {
+    --bg-body: #212529;
+    --bg-sidebar: #343a40;
+    --text-color: #f8f9fa;
+    --border-color: #495057;
+    --card-bg: #2b3035;
+    --thumbnail-hover: #495057;
+    --thumbnail-active-bg: #375a7f;
+    --thumbnail-active-border: #375a7f;
+    --modal-bg: #2b3035;
+    --modal-text: #f8f9fa;
+    --accent-color: #0d6efd;
+    /* For title bar buttons */
+}
+
+body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--bg-body);
+    color: var(--text-color);
+    margin: 0;
+    /* Ensure no margin causing white gaps */
+}
+
+#editor-container {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+#main-preview {
+    flex: 1;
+    background: #525659;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+}
+
+#pdf-viewer {
+    position: relative;
+    /* Center in preview */
+    margin: 0 auto;
+}
+
+.page-container {
+    position: relative;
+    margin-bottom: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    background: white;
+    /* Ensure PDF pages have white bg */
+}
+
+.text-annotation {
+    position: absolute;
+    border: 1px dashed #007bff;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 5px;
+    cursor: move;
+    min-width: 50px;
+    min-height: 20px;
+    font-size: 16px;
+    font-family: sans-serif;
+    color: black;
+}
+
+.text-annotation:focus {
+    outline: 2px solid #007bff;
+    border: none;
+    background: white;
+    z-index: 10;
+}
+
+.image-annotation {
+    position: absolute;
+    cursor: move;
+    border: 1px dashed #28a745;
+    z-index: 5;
+}
+
+.image-annotation:hover {
+    border: 2px solid #28a745;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+}
+
+/* Page Controls */
+.page-controls {
+    position: absolute;
+    top: 10px;
+    right: -50px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 100;
+}
+
+.page-control-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s;
+}
+
+.page-control-btn:hover {
+    transform: scale(1.1);
+}
+
+.btn-rotate {
+    background-color: #6c757d;
+}
+
+.btn-up {
+    background-color: #0d6efd;
+}
+
+.btn-down {
+    background-color: #0d6efd;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+}
+
+.btn-extract {
+    background-color: #198754;
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+    background-color: var(--modal-bg);
+    color: var(--modal-text);
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Context Menu */
+#context-menu {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 5px 0;
+    min-width: 120px;
+}
+
+#context-menu .item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+}
+
+#context-menu .item:hover {
+    background-color: #f0f0f0;
+}
+
+#processing-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.progress {
+    width: 50%;
+    height: 30px;
+}
+
+/* Thumbnails */
+#thumbnails-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.thumbnail-item {
+    margin-bottom: 15px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    padding: 5px;
+    border-radius: 4px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.thumbnail-item:hover {
+    background-color: var(--thumbnail-hover);
+}
+
+.thumbnail-item.active {
+    border-color: var(--thumbnail-active-border);
+    background-color: var(--thumbnail-active-bg);
+}
+
+.thumbnail-item canvas {
+    max-width: 100%;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-label {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 5px;
+    font-weight: 500;
+}
+
+/* RIBBON & TITLE BAR REDESIGN */
+#title-bar {
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-sidebar);
+    /* Match sidebar/ribbon bg for seamless look */
+    /* Use a branding color or just clean white/gray? Let's go clean. */
+    border-bottom: 1px solid var(--border-color);
+    padding: 5px 15px;
+    height: 40px;
+    gap: 15px;
+    justify-content: space-between;
+}
+
+.app-branding {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.app-branding:hover {
+    text-decoration: none;
+    color: var(--text-color);
+    /* Maintain color on hover */
+}
+
+.file-name {
+    color: #6c757d;
+    font-weight: normal;
+    font-size: 0.9em;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    /* Prepare for potential editability */
+    border-radius: 4px;
+}
+
+.app-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Merge Tabs into Title Bar? Or keep separate? 
+   To mimic "Office" style (Title on top, Tabs below) is safer for space, but "Chrome" style (Tabs in title) is denser.
+   Let's keep Tabs below Title for clarity, but minimize height.
+*/
+
+#tab-bar {
+    background-color: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 10px;
+    display: flex;
+    gap: 2px;
+    height: 30px;
+    /* Reduced height */
+}
+
+.tab-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    padding: 4px 12px;
+    /* reduced padding */
+    cursor: pointer;
+    color: var(--text-color);
+    border-radius: 4px 4px 0 0;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.tab-btn.active {
+    background: var(--bg-body);
+    border-color: var(--border-color);
+    font-weight: 600;
+    position: relative;
+    top: 1px;
+    border-bottom-color: var(--bg-body);
+    color: #0d6efd;
+    /* Highlight active tab */
+}
+
+.tab-btn:hover:not(.active) {
+    background-color: var(--thumbnail-hover);
+}
+
+#ribbon-container {
+    background-color: var(--bg-body);
+    border-bottom: 1px solid var(--border-color);
+    height: 90px;
+    /* Slightly reduced */
+    overflow-x: auto;
+    position: relative;
+    z-index: 10;
+}
+
+#ribbon-content {
+    display: flex;
+    height: 100%;
+    padding: 5px 10px;
+    gap: 15px;
+}
+
+.ribbon-group {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    padding-right: 15px;
+    justify-content: space-between;
+}
+
+.ribbon-group:last-child {
+    border-right: none;
+}
+
+.ribbon-tools {
+    display: flex;
+    gap: 5px;
+    flex: 1;
+    align-items: center;
+}
+
+.ribbon-group-label {
+    text-align: center;
+    font-size: 10px;
+    color: #6c757d;
+    margin-top: 2px;
+    pointer-events: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ribbon-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px;
+    color: var(--text-color);
+    cursor: pointer;
+    min-width: 40px;
+    height: 55px;
+}
+
+.ribbon-btn:hover {
+    background-color: var(--thumbnail-hover);
+    border-color: var(--border-color);
+    color: #0d6efd;
+}
+
+.ribbon-btn i {
+    font-size: 18px;
+    margin-bottom: 3px;
+}
+
+.ribbon-btn span {
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+/* Adjust Sidebar */
+#sidebar {
+    width: 200px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* API Error Handling */
+.api-error {
+    color: red;
+    font-weight: bold;
+}
+
+/* Annotation Layer */
+.annotationLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    transform-origin: 0 0;
+}
+
+.annotationLayer section {
+    position: absolute;
+    text-align: center;
+}
+
+.annotationLayer .linkAnnotation>a,
+.annotationLayer .buttonWidgetAnnotation.pushbutton>a {
+    position: absolute;
+    font-size: 1em;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.annotationLayer .linkAnnotation>a:hover,
+.annotationLayer .buttonWidgetAnnotation.pushbutton>a:hover {
+    opacity: 0.2;
+    background: #ff0;
+    box-shadow: 0px 2px 10px #ff0;
+}
+
+.annotationLayer .textAnnotation img {
+    position: absolute;
+    cursor: pointer;
+}
+
+.annotationLayer .textWidgetAnnotation input,
+.annotationLayer .textWidgetAnnotation textarea,
+.annotationLayer .choiceWidgetAnnotation select,
+.annotationLayer .buttonWidgetAnnotation.checkBox input,
+.annotationLayer .buttonWidgetAnnotation.radioButton input {
+    background-color: rgba(0, 54, 255, 0.13);
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    font-size: 9px;
+    height: 100%;
+    margin: 0;
+    padding: 0 3px;
+    vertical-align: top;
+    width: 100%;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.annotationLayer .choiceWidgetAnnotation select option {
+    padding: 0;
+}
+
+.annotationLayer .buttonWidgetAnnotation.radioButton input {
+    border-radius: 50%;
+}
+
+.annotationLayer .textWidgetAnnotation input:focus,
+.annotationLayer .textWidgetAnnotation textarea:focus,
+.annotationLayer .choiceWidgetAnnotation select:focus {
+    background: none;
+    border: 1px solid transparent;
+}
+
+.annotationLayer .popupWrapper {
+    position: absolute;
+    width: 20em;
+}
+
+.annotationLayer .popup {
+    position: absolute;
+    z-index: 200;
+    max-width: 20em;
+    background-color: #FFFF99;
+    box-shadow: 0px 2px 5px #888;
+    border-radius: 2px;
+    padding: 0.6em;
+    margin-left: 5px;
+    cursor: pointer;
+    font-family: sans-serif;
+    font-size: 0.8em;
+    line-height: 1.2;
+    word-wrap: break-word;
+}

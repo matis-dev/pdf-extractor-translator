@@ -6,98 +6,236 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Content Extractor</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         body {
             background-color: #f8f9fa;
         }
 
-        .container {
-            max-width: 700px;
+        .upload-zone {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            background-color: #fff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: #0d6efd;
+            background-color: #f1f8ff;
+        }
+
+        .file-list-card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: none;
+        }
+
+        .sticky-sidebar {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 20px;
+        }
+
+        .batch-btn-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
         }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">PDF Extractor</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <i class="bi bi-file-earmark-pdf-fill"></i>
+                PDF Extractor & Editor
+            </a>
         </div>
     </nav>
 
-    <div class="container mt-5">
-        <h1 class="text-center mb-5">PDF Extractor & Editor</h1>
+    <div class="container mb-5">
 
-        <div class="row">
-            <!-- Upload Section -->
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="card-title mb-0">Upload New File</h5>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <form action="/upload" method="post" enctype="multipart/form-data" class="w-100 text-center">
-                            <div class="mb-4">
-                                <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
-                            </div>
-                            <div class="mb-3">
-                                <input type="file" class="form-control" id="pdf_file" name="pdf_file" accept=".pdf"
-                                    required>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Upload & Edit</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Library Section -->
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="card-title mb-0">Your Library</h5>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-group list-group-flush">
-                            {% for file in uploaded_files %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                {{ file }}
-                                <a href="{{ url_for('editor', filename=file) }}"
-                                    class="btn btn-sm btn-outline-primary">Open Editor</a>
-                            </li>
-                            {% else %}
-                            <li class="list-group-item text-muted text-center">No files found.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+        <!-- Upload Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card upload-zone p-5 text-center" onclick="document.getElementById('pdf_file').click()">
+                    <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+                        <i class="bi bi-cloud-arrow-up text-primary mb-3" style="font-size: 3rem;"></i>
+                        <h4 class="fw-normal">Drag and drop PDF files here</h4>
+                        <p class="text-muted">or click to browse from your computer</p>
+                        <input type="file" class="d-none" id="pdf_file" name="pdf_file" accept=".pdf" multiple
+                            onchange="document.getElementById('upload-form').submit()">
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Processed Files Section -->
-        <div class="row mt-5">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Processed Downloads</h5>
+        <div class="row g-4">
+            <!-- Library Section -->
+            <div class="col-lg-8">
+                <div class="card file-list-card h-100">
+                    <div
+                        class="card-header bg-white border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 fw-bold"><i class="bi bi-collection me-2"></i>Library</h5>
+                        <span class="badge bg-light text-dark border">{{ uploaded_files|length }} Files</span>
                     </div>
-                    <div class="card-body">
-                        <ul class="list-group list-group-flush">
-                            {% for file in processed_files %}
-                            <li class="list-group-item">
-                                <a href="{{ url_for('download_file', filename=file) }}" class="text-decoration-none">
-                                    <i class="bi bi-file-earmark-arrow-down"></i> {{ file }}
-                                </a>
-                            </li>
-                            {% else %}
-                            <li class="list-group-item text-muted">No processed files yet.</li>
-                            {% endfor %}
-                        </ul>
+                    <div class="card-body px-0">
+                        {% if uploaded_files %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width: 40px;" class="ps-4">
+                                            <input class="form-check-input" type="checkbox" id="check-all"
+                                                onclick="toggleAll(this)">
+                                        </th>
+                                        <th>Filename</th>
+                                        <th class="text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for file in uploaded_files %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <input class="form-check-input file-checkbox" type="checkbox"
+                                                value="{{ file }}">
+                                        </td>
+                                        <td>
+                                            <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                            <span class="fw-medium">{{ file }}</span>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="{{ url_for('editor', filename=file) }}"
+                                                class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                Edit <i class="bi bi-arrow-right ms-1"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-folder2-open text-muted" style="font-size: 2rem;"></i>
+                            <p class="text-muted mt-2">Library is empty. Upload files to get started.</p>
+                        </div>
+                        {% endif %}
                     </div>
+                </div>
+            </div>
+
+            <!-- Batch Operations Sidebar -->
+            <div class="col-lg-4">
+                <div class="sticky-sidebar">
+                    <div class="card file-list-card mb-4">
+                        <div class="card-header bg-success text-white py-3">
+                            <h5 class="card-title mb-0"><i class="bi bi-lightning-charge me-2"></i>Batch Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">Select files from the library to perform actions.</p>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Extraction
+                                    Settings</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <select id="batch-extraction-type" class="form-select form-select-sm">
+                                            <option value="word">Word (.docx)</option>
+                                            <option value="odt">ODT</option>
+                                            <option value="csv">CSV (Tables)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <select id="batch-target-lang" class="form-select form-select-sm">
+                                            <option value="none">No Translation</option>
+                                            <option value="en">English</option>
+                                            <option value="es">Spanish</option>
+                                            <option value="fr">French</option>
+                                            <option value="de">German</option>
+                                        </select>
+                                    </div>
+                                    <!-- Hidden/Implicit source lang for simplicity or full optionality -->
+                                    <div class="col-12">
+                                        <select id="batch-source-lang" class="form-select form-select-sm mt-2"
+                                            style="display:none">
+                                            <!-- Keeping logic but hiding for cleaner UI unless requested, or just include -->
+                                            <option value="en">English (Source)</option>
+                                            <!-- ... -->
+                                        </select>
+                                        <!-- Let's keep the existing source dropdown logic but maybe simplified -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 mb-3">
+                                <button class="btn btn-success" onclick="processBatch()">
+                                    <i class="bi bi-play-fill me-1"></i> Extract & Translate
+                                </button>
+                            </div>
+
+                            <label class="form-label small fw-bold text-uppercase text-muted">Tools</label>
+                            <div class="batch-btn-grid">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="mergeSelectedFiles()">
+                                    <i class="bi bi-files me-1"></i> Merge
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" onclick="compressSelectedFiles()">
+                                    <i class="bi bi-arrows-collapse me-1"></i> Compress
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="convertToJpg()">
+                                    <i class="bi bi-file-image me-1"></i> To JPG
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="repairSelectedFiles()">
+                                    <i class="bi bi-tools me-1"></i> Repair
+                                </button>
+                            </div>
+
+                            <div id="batch-progress-container" class="mt-3" style="display:none;"></div>
+                            <button id="batch-download-btn" class="btn btn-primary w-100 mt-3" style="display:none;">
+                                <i class="bi bi-file-zip me-1"></i> Download ZIP
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recent Downloads -->
+                    {% if processed_files %}
+                    <div class="card file-list-card">
+                        <div class="card-header bg-white pt-3 border-bottom-0">
+                            <h6 class="card-title mb-0 fw-bold">Recent Downloads</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush small">
+                                {% for file in processed_files[:5] %} <!-- Limit to 5 -->
+                                <li class="list-group-item px-0 border-0 d-flex text-truncate">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    <a href="{{ url_for('download_file', filename=file) }}"
+                                        class="text-decoration-none text-truncate" title="{{ file }}">
+                                        {{ file }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/batch.js') }}"></script>
+    <script>
+        function toggleAll(source) {
+            checkboxes = document.querySelectorAll('.file-checkbox');
+            for (var i = 0, n = checkboxes.length; i < n; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,5 @@
+pytest
+pytest-flask
+pytest-mock
+mongomock
+pytest-playwright

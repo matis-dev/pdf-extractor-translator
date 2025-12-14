@@ -1,0 +1,12 @@
+flask
+celery[redis]
+docling
+docx
+pdf-lib
+argostranslate
+pandoc
+pypdf
+werkzeug
+gevent
+gunicorn
+pdf2image

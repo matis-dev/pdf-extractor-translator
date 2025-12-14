@@ -8,229 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        body {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        #editor-container {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
-
-        #sidebar {
-            width: 320px;
-            background: #f8f9fa;
-            border-right: 1px solid #dee2e6;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #main-preview {
-            flex: 1;
-            background: #525659;
-            overflow: auto;
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-            position: relative;
-        }
-
-        #pdf-viewer {
-            position: relative;
-        }
-
-        .page-container {
-            position: relative;
-            margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-
-        .text-annotation {
-            position: absolute;
-            border: 1px dashed #007bff;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 5px;
-            cursor: move;
-            min-width: 50px;
-            min-height: 20px;
-            font-size: 16px;
-            font-family: sans-serif;
-            color: black;
-        }
-
-        .text-annotation:focus {
-            outline: 2px solid #007bff;
-            border: none;
-            background: white;
-            z-index: 10;
-        }
-
-        .image-annotation {
-            position: absolute;
-            cursor: move;
-            border: 1px dashed #28a745;
-            z-index: 5;
-        }
-
-        .image-annotation:hover {
-            border: 2px solid #28a745;
-        }
-
-        /* Blur Mask Overlay */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            backdrop-filter: blur(5px);
-        }
-
-        /* Page Controls */
-        .page-controls {
-            position: absolute;
-            top: 10px;
-            right: -50px;
-            /* Move outside the page */
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            z-index: 100;
-        }
-
-        .page-control-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: transform 0.1s;
-        }
-
-        .page-control-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .btn-rotate {
-            background-color: #6c757d;
-        }
-
-        .btn-up {
-            background-color: #0d6efd;
-        }
-
-        .btn-down {
-            background-color: #0d6efd;
-        }
-
-        .btn-delete {
-            background-color: #dc3545;
-        }
-
-        .btn-extract {
-            background-color: #198754;
-        }
-
-        /* Extraction Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 3000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 600px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        /* Context Menu */
-        #context-menu {
-            display: none;
-            position: absolute;
-            z-index: 1000;
-            background: white;
-            border: 1px solid #ccc;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
-            padding: 5px 0;
-            min-width: 120px;
-        }
-
-        #context-menu .item {
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #333;
-        }
-
-        #context-menu .item:hover {
-            background-color: #f0f0f0;
-        }
-
-        #processing-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .progress {
-            width: 50%;
-            height: 30px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
 </head>
 
 <body>
@@ -244,24 +22,43 @@
         <p id="status-text" class="lead">Starting...</p>
     </div>
 
-    <nav class="navbar navbar-dark bg-dark px-3">
-        <a class="navbar-brand" href="/">PDF Extractor</a>
-        <span class="navbar-text text-light">{{ filename }}</span>
-        <div class="ms-auto">
-            <button class="btn btn-success btn-sm me-2" onclick="saveChanges()">
-                <i class="bi bi-save"></i> Save Changes
+    <!-- Title Bar -->
+    <div id="title-bar">
+        <div class="app-branding">
+            <a href="/" class="text-decoration-none text-body" title="Back to Library">
+                <i class="bi bi-arrow-left-circle-fill" style="font-size: 1.2rem;"></i>
+            </a>
+            <span class="fw-bold">PDF Editor</span>
+            <span class="text-muted mx-2">|</span>
+            <span class="file-name">{{ filename }}</span>
+        </div>
+
+        <div class="app-actions">
+            <button class="btn btn-outline-secondary btn-sm" onclick="appHistory.undo()" id="undo-btn" disabled
+                title="Undo">
+                <i class="bi bi-arrow-counterclockwise"></i>
             </button>
-            <button class="btn btn-outline-light btn-sm me-1" onclick="undo()" id="undo-btn" disabled>
-                <i class="bi bi-arrow-counterclockwise"></i> Undo
+            <button class="btn btn-outline-secondary btn-sm" onclick="appHistory.redo()" id="redo-btn" disabled
+                title="Redo">
+                <i class="bi bi-arrow-clockwise"></i>
             </button>
-            <button class="btn btn-outline-light btn-sm" onclick="redo()" id="redo-btn" disabled>
-                <i class="bi bi-arrow-clockwise"></i> Redo
+            <div class="vr mx-2"></div>
+            <button class="btn btn-primary btn-sm" onclick="saveChanges()">
+                <i class="bi bi-floppy"></i> Save
             </button>
         </div>
-    </nav>
+    </div>
+
+    <div id="tab-bar"></div>
+    <div id="ribbon-container">
+        <div id="ribbon-content"></div>
+    </div>
 
     <div id="editor-container">
         <div id="sidebar">
+            <h5 class="mb-3">Pages</h5>
+            <div id="thumbnails-container" class="mb-3"></div>
+            <hr>
             <h5 class="mb-3">Tools</h5>
             <!-- Extraction Result Modal -->
             <div id="extraction-modal" class="modal">
@@ -276,6 +73,10 @@
                             <option value="fr">French</option>
                             <option value="de">German</option>
                             <option value="pl">Polish</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="it">Italian</option>
+                            <option value="nl">Dutch</option>
+                            <option value="ru">Russian</option>
                         </select>
                         <span>&rarr;</span>
                         <select id="target-lang" class="form-select form-select-sm">
@@ -284,6 +85,10 @@
                             <option value="fr">French</option>
                             <option value="de">German</option>
                             <option value="pl">Polish</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="it">Italian</option>
+                            <option value="nl">Dutch</option>
+                            <option value="ru">Russian</option>
                         </select>
                         <button class="btn btn-sm btn-outline-primary"
                             onclick="translateExtractedText()">Translate</button>
@@ -321,6 +126,10 @@
                                 <option value="fr">French</option>
                                 <option value="de">German</option>
                                 <option value="pl">Polish</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="it">Italian</option>
+                                <option value="nl">Dutch</option>
+                                <option value="ru">Russian</option>
                             </select>
                             <span>&rarr;</span>
                             <select id="page-target-lang" class="form-select form-select-sm">
@@ -330,6 +139,10 @@
                                 <option value="fr">French</option>
                                 <option value="de">German</option>
                                 <option value="pl">Polish</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="it">Italian</option>
+                                <option value="nl">Dutch</option>
+                                <option value="ru">Russian</option>
                             </select>
                         </div>
                     </div>
@@ -342,49 +155,246 @@
                 </div>
             </div>
 
+            <!-- Password Prompt Modal -->
+            <div id="password-prompt-modal" class="modal" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-content" style="max-width: 400px;">
+                    <h5>Password Required</h5>
+                    <p>This PDF is protected. Please enter the password to open it.</p>
+                    <div class="mb-3">
+                        <input type="password" id="pdf-open-password" class="form-control" placeholder="Password"
+                            onkeydown="if(event.key==='Enter') submitPassword()">
+                    </div>
+                    <div class="text-end">
+                        <button class="btn btn-secondary" onclick="cancelPassword()">Cancel</button>
+                        <button class="btn btn-primary" onclick="submitPassword()">Open</button>
+                    </div>
+                    <div id="password-error" class="text-danger mt-2 small" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- Security Options Modal -->
+            <div id="security-modal" class="modal">
+                <div class="modal-content" style="max-width: 400px;">
+                    <span class="close" onclick="closeSecurityModal()">&times;</span>
+                    <h5>PDF Security</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label">Set New Password</label>
+                        <input type="password" id="new-pdf-password" class="form-control mb-2"
+                            placeholder="New Password">
+                        <input type="password" id="confirm-pdf-password" class="form-control"
+                            placeholder="Confirm Password">
+                        <div class="form-text">Leave blank to remove password protection.</div>
+                    </div>
+
+                    <div class="text-end">
+                        <button class="btn btn-secondary" onclick="closeSecurityModal()">Cancel</button>
+                        <button class="btn btn-primary" onclick="saveSecuritySettings()">Save Settings</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Context Menu -->
             <div id="context-menu">
                 <div class="item" id="delete-item">Delete</div>
             </div>
 
-            <div class="container-fluid h-100 d-flex flex-column">
-                <button class="btn btn-outline-primary" id="add-text-btn" onclick="toggleTextMode()">
-                    <i class="bi bi-type"></i> Add Text
-                </button>
-                <div class="input-group">
-                    <input type="file" class="form-control" id="image-upload" accept="image/*" style="display: none;"
-                        onchange="handleImageUpload(this)">
-                    <button class="btn btn-outline-success w-100"
-                        onclick="document.getElementById('image-upload').click()">
-                        <i class="bi bi-image"></i> Add Image
-                    </button>
+            <!-- Page Actions Toolbar -->
+            <div class="d-flex gap-2 justify-content-center mb-3">
+                <button class="btn btn-sm btn-outline-secondary" onclick="rotatePage()" title="Rotate Current Page"><i
+                        class="bi bi-arrow-clockwise"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deletePage()" title="Delete Current Page"><i
+                        class="bi bi-trash"></i></button>
+                <button class="btn btn-sm btn-outline-primary" onclick="movePageUp()" title="Move Up"><i
+                        class="bi bi-arrow-up"></i></button>
+                <button class="btn btn-sm btn-outline-primary" onclick="movePageDown()" title="Move Down"><i
+                        class="bi bi-arrow-down"></i></button>
+            </div>
+
+            <!-- Modals preserved below -->
+
+            <!-- ... existing ... -->
+
+            <!-- Note Modal -->
+            <div class="modal fade" id="noteModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Note</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="note-modal-page-index">
+                            <input type="hidden" id="note-modal-x">
+                            <input type="hidden" id="note-modal-y">
+                            <div class="mb-3">
+                                <label class="form-label">Note Text</label>
+                                <textarea class="form-control" id="note-text" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="applyNote()">Add Note</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <input type="file" class="form-control" id="pdf-append" accept=".pdf" style="display: none;"
-                        onchange="handleAppendPdf(this)">
-                    <button class="btn btn-outline-secondary w-100"
-                        onclick="document.getElementById('pdf-append').click()">
-                        <i class="bi bi-files"></i> Append PDF
-                    </button>
+            </div>
+
+            <!-- ... existing ... -->
+
+            <!-- Signature Modal -->
+            <div class="modal fade" id="signatureModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Signature</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="nav nav-tabs mb-3" role="tablist">
+                                <li class="nav-item">
+                                    <button class="nav-link active" id="tab-draw" data-bs-toggle="tab"
+                                        data-bs-target="#sig-draw" type="button" role="tab">Draw</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" id="tab-type" data-bs-toggle="tab"
+                                        data-bs-target="#sig-type" type="button" role="tab">Type</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" id="tab-upload" data-bs-toggle="tab"
+                                        data-bs-target="#sig-upload" type="button" role="tab">Upload</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="sig-draw" role="tabpanel">
+                                    <div class="border bg-light mb-2" style="height: 200px; cursor: crosshair;">
+                                        <canvas id="signature-canvas"
+                                            style="width: 100%; height: 100%; touch-action: none;"></canvas>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="clearSignature()">Clear</button>
+                                </div>
+                                <div class="tab-pane fade" id="sig-type" role="tabpanel">
+                                    <div class="mb-3">
+                                        <label class="form-label">Type Name</label>
+                                        <input type="text" class="form-control form-control-lg" id="sig-type-input"
+                                            placeholder="John Doe" style="font-family: 'Dancing Script', cursive;">
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="sig-upload" role="tabpanel">
+                                    <div class="mb-3">
+                                        <label class="form-label">Upload Image</label>
+                                        <input type="file" class="form-control" id="sig-upload-input"
+                                            accept="image/png, image/jpeg">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="applySignature()">Apply
+                                Signature</button>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn btn-outline-danger" id="redact-btn" onclick="toggleRedactMode()">
-                    <i class="bi bi-eraser-fill"></i> Redact
-                </button>
-                <button class="btn btn-outline-info" id="extract-btn" onclick="toggleExtractMode()">
-                    <i class="bi bi-textarea-t"></i> Extract Text
-                </button>
-                <button class="btn btn-outline-primary" onclick="shardPdf()">
-                    <i class="bi bi-grid-3x3"></i> Split PDF (Shard)
-                </button>
-                <button class="btn btn-outline-warning" id="highlight-btn" onclick="toggleHighlightMode()">
-                    <i class="bi bi-pencil-fill"></i> Highlight
-                </button>
-                <button class="btn btn-outline-info" onclick="addTextField()">
-                    <i class="bi bi-input-cursor-text"></i> Add Form Field
-                </button>
-                <button class="btn btn-outline-info" onclick="addCheckbox()">
-                    <i class="bi bi-check-square"></i> Add Checkbox
-                </button>
+            </div>
+
+            <!-- ... existing content ... -->
+
+            <!-- Page Numbers Modal -->
+            <div class="modal fade" id="pageNumbersModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Page Numbers</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Format</label>
+                                <select class="form-select" id="pn-format">
+                                    <option value="Page X of Y">Page X of Y</option>
+                                    <option value="Page X">Page X</option>
+                                    <option value="X of Y">X of Y</option>
+                                    <option value="X">X</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Position</label>
+                                <select class="form-select" id="pn-position">
+                                    <option value="bottom-center">Bottom Center</option>
+                                    <option value="bottom-right">Bottom Right</option>
+                                    <option value="bottom-left">Bottom Left</option>
+                                    <option value="top-center">Top Center</option>
+                                    <option value="top-right">Top Right</option>
+                                    <option value="top-left">Top Left</option>
+                                </select>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label">Start Number</label>
+                                    <input type="number" class="form-control" id="pn-start" value="1" min="1">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Font Size</label>
+                                    <input type="number" class="form-control" id="pn-size" value="12" min="8" max="72">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="applyPageNumbers()">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Watermark Modal -->
+            <div class="modal fade" id="watermarkModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Watermark</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Watermark Text</label>
+                                <input type="text" class="form-control" id="watermark-text" value="CONFIDENTIAL">
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label">Color</label>
+                                    <input type="color" class="form-control form-control-color w-100"
+                                        id="watermark-color" value="#cccccc">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Opacity (0-1)</label>
+                                    <input type="number" class="form-control" id="watermark-opacity" value="0.3"
+                                        step="0.1" min="0.1" max="1.0">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Size</label>
+                                    <input type="number" class="form-control" id="watermark-size" value="48" min="12"
+                                        max="120">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Rotation</label>
+                                    <select class="form-select" id="watermark-rotation">
+                                        <option value="45">Diagonal (45°)</option>
+                                        <option value="0">Horizontal (0°)</option>
+                                        <option value="-45">Diagonal (-45°)</option>
+                                        <option value="90">Vertical (90°)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="applyWatermark()">Apply</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="alert alert-info small">
@@ -393,8 +403,8 @@
 
             <hr>
 
-            <h5 class="mb-3">Process Document</h5>
-            <form action="/process_request" method="post" id="process-form">
+            <!-- Hidden Process Form (Used by Ribbon) -->
+            <form action="/process_request" method="post" id="process-form" style="display:none;">
                 <input type="hidden" name="filename" value="{{ filename }}">
 
                 <div class="mb-3">
@@ -414,6 +424,10 @@
                         <option value="fr">French</option>
                         <option value="de">German</option>
                         <option value="pl">Polish</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="it">Italian</option>
+                        <option value="nl">Dutch</option>
+                        <option value="ru">Russian</option>
                     </select>
                 </div>
 
@@ -426,6 +440,10 @@
                         <option value="fr">French</option>
                         <option value="de">German</option>
                         <option value="pl">Polish</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="it">Italian</option>
+                        <option value="nl">Dutch</option>
+                        <option value="ru">Russian</option>
                     </select>
                 </div>
 
@@ -446,1113 +464,13 @@
 
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
         const filename = "{{ filename }}";
-        const url = `/uploads/${filename}`;
-        const container = document.getElementById('pdf-viewer');
-
-        let pdfDoc = null;
-        let pdfBytes = null;
-        let selectedPageIndex = 0; // 0-based index
-        let textMode = false;
-        let redactMode = false;
-        let highlightMode = false;
-        let extractMode = false;
-
-        // History Stacks
-        const undoStack = [];
-        const redoStack = [];
-        const MAX_HISTORY = 50;
-
-        // Initialize
-        async function init() {
-            // Load PDF
-            const url = '/uploads/{{ filename }}';
-            const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
-            pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
-
-            // Initialize history
-            undoStack.push(await pdfDoc.save());
-            updateHistoryButtons();
-
-            await refreshView();
-
-            // Context Menu Logic
-            const contextMenu = document.getElementById('context-menu');
-            const deleteItem = document.getElementById('delete-item');
-            let targetElement = null;
-
-            document.addEventListener('contextmenu', (e) => {
-                if (e.target.classList.contains('text-annotation') ||
-                    e.target.classList.contains('image-annotation') ||
-                    e.target.classList.contains('annotation-rect') ||
-                    e.target.tagName === 'path') { // Allow deleting paths
-
-                    e.preventDefault();
-                    targetElement = e.target.tagName === 'path' ? e.target.closest('svg') : e.target;
-
-                    contextMenu.style.display = 'block';
-                    contextMenu.style.left = `${e.pageX}px`;
-                    contextMenu.style.top = `${e.pageY}px`;
-                } else {
-                    contextMenu.style.display = 'none';
-                }
-            });
-
-            document.addEventListener('click', (e) => {
-                if (e.target.closest('#context-menu')) return;
-                contextMenu.style.display = 'none';
-            });
-
-            deleteItem.addEventListener('click', async () => {
-                if (targetElement) {
-                    await saveState(); // Save before deleting
-                    targetElement.remove();
-                    contextMenu.style.display = 'none';
-                    targetElement = null;
-                }
-            });
-        }
-
-        async function loadPdf(bytes) {
-            // Load into pdf-lib
-            pdfDoc = await PDFLib.PDFDocument.load(bytes);
-
-            // Render with pdf.js
-            await renderPdf(bytes);
-        }
-
-        async function renderPdf(bytes) {
-            container.innerHTML = '';
-            const loadingTask = pdfjsLib.getDocument({ data: bytes });
-            const pdf = await loadingTask.promise;
-
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const scale = 1.0;
-                const viewport = page.getViewport({ scale: scale });
-                const pageContainer = document.createElement('div');
-                pageContainer.className = 'page-container';
-                pageContainer.style.width = `${viewport.width}px`;
-                pageContainer.style.height = `${viewport.height}px`;
-                pageContainer.style.position = 'relative';
-                pageContainer.style.marginBottom = '20px';
-                pageContainer.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-                pageContainer.dataset.pageIndex = i - 1; // Keep 0-based for consistency with selectedPageIndex
-                pageContainer.onclick = (e) => handlePageClick(e, i - 1); // Keep 0-based for consistency
-
-                // Initialize draw listeners for this page
-                initDrawListeners(pageContainer, i - 1); // Pass 0-based index
-
-                // Add Page Controls
-                const controlsDiv = document.createElement('div');
-                controlsDiv.className = 'page-controls';
-
-                // Rotate
-                const rotateBtn = document.createElement('button');
-                rotateBtn.className = 'page-control-btn btn-rotate';
-                rotateBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
-                rotateBtn.title = 'Rotate';
-                rotateBtn.onclick = (e) => { e.stopPropagation(); rotatePage(i - 1); };
-                controlsDiv.appendChild(rotateBtn);
-
-                // Move Up
-                if (i > 1) {
-                    const upBtn = document.createElement('button');
-                    upBtn.className = 'page-control-btn btn-up';
-                    upBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
-                    upBtn.title = 'Move Up';
-                    upBtn.onclick = (e) => { e.stopPropagation(); movePage(i - 1, -1); };
-                    controlsDiv.appendChild(upBtn);
-                }
-
-                // Move Down
-                if (i < pdf.numPages) {
-                    const downBtn = document.createElement('button');
-                    downBtn.className = 'page-control-btn btn-down';
-                    downBtn.innerHTML = '<i class="bi bi-arrow-down"></i>';
-                    downBtn.title = 'Move Down';
-                    downBtn.onclick = (e) => { e.stopPropagation(); movePage(i - 1, 1); };
-                    controlsDiv.appendChild(downBtn);
-                }
-
-                // Extract
-                const extractBtn = document.createElement('button');
-                extractBtn.className = 'page-control-btn btn-extract';
-                extractBtn.innerHTML = '<i class="bi bi-file-earmark-arrow-down"></i>';
-                extractBtn.title = 'Extract Page';
-                extractBtn.onclick = (e) => { e.stopPropagation(); extractSinglePage(i - 1); };
-                controlsDiv.appendChild(extractBtn);
-
-                // Delete
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'page-control-btn btn-delete';
-                deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
-                deleteBtn.title = 'Delete Page';
-                deleteBtn.onclick = (e) => { e.stopPropagation(); deletePage(i - 1); };
-                controlsDiv.appendChild(deleteBtn);
-
-                pageContainer.appendChild(controlsDiv);
-
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                const renderContext = {
-                    canvasContext: ctx,
-                    viewport: viewport
-                };
-
-                pageContainer.appendChild(canvas);
-                container.appendChild(pageContainer);
-
-                page.render(renderContext);
-            }
-        }
-
-        async function refreshView() {
-            pdfBytes = await pdfDoc.save();
-            await renderPdf(pdfBytes);
-        }
-
-        function handlePageClick(e, index) {
-            selectedPageIndex = index;
-
-            // Highlight selected page
-            document.querySelectorAll('.page-container').forEach((el, i) => {
-                el.style.outline = i === index ? '3px solid #007bff' : 'none';
-            });
-
-            if (textMode) {
-                addTextAnnotation(e, index);
-            }
-        }
-
-        async function saveState() {
-            // Commit current annotations before saving state
-            await commitAnnotations();
-
-            const currentBytes = await pdfDoc.save();
-            undoStack.push(currentBytes);
-            if (undoStack.length > MAX_HISTORY) undoStack.shift();
-
-            // Clear redo stack on new action
-            redoStack.length = 0;
-            updateHistoryButtons();
-        }
-
-        async function undo() {
-            if (undoStack.length === 0) return;
-
-            // Save current state to redo stack
-            await commitAnnotations();
-            const currentBytes = await pdfDoc.save();
-            redoStack.push(currentBytes);
-
-            const prevBytes = undoStack.pop();
-            await loadPdf(prevBytes);
-            updateHistoryButtons();
-        }
-
-        async function redo() {
-            if (redoStack.length === 0) return;
-
-            // Save current state to undo stack
-            await commitAnnotations();
-            const currentBytes = await pdfDoc.save();
-            undoStack.push(currentBytes);
-
-            const nextBytes = redoStack.pop();
-            await loadPdf(nextBytes);
-            updateHistoryButtons();
-        }
-
-        function updateHistoryButtons() {
-            document.getElementById('undo-btn').disabled = undoStack.length === 0;
-            document.getElementById('redo-btn').disabled = redoStack.length === 0;
-        }
-
-        async function rotatePage(pageIndex) {
-            await saveState();
-            const page = pdfDoc.getPage(pageIndex);
-            const rotation = page.getRotation();
-            page.setRotation(PDFLib.degrees((rotation.angle + 90) % 360));
-            await refreshView();
-        }
-
-        async function rotateCurrentPage() {
-            await rotatePage(selectedPageIndex);
-        }
-
-        async function deletePage(pageIndex) {
-            if (pdfDoc.getPageCount() <= 1) {
-                alert("Cannot delete the last page.");
-                return;
-            }
-            if (!confirm("Are you sure you want to delete this page?")) return;
-
-            await saveState();
-            pdfDoc.removePage(pageIndex);
-
-            // Adjust selectedPageIndex if needed
-            if (selectedPageIndex >= pdfDoc.getPageCount()) {
-                selectedPageIndex = pdfDoc.getPageCount() - 1;
-            }
-
-            await refreshView();
-        }
-
-        async function deleteCurrentPage() {
-            await deletePage(selectedPageIndex);
-        }
-
-        async function movePage(pageIndex, direction) {
-            const newIndex = pageIndex + direction;
-            if (newIndex < 0 || newIndex >= pdfDoc.getPageCount()) return;
-
-            await saveState();
-
-            // pdf-lib doesn't have a direct "move" but we can copy, remove, insert
-            // Or remove and insertAt.
-            // Be careful with indices changing.
-
-            const [page] = await pdfDoc.copyPages(pdfDoc, [pageIndex]);
-            pdfDoc.removePage(pageIndex);
-            pdfDoc.insertPage(newIndex, page);
-
-            await refreshView();
-        }
-
-        let pageToExtractIndex = -1;
-
-        function extractSinglePage(pageIndex) {
-            pageToExtractIndex = pageIndex;
-            document.getElementById('extract-page-number').innerText = pageIndex + 1;
-            document.getElementById('page-extraction-modal').style.display = 'block';
-        }
-
-        function closePageExtractionModal() {
-            document.getElementById('page-extraction-modal').style.display = 'none';
-        }
-
-        async function shardPdf() {
-            if (!confirm("This will split the PDF into individual pages and download them as a ZIP file. Continue?")) return;
-
-            document.getElementById('processing-overlay').style.display = 'flex';
-
-            try {
-                const zip = new JSZip();
-                const pageCount = pdfDoc.getPageCount();
-
-                // Strip extension from original filename
-                let baseName = '{{ filename }}';
-                if (baseName.toLowerCase().endsWith('.pdf')) {
-                    baseName = baseName.slice(0, -4);
-                }
-
-                for (let i = 0; i < pageCount; i++) {
-                    const newPdf = await PDFLib.PDFDocument.create();
-                    const [page] = await newPdf.copyPages(pdfDoc, [i]);
-                    newPdf.addPage(page);
-                    const pdfBytes = await newPdf.save();
-
-                    zip.file(`${baseName}-page${i + 1}.pdf`, pdfBytes);
-                }
-
-                const content = await zip.generateAsync({ type: "blob" });
-                const url = URL.createObjectURL(content);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${baseName}-sharded.zip`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                alert("PDF split successfully!");
-            } catch (e) {
-                alert("Error splitting PDF: " + e.message);
-                console.error(e);
-            } finally {
-                document.getElementById('processing-overlay').style.display = 'none';
-            }
-        }
-
-        async function saveSinglePagePdf() {
-            try {
-                const newPdf = await PDFLib.PDFDocument.create();
-                const [page] = await newPdf.copyPages(pdfDoc, [pageToExtractIndex]);
-                newPdf.addPage(page);
-                const pdfBytes = await newPdf.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-
-                // Strip extension from original filename if present
-                let baseName = '{{ filename }}';
-                if (baseName.toLowerCase().endsWith('.pdf')) {
-                    baseName = baseName.slice(0, -4);
-                }
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${baseName}-page${pageToExtractIndex + 1}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                closePageExtractionModal();
-            } catch (e) {
-                alert("Error saving PDF page: " + e.message);
-            }
-        }
-
-        async function submitPageExtraction() {
-            closePageExtractionModal();
-            document.getElementById('processing-overlay').style.display = 'flex';
-
-            try {
-                // 1. Create single page PDF
-                const newPdf = await PDFLib.PDFDocument.create();
-                const [page] = await newPdf.copyPages(pdfDoc, [pageToExtractIndex]);
-                newPdf.addPage(page);
-                const pdfBytes = await newPdf.save();
-
-                // 2. Upload it
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                // Strip extension from original filename if present
-                let baseName = '{{ filename }}';
-                if (baseName.toLowerCase().endsWith('.pdf')) {
-                    baseName = baseName.slice(0, -4);
-                }
-                const singlePageFilename = `${baseName}-page${pageToExtractIndex + 1}.pdf`;
-
-                const uploadData = new FormData();
-                uploadData.append('pdf_file', blob, singlePageFilename);
-
-                const uploadRes = await fetch('/upload', { method: 'POST', body: uploadData });
-                if (!uploadRes.ok) throw new Error("Failed to upload page.");
-
-                // 3. Trigger Processing
-                const format = document.getElementById('page-extract-format').value;
-                const sourceLang = document.getElementById('page-source-lang').value;
-                const targetLang = document.getElementById('page-target-lang').value;
-
-                const processData = new FormData();
-                processData.append('filename', singlePageFilename);
-                processData.append('extraction_type', format); // Fixed: type -> extraction_type
-                processData.append('source_lang', sourceLang);
-                processData.append('target_lang', targetLang);
-
-                const processRes = await fetch('/process_request', { method: 'POST', body: processData });
-                const data = await processRes.json();
-
-                if (data.task_id) {
-                    pollStatus(data.task_id);
-                } else {
-                    throw new Error("Failed to start processing task.");
-                }
-
-            } catch (e) {
-                alert("Error: " + e.message);
-                document.getElementById('processing-overlay').style.display = 'none';
-            }
-        }
-
-        async function movePageUp() {
-            if (selectedPageIndex <= 0) return;
-
-            // pdf-lib doesn't have a direct "move" but we can copy and remove
-            // Actually, we can just re-add it at new index
-            // But removing and adding is safer for now or swapping
-
-            // Simpler approach: Create new doc, copy pages in new order
-            const pageCount = pdfDoc.getPageCount();
-            const newOrder = [];
-            for (let i = 0; i < pageCount; i++) newOrder.push(i);
-
-            // Swap
-            [newOrder[selectedPageIndex], newOrder[selectedPageIndex - 1]] = [newOrder[selectedPageIndex - 1], newOrder[selectedPageIndex]];
-
-            await saveState();
-            await reorderPages(newOrder);
-            selectedPageIndex--;
-            await refreshView();
-        }
-
-        async function movePageDown() {
-            if (selectedPageIndex >= pdfDoc.getPageCount() - 1) return;
-
-            const pageCount = pdfDoc.getPageCount();
-            const newOrder = [];
-            for (let i = 0; i < pageCount; i++) newOrder.push(i);
-
-            // Swap
-            [newOrder[selectedPageIndex], newOrder[selectedPageIndex + 1]] = [newOrder[selectedPageIndex + 1], newOrder[selectedPageIndex]];
-
-            await saveState();
-            await reorderPages(newOrder);
-            selectedPageIndex++;
-            await refreshView();
-        }
-
-        async function reorderPages(newOrder) {
-            const newPdf = await PDFLib.PDFDocument.create();
-            const copiedPages = await newPdf.copyPages(pdfDoc, newOrder);
-            copiedPages.forEach(page => newPdf.addPage(page));
-            pdfDoc = newPdf;
-        }
-
-        async function handleImageUpload(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                const reader = new FileReader();
-
-                reader.onload = async function (e) {
-                    // Create DOM element instead of burning immediately
-                    const pageContainer = document.querySelectorAll('.page-container')[selectedPageIndex];
-                    const { width, height } = pdfDoc.getPage(selectedPageIndex).getSize(); // PDF size
-                    // Note: pageContainer size might be different if scaled, but here we assume 1.0 scale for simplicity
-                    // or we rely on the container style width/height which matches viewport
-
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'image-annotation';
-
-                    // Default size or scaled
-                    img.onload = function () {
-                        let imgWidth = img.naturalWidth;
-                        let imgHeight = img.naturalHeight;
-
-                        // Scale if too big
-                        if (imgWidth > 200) {
-                            const scale = 200 / imgWidth;
-                            imgWidth *= scale;
-                            imgHeight *= scale;
-                        }
-
-                        img.style.width = `${imgWidth}px`;
-                        img.style.height = `${imgHeight}px`;
-                        img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2}px`;
-                        img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2}px`;
-
-                        makeDraggable(img);
-                        pageContainer.appendChild(img);
-                    };
-                };
-
-                reader.readAsDataURL(file);
-            }
-            input.value = ''; // Reset
-        }
-
-        async function handleAppendPdf(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                const arrayBuffer = await file.arrayBuffer();
-
-                try {
-                    await saveState();
-                    const sourcePdf = await PDFLib.PDFDocument.load(arrayBuffer);
-                    const copiedPages = await pdfDoc.copyPages(sourcePdf, sourcePdf.getPageIndices());
-                    copiedPages.forEach((page) => pdfDoc.addPage(page));
-
-                    await refreshView();
-                    alert(`Appended ${copiedPages.length} pages.`);
-                } catch (err) {
-                    alert("Error appending PDF: " + err);
-                }
-            }
-            input.value = '';
-        }
-
-        function toggleRedactMode() {
-            redactMode = !redactMode;
-            textMode = false; highlightMode = false; extractMode = false;
-            updateButtonStates();
-        }
-
-        function toggleHighlightMode() {
-            highlightMode = !highlightMode;
-            textMode = false; redactMode = false; extractMode = false;
-            updateButtonStates();
-        }
-
-        function toggleExtractMode() {
-            extractMode = !extractMode;
-            textMode = false; redactMode = false; highlightMode = false;
-            updateButtonStates();
-        }
-
-        function updateButtonStates() {
-            const redactBtn = document.getElementById('redact-btn');
-            const highlightBtn = document.getElementById('highlight-btn');
-            const extractBtn = document.getElementById('extract-btn');
-            const textBtn = document.getElementById('add-text-btn');
-
-            redactBtn.className = redactMode ? 'btn btn-danger' : 'btn btn-outline-danger';
-            highlightBtn.className = highlightMode ? 'btn btn-warning' : 'btn btn-outline-warning';
-            extractBtn.className = extractMode ? 'btn btn-info' : 'btn btn-outline-info';
-            textBtn.className = textMode ? 'btn btn-primary' : 'btn btn-outline-primary';
-
-            document.body.style.cursor = (redactMode || highlightMode || textMode || extractMode) ? 'crosshair' : 'default';
-        }
-
-        // Modified handlePageClick to support new modes
-        function handlePageClick(e, index) {
-            selectedPageIndex = index;
-
-            document.querySelectorAll('.page-container').forEach((el, i) => {
-                el.style.outline = i === index ? '3px solid #007bff' : 'none';
-            });
-
-            if (textMode) addTextAnnotation(e, index);
-            // Redact and Highlight now use drag-to-draw, handled by mousedown listeners
-        }
-
-        // Drag-to-Draw Logic
-        let isDrawing = false;
-        let startX, startY;
-        let currentRect = null;
-        let currentPath = null;
-        let currentSvg = null;
-        let pathPoints = [];
-
-        function initDrawListeners(container, pageIndex) {
-            container.addEventListener('mousedown', (e) => {
-                if (!redactMode && !highlightMode && !extractMode) return;
-                if (e.target.classList.contains('text-annotation') ||
-                    e.target.classList.contains('image-annotation') ||
-                    e.target.classList.contains('annotation-rect') ||
-                    e.target.closest('svg')) return; // Don't start on existing elements
-
-                isDrawing = true;
-                const rect = container.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                if (highlightMode) {
-                    // Freehand Highlight
-                    pathPoints = [[x, y]];
-
-                    // Create SVG container if not exists (or one per stroke? One per stroke is easier for selection/deletion)
-                    currentSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                    currentSvg.style.position = 'absolute';
-                    currentSvg.style.left = '0';
-                    currentSvg.style.top = '0';
-                    currentSvg.style.width = '100%';
-                    currentSvg.style.height = '100%';
-                    currentSvg.style.pointerEvents = 'none'; // Let clicks pass through, but maybe we want to select it later?
-                    // For context menu, we might need pointer-events: auto on the path itself.
-                    currentSvg.style.zIndex = '5';
-                    currentSvg.classList.add('drawing-annotation');
-
-                    currentPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    currentPath.setAttribute("d", `M ${x} ${y}`);
-                    currentPath.setAttribute("stroke", "yellow");
-                    currentPath.setAttribute("stroke-width", "20");
-                    currentPath.setAttribute("stroke-opacity", "0.4");
-                    currentPath.setAttribute("fill", "none");
-                    currentPath.setAttribute("stroke-linecap", "round");
-                    currentPath.setAttribute("stroke-linejoin", "round");
-                    currentPath.style.pointerEvents = 'auto'; // Allow clicking the path
-
-                    currentSvg.appendChild(currentPath);
-                    container.appendChild(currentSvg);
-
-                } else {
-                    // Redact or Extract (Rectangle)
-                    startX = x;
-                    startY = y;
-
-                    currentRect = document.createElement('div');
-                    currentRect.className = 'annotation-rect';
-                    currentRect.style.left = `${startX}px`;
-                    currentRect.style.top = `${startY}px`;
-                    currentRect.style.width = '0px';
-                    currentRect.style.height = '0px';
-                    currentRect.style.position = 'absolute';
-                    currentRect.style.border = '1px solid #ccc';
-
-                    if (redactMode) {
-                        currentRect.style.backgroundColor = 'white';
-                        currentRect.style.opacity = '1';
-                        currentRect.dataset.type = 'redact';
-                    } else {
-                        // Extract Mode
-                        currentRect.style.backgroundColor = 'rgba(0, 123, 255, 0.3)'; // Blue transparent
-                        currentRect.style.border = '1px dashed #007bff';
-                        currentRect.dataset.type = 'extract';
-                    }
-
-                    container.appendChild(currentRect);
-                }
-            });
-
-            container.addEventListener('mousemove', (e) => {
-                if (!isDrawing) return;
-
-                const rect = container.getBoundingClientRect();
-                const currentX = e.clientX - rect.left;
-                const currentY = e.clientY - rect.top;
-
-                if (highlightMode && currentPath) {
-                    pathPoints.push([currentX, currentY]);
-                    const d = pathPoints.map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`)).join(' ');
-                    currentPath.setAttribute("d", d);
-                } else if ((redactMode || extractMode) && currentRect) {
-                    const width = currentX - startX;
-                    const height = currentY - startY;
-
-                    // Handle negative dimensions (dragging left/up)
-                    currentRect.style.width = `${Math.abs(width)}px`;
-                    currentRect.style.height = `${Math.abs(height)}px`;
-                    currentRect.style.left = `${width < 0 ? currentX : startX}px`;
-                    currentRect.style.top = `${height < 0 ? currentY : startY}px`;
-                }
-            });
-
-            // Handle mouseup globally to catch release outside container
-            document.addEventListener('mouseup', async () => {
-                if (isDrawing) {
-                    isDrawing = false;
-
-                    if (extractMode && currentRect) {
-                        // Perform extraction
-                        const x = parseFloat(currentRect.style.left);
-                        const y = parseFloat(currentRect.style.top);
-                        const w = parseFloat(currentRect.style.width);
-                        const h = parseFloat(currentRect.style.height);
-                        const { width: pageWidth, height: pageHeight } = container.getBoundingClientRect();
-
-                        // Remove the selection rectangle
-                        currentRect.remove();
-                        currentRect = null;
-
-                        await performExtraction(pageIndex, x, y, w, h, pageWidth, pageHeight);
-                        return;
-                    }
-
-                    currentRect = null;
-                    currentPath = null;
-                    currentSvg = null;
-
-                    // 1. Save state BEFORE committing (so Undo removes the drawing)
-                    await saveState(false);
-
-                    // 2. Commit the drawing to PDF
-                    try {
-                        await commitAnnotations();
-                    } catch (e) {
-                        console.error("Error committing annotations:", e);
-                    }
-
-                    // 3. Refresh view to show the burned drawing
-                    await refreshView();
-                }
-            });
-        }
-
-        async function addTextField() {
-            const form = pdfDoc.getForm();
-            const page = pdfDoc.getPage(selectedPageIndex);
-            const { width, height } = page.getSize();
-
-            await saveState();
-            const textField = form.createTextField(`text_field_${Date.now()}`);
-            textField.setText('Enter text');
-            textField.addToPage(page, { x: 50, y: height - 100, width: 200, height: 50 });
-
-            await refreshView();
-        }
-
-        async function addCheckbox() {
-            const form = pdfDoc.getForm();
-            const page = pdfDoc.getPage(selectedPageIndex);
-            const { width, height } = page.getSize();
-
-            await saveState();
-            const checkBox = form.createCheckBox(`checkbox_${Date.now()}`);
-            checkBox.addToPage(page, { x: 50, y: height - 150, width: 20, height: 20 });
-
-            await refreshView();
-        }
-
-        async function saveChanges() {
-            await commitAnnotations();
-            const savedBytes = await pdfDoc.save();
-
-            // Upload back to server
-            const blob = new Blob([savedBytes], { type: 'application/pdf' });
-            const formData = new FormData();
-            formData.append('pdf_file', blob, filename);
-
-            await fetch('/save_pdf', {
-                method: 'POST',
-                body: formData
-            });
-
-            alert('Changes saved successfully!');
-            location.reload();
-        }
-
-        async function commitAnnotations() {
-            // Burn annotations into PDF
-            const pages = pdfDoc.getPages();
-            const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-
-            const containers = document.querySelectorAll('.page-container');
-            for (let index = 0; index < containers.length; index++) {
-                const container = containers[index];
-                const page = pages[index];
-                const { height } = page.getSize();
-
-                // Text Annotations
-                container.querySelectorAll('.text-annotation').forEach(note => {
-                    const text = note.innerText;
-                    const x = parseFloat(note.style.left);
-                    const y = parseFloat(note.style.top);
-
-                    page.drawText(text, {
-                        x: x,
-                        y: height - y - 12, // Adjust for font size approx
-                        size: 16,
-                        font: font,
-                        color: PDFLib.rgb(0, 0, 0),
-                    });
-                });
-
-                // Rectangles (Redact/Highlight)
-                container.querySelectorAll('.annotation-rect').forEach(rect => {
-                    const x = parseFloat(rect.style.left);
-                    const y = parseFloat(rect.style.top);
-                    const w = parseFloat(rect.style.width);
-                    const h = parseFloat(rect.style.height);
-                    const type = rect.dataset.type;
-
-                    page.drawRectangle({
-                        x: x,
-                        y: height - y - h,
-                        width: w,
-                        height: h,
-                        color: type === 'redact' ? PDFLib.rgb(1, 1, 1) : PDFLib.rgb(1, 1, 0),
-                        opacity: type === 'redact' ? 1 : 0.4,
-                    });
-                });
-
-                // Images
-                const imagePromises = Array.from(container.querySelectorAll('.image-annotation')).map(async (img) => {
-                    const x = parseFloat(img.style.left);
-                    const y = parseFloat(img.style.top);
-                    const w = parseFloat(img.style.width);
-                    const h = parseFloat(img.style.height);
-
-                    // Fetch image data
-                    const imageBytes = await fetch(img.src).then(res => res.arrayBuffer());
-                    let pdfImage;
-                    try {
-                        if (img.src.startsWith('data:image/jpeg')) {
-                            pdfImage = await pdfDoc.embedJpg(imageBytes);
-                        } else {
-                            pdfImage = await pdfDoc.embedPng(imageBytes);
-                        }
-                    } catch (e) {
-                        try { pdfImage = await pdfDoc.embedPng(imageBytes); } catch (e2) { pdfImage = await pdfDoc.embedJpg(imageBytes); }
-                    }
-
-                    if (pdfImage) {
-                        page.drawImage(pdfImage, {
-                            x: x,
-                            y: height - y - h,
-                            width: w,
-                            height: h,
-                        });
-                    }
-                });
-
-                await Promise.all(imagePromises);
-
-                // Drawings (SVG Paths)
-                container.querySelectorAll('.drawing-annotation').forEach(svg => {
-                    const path = svg.querySelector('path');
-                    if (!path) return;
-
-                    const d = path.getAttribute('d');
-                    // Parse path 'M x y L x y ...'
-                    // We need to flip Y coordinates: y_pdf = height - y_dom
-
-                    const commands = d.split(' ');
-                    let newD = [];
-                    for (let i = 0; i < commands.length; i++) {
-                        const token = commands[i];
-                        if (token === 'M' || token === 'L') {
-                            newD.push(token);
-                            const x = parseFloat(commands[i + 1]);
-                            const y = parseFloat(commands[i + 2]);
-                            newD.push(x);
-                            newD.push(height - y); // Flip Y
-                            i += 2;
-                        }
-                    }
-                    const pdfPathString = newD.join(' ');
-
-                    page.drawSvgPath(pdfPathString, {
-                        borderColor: PDFLib.rgb(1, 1, 0), // Yellow stroke
-                        borderWidth: 20,
-                        borderOpacity: 0.4,
-                        borderLineCap: PDFLib.LineCapStyle.Round,
-                    });
-                });
-            }
-
-            // Clear DOM annotations after committing
-            document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .drawing-annotation').forEach(el => el.remove());
-        }
-
-        async function saveState(shouldCommit = true) {
-            // Commit current annotations before saving state
-            if (shouldCommit) {
-                await commitAnnotations();
-            }
-
-            const currentBytes = await pdfDoc.save();
-            undoStack.push(currentBytes);
-            if (undoStack.length > MAX_HISTORY) undoStack.shift();
-
-            // Clear redo stack on new action
-            redoStack.length = 0;
-            updateHistoryButtons();
-        }
-
-        function makeDraggable(el) {
-            let isDragging = false;
-            let startX, startY, initialLeft, initialTop;
-
-            el.addEventListener('mousedown', (e) => {
-                // If text annotation and in text mode, don't drag (allow edit)
-                if (el.classList.contains('text-annotation') && textMode) return;
-
-                isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                initialLeft = parseFloat(el.style.left || 0);
-                initialTop = parseFloat(el.style.top || 0);
-                el.style.zIndex = 100; // Bring to front
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault(); // Prevent selection
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-                el.style.left = `${initialLeft + dx}px`;
-                el.style.top = `${initialTop + dy}px`;
-            });
-
-            window.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    el.style.zIndex = ''; // Reset
-                }
-            });
-        }
-
-        function toggleTextMode() {
-            textMode = !textMode;
-            const btn = document.getElementById('add-text-btn');
-            if (textMode) {
-                btn.classList.replace('btn-outline-primary', 'btn-primary');
-                document.body.style.cursor = 'text';
-            } else {
-                btn.classList.replace('btn-primary', 'btn-outline-primary');
-                document.body.style.cursor = 'default';
-            }
-        }
-
-        async function performExtraction(pageIndex, x, y, w, h, pageWidth, pageHeight) {
-            document.getElementById('processing-overlay').style.display = 'flex';
-
-            const formData = new FormData();
-            formData.append('filename', '{{ filename }}');
-            formData.append('page_index', pageIndex);
-            formData.append('x', x);
-            formData.append('y', y);
-            formData.append('w', w);
-            formData.append('h', h);
-            formData.append('page_width', pageWidth);
-            formData.append('page_height', pageHeight);
-
-            try {
-                const response = await fetch('/extract_text_region', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-
-                document.getElementById('processing-overlay').style.display = 'none';
-
-                if (data.text) {
-                    document.getElementById('extracted-text-area').value = data.text;
-                    document.getElementById('extraction-modal').style.display = 'block';
-                } else {
-                    alert('No text found in selected area.');
-                }
-            } catch (e) {
-                document.getElementById('processing-overlay').style.display = 'none';
-                alert("Error extracting text: " + e);
-            }
-        }
-
-        async function translateExtractedText() {
-            const text = document.getElementById('extracted-text-area').value;
-            const sourceLang = document.getElementById('source-lang').value;
-            const targetLang = document.getElementById('target-lang').value;
-
-            if (!text) return;
-
-            document.getElementById('processing-overlay').style.display = 'flex';
-
-            const formData = new FormData();
-            formData.append('text', text);
-            formData.append('source_lang', sourceLang);
-            formData.append('target_lang', targetLang);
-
-            try {
-                const response = await fetch('/translate_content', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-
-                document.getElementById('processing-overlay').style.display = 'none';
-
-                if (data.text) {
-                    document.getElementById('extracted-text-area').value = data.text;
-                } else {
-                    alert('Translation failed: ' + (data.error || 'Unknown error'));
-                }
-            } catch (e) {
-                document.getElementById('processing-overlay').style.display = 'none';
-                alert("Error translating text: " + e);
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('extraction-modal').style.display = 'none';
-        }
-
-        function copyExtractedText() {
-            const copyText = document.getElementById("extracted-text-area");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999); // For mobile devices
-            navigator.clipboard.writeText(copyText.value);
-            alert("Copied to clipboard!");
-        }
-
-        async function addTextAnnotation(e, pageIndex) {
-            // Don't add if clicking on existing annotation
-            if (e.target.classList.contains('text-annotation')) return;
-
-            await saveState();
-
-            const pageContainer = document.querySelectorAll('.page-container')[pageIndex];
-            const rect = pageContainer.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            const input = document.createElement('div');
-            input.contentEditable = true;
-            input.className = 'text-annotation';
-            input.style.left = `${x}px`;
-            input.style.top = `${y}px`;
-            input.innerText = "Type here";
-
-            // Allow moving
-            makeDraggable(input);
-
-            pageContainer.appendChild(input);
-            input.focus();
-
-            // Turn off text mode after adding one
-            toggleTextMode();
-        }
-
-        async function saveChanges() {
-            await commitAnnotations();
-            const savedBytes = await pdfDoc.save();
-
-            // Upload back to server
-            const blob = new Blob([savedBytes], { type: 'application/pdf' });
-            const formData = new FormData();
-            formData.append('pdf_file', blob, filename);
-
-            await fetch('/save_pdf', {
-                method: 'POST',
-                body: formData
-            });
-
-            alert('Changes saved successfully!');
-            location.reload();
-        }
-
-        async function submitProcessing() {
-            // Show overlay
-            document.getElementById('processing-overlay').style.display = 'flex';
-
-            const form = document.getElementById('process-form');
-            const formData = new FormData(form);
-
-            try {
-                const response = await fetch('/process_request', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                const taskId = data.task_id;
-
-                pollStatus(taskId);
-            } catch (e) {
-                alert("Error starting process: " + e);
-                document.getElementById('processing-overlay').style.display = 'none';
-            }
-        }
-
-        function pollStatus(taskId) {
-            const progressBar = document.getElementById('progress-bar');
-            const statusText = document.getElementById('status-text');
-
-            const interval = setInterval(() => {
-                fetch(`/status/${taskId}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.state === 'SUCCESS') {
-                            clearInterval(interval);
-                            progressBar.style.width = '100%';
-                            progressBar.innerText = '100%';
-                            statusText.innerText = 'Complete! Redirecting...';
-                            setTimeout(() => {
-                                window.location.href = `/results_view/${data.result_file}`;
-                            }, 1000);
-                        } else if (data.state === 'FAILURE') {
-                            clearInterval(interval);
-                            alert('Processing failed: ' + data.status);
-                            document.getElementById('processing-overlay').style.display = 'none';
-                        } else {
-                            // Update progress
-                            const percent = data.current || 0;
-                            progressBar.style.width = `${percent}%`;
-                            progressBar.innerText = `${percent}%`;
-                            statusText.innerText = data.status || 'Processing...';
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                    });
-            }, 1000);
-        }
-
-        init();
     </script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script>
+        window.filename = "{{ filename }}";
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 
 </html>

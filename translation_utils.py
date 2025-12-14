@@ -8,12 +8,16 @@ def install_languages():
     argostranslate.package.update_package_index()
     available_packages = argostranslate.package.get_available_packages()
     
-    # Pairs to install: en->es, es->en, en->fr, fr->en, en->de, de->en, en->pl, pl->en
+    # Pairs to install: en <-> es, fr, de, pl, pt, it, nl, ru
     pairs = [
         ('en', 'es'), ('es', 'en'),
         ('en', 'fr'), ('fr', 'en'),
         ('en', 'de'), ('de', 'en'),
-        ('en', 'pl'), ('pl', 'en')
+        ('en', 'pl'), ('pl', 'en'),
+        ('en', 'pt'), ('pt', 'en'),
+        ('en', 'it'), ('it', 'en'),
+        ('en', 'nl'), ('nl', 'en'),
+        ('en', 'ru'), ('ru', 'en')
     ]
     
     for from_code, to_code in pairs:
@@ -37,3 +41,8 @@ def translate_text(text, target_lang, source_lang='en'):
     except Exception as e:
         print(f"Translation error: {e}")
         return text
+
+if __name__ == "__main__":
+    print("Installing translation models...")
+    install_languages()
+    print("Translation models installed.")

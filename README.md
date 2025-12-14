@@ -10,6 +10,18 @@ Powered by [Docling](https://github.com/DS4SD/docling) for advanced document par
 
 *   **Full Document Extraction:** Converts PDFs to `.docx` preserving structure (headings, paragraphs, lists) and styling.
 *   **Table Extraction:** Detects tables and exports them to CSV files or directly into Word documents.
+*   **Document Manipulation:**
+    *   **Merge:** Combine multiple PDFs into a single file.
+    *   **Split:** Extract specific page ranges into separate files.
+    *   **Compress:** Reduce file size for easier sharing.
+    *   **Repair:** Attempt to fix corrupted PDF files.
+    *   **Convert:** Export PDF pages as high-quality JPG images.
+*   **Editor Tools:**
+    *   **Annotations:** Highlight text, redact sensitive info, and add sticky notes.
+    *   **Shapes:** Draw rectangles, circles, lines, and arrows.
+    *   **Watermark:** Add custom text or image watermarks.
+    *   **Page Numbers:** Add customizable pagination.
+    *   **Signatures:** Sign documents by drawing, typing, or uploading a signature.
 *   **Offline Translation:** Translate extracted content (including tables!) to **Spanish**, **French**, or **German** locally using `argostranslate`. No API keys required.
 *   **Format Conversion:** Supports `.odt` output (requires `pandoc`).
 *   **Asynchronous Processing:** Handles large files efficiently using background workers (Redis + Celery).
@@ -66,6 +78,25 @@ The web interface is the easiest way to use the tool, offering a simple drag-and
     # or ./start_app.sh
     ```
 4.  **Access the App:** Open your browser and navigate to **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
+
+---
+
+
+## 🐳 Usage: Docker (Recommended)
+
+Run the entire stack with a single command. This is the **most reliable way** to run the application as it handles all dependencies (Redis, OCR tools, Translation models) automatically.
+
+```bash
+docker-compose up --build
+```
+The app will be available at **[http://127.0.0.1:5000](http://127.0.0.1:5000)**. 
+
+> **Note:** The first build may take a few minutes as it downloads and installs offline translation models. Subsequent runs will be instant.
+
+To stop the application:
+```bash
+docker-compose down
+```
 
 ---
 

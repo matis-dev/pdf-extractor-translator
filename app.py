@@ -2,8 +2,10 @@ import os
 import shutil
 import warnings
 from pathlib import Path
-from flask import Flask, request, render_template, send_from_directory, url_for
+from flask import Flask, request, render_template, send_from_directory, url_for, redirect, jsonify
 from werkzeug.utils import secure_filename
+import zipfile
+from datetime import datetime
 
 # Suppress specific Pydantic warnings from Docling
 warnings.filterwarnings("ignore", message="Field .* has conflict with protected namespace 'model_'")
@@ -46,17 +48,52 @@ def index():
 def upload_file():
     if 'pdf_file' not in request.files:
         return "No file part", 400
-    file = request.files['pdf_file']
-    if file.filename == '':
+    
+    files = request.files.getlist('pdf_file')
+    
+    if not files or files[0].filename == '':
         return "No selected file", 400
 
-    if file:
-        filename = secure_filename(file.filename)
-        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(pdf_path)
+    saved_files = []
+    for file in files:
+        if file and is_valid_file(file.filename):
+            filename = secure_filename(file.filename)
+            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(pdf_path)
+            saved_files.append(filename)
+    
+    # If single file, redirect to editor
+    if len(saved_files) == 1:
+        return redirect(url_for('editor', filename=saved_files[0]))
+    
+    # If multiple, redirect back to index
+    return redirect(url_for('index'))
 
-        # Redirect to the editor page instead of processing immediately
-        return url_for('editor', filename=filename)
+@app.route('/create_zip', methods=['POST'])
+def create_zip():
+    filenames = request.json.get('filenames', [])
+    if not filenames:
+        return {'error': 'No filenames provided'}, 400
+
+    import zipfile
+    import io
+
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w') as zf:
+        for fname in filenames:
+            file_path = os.path.join(app.config['OUTPUT_FOLDER'], fname)
+            if os.path.exists(file_path):
+                zf.write(file_path, fname)
+    
+    memory_file.seek(0)
+    return  (
+        memory_file,
+        200,
+        {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment; filename="batch_results.zip"'
+        }
+    )
 
 @app.route('/editor/<filename>')
 def editor(filename):
@@ -183,6 +220,218 @@ def translate_content():
         return {'text': translated}
     except Exception as e:
         return {'error': str(e)}, 500
+
+
+@app.route('/merge', methods=['POST'])
+def merge_files():
+    from pypdf import PdfWriter
+    from datetime import datetime
+    from flask import jsonify
+    
+    data = request.json
+    filenames = data.get('filenames', [])
+    
+    if not filenames or len(filenames) < 2:
+        return jsonify({'error': 'At least two files are required for merging.'}), 400
+        
+    try:
+        merger = PdfWriter()
+        for filename in filenames:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+            if not os.path.exists(file_path):
+                 return jsonify({'error': f'File not found: {filename}'}), 404
+            merger.append(file_path)
+            
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"merged_{timestamp}.pdf"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        
+        merger.write(output_path)
+        merger.close()
+        
+        return jsonify({'filename': output_filename, 'url': url_for('download_file', filename=output_filename)})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/compress', methods=['POST'])
+def compress_file():
+    import subprocess
+    from datetime import datetime
+    from flask import jsonify
+    
+    filename = request.json.get('filename')
+    if not filename:
+         return jsonify({'error': 'Filename required'}), 400
+         
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(input_path):
+         return jsonify({'error': 'File not found'}), 404
+         
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename = f"compressed_{timestamp}_{secure_filename(filename)}"
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+    
+    # GS Command
+    # /ebook = 150 dpi
+    cmd = [
+        "gs", "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.4", "-dPDFSETTINGS=/ebook",
+        "-dNOPAUSE", "-dQUIET", "-dBATCH",
+        f"-sOutputFile={output_path}",
+        input_path
+    ]
+    
+    try:
+        subprocess.run(cmd, check=True)
+        return jsonify({'filename': output_filename, 'url': url_for('download_file', filename=output_filename)})
+    except subprocess.CalledProcessError as e:
+        return jsonify({'error': 'Compression failed'}), 500
+
+
+@app.route('/split', methods=['POST'])
+def split_pdf():
+    import zipfile
+    import os
+    from io import BytesIO
+    from pypdf import PdfReader, PdfWriter
+    from datetime import datetime
+    from flask import request, jsonify, url_for
+    from werkzeug.utils import secure_filename
+    
+    filename = request.json.get('filename')
+    ranges = request.json.get('ranges') # List of strings "1-3", "5", etc.
+    
+    if not filename or not ranges:
+        return jsonify({'error': 'Filename and ranges required'}), 400
+        
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(input_path):
+        return jsonify({'error': 'File not found'}), 404
+        
+    try:
+        reader = PdfReader(input_path)
+        total_pages = len(reader.pages)
+        
+        # Prepare valid ranges
+        # Valid input: "1-3, 5, 7-10" -> handled by frontend as array ["1-3", "5", "7-10"]?
+        # Or simple array of strings. Let's assume array of strings.
+        
+        output_files = []
+        base_name = os.path.splitext(secure_filename(filename))[0]
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        for i, r in enumerate(ranges):
+            writer = PdfWriter()
+            r = r.strip()
+            if '-' in r:
+                start, end = map(int, r.split('-'))
+            else:
+                start = int(r)
+                end = int(r)
+                
+            # validation
+            if start < 1 or end > total_pages or start > end:
+                continue # Skip invalid
+                
+            # pypdf is 0-indexed, user is 1-indexed
+            for p in range(start - 1, end):
+                writer.add_page(reader.pages[p])
+                
+            out_name = f"{base_name}_part{i+1}_{r}.pdf"
+            out_path = os.path.join(app.config['OUTPUT_FOLDER'], out_name)
+            writer.write(out_path)
+            output_files.append(out_name)
+            
+        if not output_files:
+             return jsonify({'error': 'No valid ranges processed'}), 400
+             
+        # Create ZIP
+        zip_filename = f"split_{timestamp}_{base_name}.zip"
+        zip_path = os.path.join(app.config['OUTPUT_FOLDER'], zip_filename)
+        
+        with zipfile.ZipFile(zip_path, 'w') as zf:
+            for f in output_files:
+                zf.write(os.path.join(app.config['OUTPUT_FOLDER'], f), f)
+                
+        return jsonify({'filename': zip_filename, 'url': url_for('download_file', filename=zip_filename)})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/pdf-to-jpg', methods=['POST'])
+def pdf_to_jpg():
+    try:
+        from pdf2image import convert_from_path
+        
+        filename = request.json.get('filename')
+        if not filename:
+             return jsonify({'error': 'Filename required'}), 400
+             
+        input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+        if not os.path.exists(input_path):
+             return jsonify({'error': 'File not found'}), 404
+             
+        # Convert
+        # poppler path is typically system default
+        images = convert_from_path(input_path, dpi=150)
+        
+        base_name = os.path.splitext(secure_filename(filename))[0]
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_filename = f"images_{timestamp}_{base_name}.zip"
+        zip_path = os.path.join(app.config['OUTPUT_FOLDER'], zip_filename)
+        
+        with zipfile.ZipFile(zip_path, 'w') as zf:
+            for i, image in enumerate(images):
+                img_name = f"{base_name}_page{i+1}.jpg"
+                img_path = os.path.join(app.config['OUTPUT_FOLDER'], img_name)
+                image.save(img_path, 'JPEG')
+                zf.write(img_path, img_name)
+                # Cleanup individual image
+                os.remove(img_path)
+                
+        return jsonify({'filename': zip_filename, 'url': url_for('download_file', filename=zip_filename)})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/repair', methods=['POST'])
+def repair_pdf():
+    try:
+        from pypdf import PdfReader, PdfWriter
+        
+        filename = request.json.get('filename')
+        if not filename:
+             return jsonify({'error': 'Filename required'}), 400
+             
+        input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+        if not os.path.exists(input_path):
+             return jsonify({'error': 'File not found'}), 404
+             
+        # Repair by reading and rewriting
+        try:
+            reader = PdfReader(input_path)
+            writer = PdfWriter()
+            
+            # Add all pages to new writer
+            for page in reader.pages:
+                writer.add_page(page)
+                
+            base_name = os.path.splitext(secure_filename(filename))[0]
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_filename = f"repaired_{timestamp}_{base_name}.pdf"
+            output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+            
+            with open(output_path, "wb") as f:
+                writer.write(f)
+                
+            return jsonify({'filename': output_filename, 'url': url_for('download_file', filename=output_filename)})
+            
+        except Exception as e:
+            return jsonify({'error': f"Repair failed: {str(e)}"}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
