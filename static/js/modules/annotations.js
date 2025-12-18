@@ -1,8 +1,22 @@
-
 import { state } from './state.js';
 import { saveState } from './history.js'; // Circular
 import { refreshView } from './viewer.js'; // Circular
 import { toggleTextMode } from './ui.js';
+
+// Helper to ensure settings exist
+function ensureTextSettings() {
+    if (!state.textSettings) {
+        state.textSettings = {
+            fontFamily: 'Helvetica',
+            fontSize: 16,
+            color: '#000000',
+            isBold: false,
+            isItalic: false
+        };
+    }
+}
+
+
 
 // Drag-to-Draw State
 let isDrawing = false;
@@ -16,7 +30,9 @@ let pathPoints = [];
 export function initDrawListeners(container, pageIndex) {
     container.addEventListener('mousedown', (e) => {
         const { modes } = state;
-        if (!modes.redact && !modes.highlight && !modes.extract && !modes.shape) return;
+        if (!modes.redact && !modes.highlight && !modes.extract && !modes.shape) {
+            return;
+        }
         if (e.target.classList.contains('text-annotation') ||
             e.target.classList.contains('image-annotation') ||
             e.target.classList.contains('annotation-rect') ||
@@ -39,7 +55,7 @@ export function initDrawListeners(container, pageIndex) {
             currentSvg.classList.add('drawing-annotation');
 
             currentPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            currentPath.setAttribute("d", `M ${x} ${y}`);
+            currentPath.setAttribute("d", `M ${x} ${y} `);
             currentPath.setAttribute("stroke", "yellow");
             currentPath.setAttribute("stroke-width", "20");
             currentPath.setAttribute("stroke-opacity", "0.4");
@@ -126,7 +142,7 @@ export function initDrawListeners(container, pageIndex) {
             currentRect = document.createElement('div');
             currentRect.className = 'annotation-rect';
             Object.assign(currentRect.style, {
-                left: `${startX}px`, top: `${startY}px`, width: '0px', height: '0px',
+                left: `${startX} px`, top: `${startY} px`, width: '0px', height: '0px',
                 position: 'absolute', border: '1px solid #ccc'
             });
 
@@ -152,7 +168,7 @@ export function initDrawListeners(container, pageIndex) {
 
         if (modes.highlight && currentPath) {
             pathPoints.push([currentX, currentY]);
-            const d = pathPoints.map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`)).join(' ');
+            const d = pathPoints.map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]} ` : `L ${p[0]} ${p[1]} `)).join(' ');
             currentPath.setAttribute("d", d);
 
         } else if (modes.shape && currentShapeElement) {
@@ -207,10 +223,10 @@ export function initDrawListeners(container, pageIndex) {
             const width = currentX - startX;
             const height = currentY - startY;
 
-            currentRect.style.width = `${Math.abs(width)}px`;
-            currentRect.style.height = `${Math.abs(height)}px`;
-            currentRect.style.left = `${width < 0 ? currentX : startX}px`;
-            currentRect.style.top = `${height < 0 ? currentY : startY}px`;
+            currentRect.style.width = `${Math.abs(width)} px`;
+            currentRect.style.height = `${Math.abs(height)} px`;
+            currentRect.style.left = `${width < 0 ? currentX : startX} px`;
+            currentRect.style.top = `${height < 0 ? currentY : startY} px`;
         }
     });
 }
@@ -270,6 +286,7 @@ export async function handleGlobalMouseUp() {
 export async function addTextAnnotation(e, pageIndex) {
     if (e.target.classList.contains('text-annotation')) return;
 
+    ensureTextSettings();
     await saveState();
 
     const pageContainer = document.querySelectorAll('.page-container')[pageIndex];
@@ -284,9 +301,31 @@ export async function addTextAnnotation(e, pageIndex) {
     input.style.top = `${y}px`;
     input.innerText = "Type here";
 
+    // Apply Settings
+    if (state.textSettings) {
+        input.style.fontFamily = state.textSettings.fontFamily;
+        input.style.fontSize = `${state.textSettings.fontSize}px`;
+        input.style.color = state.textSettings.color;
+        if (state.textSettings.isBold) input.style.fontWeight = 'bold';
+        if (state.textSettings.isItalic) input.style.fontStyle = 'italic';
+    }
+
+    // Selection Logic
+    input.addEventListener('click', (ev) => {
+        ev.stopPropagation(); // Prevent creation
+        document.querySelectorAll('.text-annotation.selected').forEach(el => el.classList.remove('selected'));
+        input.classList.add('selected');
+        // Update Ribbon UI to match? (Optional: complicated to reverse sync yet)
+    });
+
+    // Deselect on outside click? (handled in initDrawListeners or global)
+
     makeDraggable(input);
     pageContainer.appendChild(input);
     input.focus();
+
+    // Select immediately
+    input.classList.add('selected');
 
     toggleTextMode();
 }
@@ -298,7 +337,7 @@ export async function addTextField() {
     const { width, height } = page.getSize();
 
     await saveState();
-    const textField = form.createTextField(`text_field_${Date.now()}`);
+    const textField = form.createTextField(`text_field_${Date.now()} `);
     textField.setText('Enter text');
     textField.addToPage(page, { x: 50, y: height - 100, width: 200, height: 50 });
 
@@ -312,7 +351,7 @@ export async function addCheckbox() {
     const { width, height } = page.getSize();
 
     await saveState();
-    const checkBox = form.createCheckBox(`checkbox_${Date.now()}`);
+    const checkBox = form.createCheckBox(`checkbox_${Date.now()} `);
     checkBox.addToPage(page, { x: 50, y: height - 150, width: 20, height: 20 });
 
     await refreshView();
@@ -340,10 +379,10 @@ export async function handleImageUpload(input) {
                     imgHeight *= scale;
                 }
 
-                img.style.width = `${imgWidth}px`;
-                img.style.height = `${imgHeight}px`;
-                img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2}px`;
-                img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2}px`;
+                img.style.width = `${imgWidth} px`;
+                img.style.height = `${imgHeight} px`;
+                img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2} px`;
+                img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2} px`;
 
                 makeDraggable(img);
                 pageContainer.appendChild(img);
@@ -374,8 +413,8 @@ function makeDraggable(el) {
         e.preventDefault();
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-        el.style.left = `${initialLeft + dx}px`;
-        el.style.top = `${initialTop + dy}px`;
+        el.style.left = `${initialLeft + dx} px`;
+        el.style.top = `${initialTop + dy} px`;
     });
 
     window.addEventListener('mouseup', () => {
@@ -398,12 +437,68 @@ export async function commitAnnotations() {
         const { height } = page.getSize();
 
         // Text
-        container.querySelectorAll('.text-annotation').forEach(note => {
+        // Text
+        const textNodes = container.querySelectorAll('.text-annotation');
+        for (const note of textNodes) {
             const text = note.innerText;
             const x = parseFloat(note.style.left);
             const y = parseFloat(note.style.top);
-            page.drawText(text, { x, y: height - y - 12, size: 16, font, color: PDFLib.rgb(0, 0, 0) });
-        });
+            const size = parseFloat(note.style.fontSize) || 16;
+
+            // Font Logic
+            let family = (note.style.fontFamily || 'Helvetica').replace(/"/g, '');
+            const isBold = note.style.fontWeight === 'bold' || parseInt(note.style.fontWeight) >= 700;
+            const isItalic = note.style.fontStyle === 'italic';
+
+            let fontBase = 'Helvetica';
+            if (family.includes('Times')) fontBase = 'TimesRoman';
+            else if (family.includes('Courier')) fontBase = 'Courier';
+
+            let fontKey = fontBase;
+            if (isBold && isItalic) fontKey += 'BoldOblique';
+            else if (isBold) fontKey += 'Bold';
+            else if (isItalic) fontKey += 'Oblique';
+
+            // Handle TimesRoman vs TimesRomanBold (TimesRomanBoldItalic is correct key?)
+            // PDFLib.StandardFonts keys: TimesRoman, TimesRomanBold, TimesRomanItalic, TimesRomanBoldItalic
+            // Helvetica, HelveticaBold, HelveticaOblique, HelveticaBoldOblique
+            // Courier, CourierBold, CourierOblique, CourierBoldOblique
+            // So my logic matches except for TimesRomanOblique -> TimesRomanItalic
+            if (fontBase === 'TimesRoman' && isItalic && !isBold) fontKey = 'TimesRomanItalic';
+            if (fontBase === 'TimesRoman' && isItalic && isBold) fontKey = 'TimesRomanBoldItalic';
+
+            let pdfFont;
+            try {
+                pdfFont = await pdfDoc.embedFont(PDFLib.StandardFonts[fontKey]);
+            } catch (e) {
+                pdfFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+            }
+
+            // Color (Simple Hex or RGB support)
+            // Note: input type=color sets Hex. style.color might be rgb().
+            let r = 0, g = 0, b = 0;
+            const colorStr = note.style.color || '#000000';
+            if (colorStr.startsWith('#')) {
+                r = parseInt(colorStr.substr(1, 2), 16) / 255;
+                g = parseInt(colorStr.substr(3, 2), 16) / 255;
+                b = parseInt(colorStr.substr(5, 2), 16) / 255;
+            } else if (colorStr.startsWith('rgb')) {
+                const parts = colorStr.match(/\d+/g);
+                if (parts) {
+                    r = parseInt(parts[0]) / 255;
+                    g = parseInt(parts[1]) / 255;
+                    b = parseInt(parts[2]) / 255;
+                }
+            }
+
+            page.drawText(text, {
+                x,
+                y: height - y - (size * 0.8),
+                size,
+                font: pdfFont,
+                color: PDFLib.rgb(r, g, b)
+            });
+        }
 
         // Rects
         container.querySelectorAll('.annotation-rect').forEach(rect => {
@@ -634,6 +729,35 @@ export function applyWatermark() {
     saveState(false); // Save state but don't commit yet
 }
 
+// Global Text Settings Handlers (exposed for Ribbon)
+window.updateTextSettings = function (key, value) {
+    ensureTextSettings();
+    state.textSettings[key] = value;
+
+    // Apply to selected element if any
+    const selected = document.querySelector('.text-annotation.selected');
+    if (selected) {
+        if (key === 'fontFamily') selected.style.fontFamily = value;
+        else if (key === 'fontSize') selected.style.fontSize = `${value}px`;
+        else if (key === 'color') selected.style.color = value;
+    }
+};
+
+window.toggleTextProperty = function (prop) {
+    ensureTextSettings();
+    if (prop === 'bold') {
+        state.textSettings.isBold = !state.textSettings.isBold;
+        const selected = document.querySelector('.text-annotation.selected');
+        if (selected) selected.style.fontWeight = state.textSettings.isBold ? 'bold' : 'normal';
+    } else if (prop === 'italic') {
+        state.textSettings.isItalic = !state.textSettings.isItalic;
+        const selected = document.querySelector('.text-annotation.selected');
+        if (selected) selected.style.fontStyle = state.textSettings.isItalic ? 'italic' : 'normal';
+    }
+};
+
+
+
 export async function addSignatureAnnotation(dataUrl) {
     const { selectedPageIndex } = state;
     const pageContainer = document.querySelectorAll('.page-container')[selectedPageIndex];
@@ -659,10 +783,10 @@ export async function addSignatureAnnotation(dataUrl) {
             imgHeight *= scale;
         }
 
-        img.style.width = `${imgWidth}px`;
-        img.style.height = `${imgHeight}px`;
-        img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2}px`;
-        img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2}px`;
+        img.style.width = `${imgWidth} px`;
+        img.style.height = `${imgHeight} px`;
+        img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2} px`;
+        img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2} px`;
         img.style.position = 'absolute';
 
         makeDraggable(img);

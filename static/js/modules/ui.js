@@ -46,17 +46,28 @@ export function updateShapeSettings(key, value) {
 }
 
 export function updateButtonStates() {
-    const redactBtn = document.getElementById('redact-btn');
-    const highlightBtn = document.getElementById('highlight-btn');
-    const extractBtn = document.getElementById('extract-btn');
-    const textBtn = document.getElementById('add-text-btn');
+    const redactBtn = document.getElementById('redact');
+    const highlightBtn = document.getElementById('highlight');
+    const extractBtn = document.getElementById('extract'); // Ribbon doesn't have extract button? 'start-process' is there. Wait.
+    // 'extract' mode button? In Ribbon 'process' tab, there is 'start-process' (Run).
+    // There is no 'extract' mode button in Ribbon config I saw.
+    // Check Config:
+    // 'edit': add-text, add-image. 'Forms'.
+    // 'comment': highlight, note. Shapes.
+    // 'protect': redact.
+    // There is NO 'extract' tool in Ribbon config for Area Extraction?
+    // User requested "Enhance Text Annotation". Extraction was previous.
+    // If 'extract' button missing, getting it returns null, safe.
+
+    // I will fix the ones that exist: redact, highlight, add-text.
+    const textBtn = document.getElementById('add-text');
 
     // Shape buttons
     const shapeBtns = {
-        rect: document.getElementById('shape-rect-btn'),
-        ellipse: document.getElementById('shape-ellipse-btn'),
-        line: document.getElementById('shape-line-btn'),
-        arrow: document.getElementById('shape-arrow-btn')
+        rect: document.getElementById('shape-rect'),
+        ellipse: document.getElementById('shape-ellipse'),
+        line: document.getElementById('shape-line'),
+        arrow: document.getElementById('shape-arrow')
     };
 
     if (redactBtn) redactBtn.className = state.modes.redact ? 'btn btn-danger' : 'btn btn-outline-danger';

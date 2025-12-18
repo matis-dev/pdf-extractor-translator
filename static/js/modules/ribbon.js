@@ -26,6 +26,40 @@ const ribbonConfig = {
             ]
         },
         {
+            group: 'Font',
+            tools: [
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <select id="font-family-select" class="form-select form-select-sm" style="width:110px; font-size: 0.8rem;" onchange="updateTextSettings('fontFamily', this.value)">
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Times Roman">Times Roman</option>
+                            <option value="Courier">Courier</option>
+                        </select>
+                        <span class="small text-muted">Font</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <input id="font-size-input" type="number" class="form-control form-control-sm" value="16" min="8" max="72" style="width: 60px" onchange="updateTextSettings('fontSize', parseInt(this.value))">
+                        <span class="small text-muted">Size</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary p-0 px-2" onclick="toggleTextProperty('bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
+                            <button class="btn btn-outline-secondary p-0 px-2" onclick="toggleTextProperty('italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
+                            <input type="color" class="form-control form-control-color form-control-sm p-0 border-0" value="#000000" title="Color" onchange="updateTextSettings('color', this.value)" style="width: 25px;">
+                        </div>
+                        <span class="small text-muted">Style</span>
+                    </div>`
+                }
+            ]
+        },
+        {
             group: 'Forms',
             tools: [
                 { id: 'add-field', icon: 'bi-input-cursor-text', label: 'Text Field', action: 'globalAction', function: 'addTextField' },

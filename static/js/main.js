@@ -22,7 +22,7 @@ import * as notes from './modules/notes.js';
 Object.assign(window, {
     state,
     historyState, // Access to stacks
-    ui,
+    ...ui,
     appHistory: historyModule, // Access to saveState, undo, redo (avoiding window.history collision)
     ...annotations,
     applySignature,
