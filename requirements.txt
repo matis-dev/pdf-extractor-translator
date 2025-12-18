@@ -1,8 +1,7 @@
 flask
 celery[redis]
 docling
-docx
-pdf-lib
+python-docx
 argostranslate
 pandoc
 pypdf
@@ -10,3 +9,11 @@ werkzeug
 gevent
 gunicorn
 pdf2image
+# AI / Local LLM
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-ollama>=0.0.1
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+requests
+pdfplumber

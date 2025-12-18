@@ -31,21 +31,43 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
     """
     Background task to process PDF files.
     """
-    # Update state to processing
-    self.update_state(state='PROCESSING', meta={'status': 'Starting extraction...', 'current': 0, 'total': 100})
+    def update_progress(state, meta):
+        self.update_state(state=state, meta=meta)
+
+    return run_pdf_extraction(
+        extraction_type, 
+        filename, 
+        upload_folder, 
+        output_folder, 
+        target_lang, 
+        source_lang, 
+        progress_callback=update_progress
+    )
+
+def run_pdf_extraction(extraction_type, filename, upload_folder, output_folder, target_lang=None, source_lang='en', progress_callback=None):
+    """
+    Core PDF extraction logic, decoupled from Celery.
+    """
+    if progress_callback:
+        progress_callback('PROCESSING', {'status': 'Starting extraction...', 'current': 0, 'total': 100})
     
     pdf_path = os.path.join(upload_folder, filename)
     result_file = None
 
     try:
         if extraction_type == 'word' or extraction_type == 'odt':
-            self.update_state(state='PROCESSING', meta={'status': 'Extracting content...', 'current': 10, 'total': 100})
+            if progress_callback:
+                progress_callback('PROCESSING', {'status': 'Extracting content...', 'current': 10, 'total': 100})
+            
             output_path = extract_full_document_to_word(pdf_path)
-            self.update_state(state='PROCESSING', meta={'status': 'Extraction complete. Preparing translation...', 'current': 30, 'total': 100})
+            
+            if progress_callback:
+                progress_callback('PROCESSING', {'status': 'Extraction complete. Preparing translation...', 'current': 30, 'total': 100})
             
             # Translate if requested
             if target_lang and target_lang != 'none':
-                 self.update_state(state='PROCESSING', meta={'status': f'Translating to {target_lang}...', 'current': 30, 'total': 100})
+                 if progress_callback:
+                    progress_callback('PROCESSING', {'status': f'Translating to {target_lang}...', 'current': 30, 'total': 100})
                  
                  doc = Document(output_path)
                  
@@ -58,9 +80,9 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
                      if para.text.strip():
                          para.text = translate_text(para.text, target_lang, source_lang)
                      processed_items += 1
-                     if processed_items % 10 == 0:
+                     if processed_items % 10 == 0 and progress_callback:
                          progress = 30 + int((processed_items / total_items) * 60) # 30% to 90%
-                         self.update_state(state='PROCESSING', meta={'status': f'Translating... ({int(processed_items/total_items*100)}%)', 'current': progress, 'total': 100})
+                         progress_callback('PROCESSING', {'status': f'Translating... ({int(processed_items/total_items*100)}%)', 'current': progress, 'total': 100})
 
                  # Translate tables
                  for table in doc.tables:
@@ -70,9 +92,9 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
                                  if para.text.strip():
                                      para.text = translate_text(para.text, target_lang, source_lang)
                                  processed_items += 1
-                                 if processed_items % 10 == 0:
+                                 if processed_items % 10 == 0 and progress_callback:
                                      progress = 30 + int((processed_items / total_items) * 60)
-                                     self.update_state(state='PROCESSING', meta={'status': f'Translating tables... ({int(processed_items/total_items*100)}%)', 'current': progress, 'total': 100})
+                                     progress_callback('PROCESSING', {'status': f'Translating tables... ({int(processed_items/total_items*100)}%)', 'current': progress, 'total': 100})
                  
                  doc.save(output_path)
                  
@@ -85,7 +107,8 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
                  output_path = new_output_path
 
             if extraction_type == 'odt':
-                self.update_state(state='PROCESSING', meta={'status': 'Converting to ODT...'})
+                if progress_callback:
+                    progress_callback('PROCESSING', {'status': 'Converting to ODT...'})
                 odt_path = output_path.replace('.docx', '.odt')
                 subprocess.run(['pandoc', output_path, '-o', odt_path], check=True)
                 os.remove(output_path) # Remove intermediate DOCX
@@ -99,7 +122,8 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
             result_file = final_filename
 
         elif extraction_type == 'csv':
-            self.update_state(state='PROCESSING', meta={'status': 'Extracting tables...', 'current': 10, 'total': 100})
+            if progress_callback:
+                progress_callback('PROCESSING', {'status': 'Extracting tables...', 'current': 10, 'total': 100})
             output_dir_path = extract_tables_to_csv(pdf_path)
             
             # Zip the contents of the output directory
@@ -119,7 +143,6 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
         return {'status': 'Completed', 'result_file': result_file}
     except Exception as e:
         # In a real app, you might want to log this better
-        self.update_state(state='FAILURE', meta={'status': 'Failed', 'error': str(e)})
-        # Do not raise the exception to avoid Celery serialization issues with custom exceptions or complex objects
-        # Just return the failure state
+        if progress_callback:
+            progress_callback('FAILURE', {'status': 'Failed', 'error': str(e)})
         return {'status': 'Failed', 'error': str(e)}

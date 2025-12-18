@@ -17,6 +17,7 @@ import { openSignatureModal, clearSignature, applySignature } from './modules/si
 import * as extraction from './modules/extraction.js';
 import { splitPdf } from './modules/split.js';
 import * as notes from './modules/notes.js';
+import { initAIChat } from './modules/ai_chat.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -57,6 +58,7 @@ async function init() {
 
         ui.initTheme();
         initRibbon();
+        initAIChat();
         document.body.setAttribute('data-ribbon-called', 'true');
 
         state.filename = window.filename;

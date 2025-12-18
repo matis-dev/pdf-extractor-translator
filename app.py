@@ -99,6 +99,45 @@ def create_zip():
 def editor(filename):
     return render_template('editor.html', filename=filename)
 
+# ... (imports)
+from tasks import process_pdf_task, run_pdf_extraction
+import redis
+
+# ... (app config)
+
+# Helper to check Redis availability
+def is_redis_available():
+    try:
+        r = redis.from_url(app.config['CELERY']['broker_url'])
+        r.ping()
+        return True
+    except:
+        return False
+
+# Mock task for synchronous execution
+class MockTask:
+    def __init__(self, task_id, result=None, state='SUCCESS', error=None):
+        self.id = task_id
+        self.result = result
+        self._state = state
+        self._error = error
+    
+    @property
+    def state(self):
+        return self._state
+        
+    @property
+    def info(self):
+        if self._state == 'FAILURE':
+             return {'status': 'Failed', 'error': self._error}
+        if self.result:
+             return {'status': 'Completed', 'result_file': self.result.get('result_file'), 'current': 100, 'total': 100}
+        return {'status': 'Completed'}
+
+# Global store for sync results (in-memory, cleared on restart)
+# In production, use a localized database or file
+sync_results = {}
+
 @app.route('/process_request', methods=['POST'])
 def process_request():
     filename = request.form.get('filename')
@@ -106,14 +145,47 @@ def process_request():
     target_lang = request.form.get('target_lang')
     source_lang = request.form.get('source_lang', 'en')
     
-    # Trigger Celery task
-    task = process_pdf_task.delay(extraction_type, filename, app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], target_lang, source_lang)
-    
-    return {'task_id': task.id}, 202
+    # Check if we should use Celery
+    if is_redis_available():
+        # Trigger Celery task
+        task = process_pdf_task.delay(extraction_type, filename, app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], target_lang, source_lang)
+        return {'task_id': task.id, 'mode': 'async'}, 202
+    else:
+        # Run synchronously
+        import uuid
+        task_id = str(uuid.uuid4())
+        
+        try:
+            # We can't really do progress updates easily in sync mode without websockets
+            # so we just block until done.
+            result = run_pdf_extraction(
+                extraction_type, 
+                filename, 
+                app.config['UPLOAD_FOLDER'], 
+                app.config['OUTPUT_FOLDER'], 
+                target_lang, 
+                source_lang
+            )
+            
+            if result.get('status') == 'Failed':
+                sync_results[task_id] = MockTask(task_id, state='FAILURE', error=result.get('error'))
+            else:
+                sync_results[task_id] = MockTask(task_id, result=result, state='SUCCESS')
+                
+        except Exception as e:
+            sync_results[task_id] = MockTask(task_id, state='FAILURE', error=str(e))
+            
+        return {'task_id': task_id, 'mode': 'sync'}, 202
 
 @app.route('/status/<task_id>')
 def task_status(task_id):
-    task = process_pdf_task.AsyncResult(task_id)
+    # Check if it's a sync task
+    if task_id in sync_results:
+        task = sync_results[task_id]
+    else:
+        # Assume Celery task
+        task = process_pdf_task.AsyncResult(task_id)
+        
     if task.state == 'PENDING':
         response = {
             'state': task.state,
@@ -432,6 +504,119 @@ def repair_pdf():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ... existing code ...
+
+# --- AI Chat Routes ---
+
+@app.route('/ai/status')
+def ai_status():
+    """Check if local AI is available."""
+    try:
+        from ai_utils import get_pdf_chat_instance, LANGCHAIN_AVAILABLE
+        
+        if not LANGCHAIN_AVAILABLE:
+             return jsonify({
+                'available': False,
+                'error': 'AI dependencies not installed. Please install requirements.'
+            })
+            
+        chat = get_pdf_chat_instance()
+        ollama_ok = chat.check_ollama_available()
+        models = chat.check_models_installed()
+        return jsonify({
+            'available': ollama_ok,
+            'ollama_running': ollama_ok,
+            'models': models,
+            'langchain_installed': True
+        })
+    except ImportError:
+         return jsonify({
+            'available': False,
+            'error': 'AI module import failed.'
+        })
+    except Exception as e:
+        return jsonify({
+            'available': False,
+            'error': str(e)
+        })
+
+@app.route('/ai/index', methods=['POST'])
+def ai_index_pdf():
+    """Index a PDF for AI chat."""
+    filename = request.json.get('filename')
+    if not filename:
+        return jsonify({'error': 'Filename required'}), 400
+    
+    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(pdf_path):
+        return jsonify({'error': 'File not found'}), 404
+    
+    try:
+        from ai_utils import get_pdf_chat_instance
+        chat = get_pdf_chat_instance()
+        
+        if not chat.check_ollama_available():
+            return jsonify({'error': 'Ollama is not running. Please start Ollama first.'}), 503
+        
+        num_chunks = chat.index_pdf(pdf_path)
+        return jsonify({
+            'success': True,
+            'chunks_indexed': num_chunks,
+            'message': f'PDF indexed successfully with {num_chunks} chunks'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/ai/ask', methods=['POST'])
+def ai_ask():
+    """Ask a question about the indexed PDF."""
+    question = request.json.get('question')
+    model = request.json.get('model')
+    
+    if not question:
+        return jsonify({'error': 'Question required'}), 400
+    
+    try:
+        from ai_utils import get_pdf_chat_instance
+        chat = get_pdf_chat_instance()
+        
+        # Switch model if requested and different
+        if model and model != chat.llm_model:
+            chat.update_llm(model)
+            
+        result = chat.ask(question)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/ai/pull', methods=['POST'])
+def ai_pull():
+    """Pull a new model from Ollama."""
+    model = request.json.get('model')
+    if not model:
+        return jsonify({'error': 'Model name required'}), 400
+        
+    def pull_background(model_name):
+        try:
+            print(f"Starting pull for {model_name}...")
+            # Use requests to talk to Ollama directly
+            import requests
+            # stream=False waits until done (which might timeout Nginx/Flask).
+            # We just want to trigger it.
+            # But the user needs to know when it's done.
+            # For this MVP, we will rely on checking /ai/status later.
+            requests.post('http://localhost:11434/api/pull', json={'name': model_name, 'stream': False})
+            print(f"Finished pull for {model_name}")
+        except Exception as e:
+            print(f"Error pulling {model_name}: {e}")
+
+    # Start in background thread
+    import threading
+    thread = threading.Thread(target=pull_background, args=(model,))
+    thread.start()
+    
+    return jsonify({'success': True, 'message': f"Started downloading {model}. Check status in a few minutes."})
 
 if __name__ == '__main__':
     app.run(debug=True)
