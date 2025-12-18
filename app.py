@@ -505,7 +505,134 @@ def repair_pdf():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ... existing code ...
+@app.route('/compare', methods=['POST'])
+def compare_pdfs():
+    """Compare two PDF files visually and highlight differences."""
+    from pdf2image import convert_from_path
+    from PIL import Image, ImageChops, ImageDraw
+    import io
+    
+    filename1 = request.json.get('filename1')  # Current PDF
+    filename2 = request.json.get('filename2')  # Comparison PDF (already uploaded)
+    
+    if not filename1 or not filename2:
+        return jsonify({'error': 'Both filenames are required'}), 400
+    
+    path1 = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename1))
+    path2 = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename2))
+    
+    if not os.path.exists(path1):
+        return jsonify({'error': f'File not found: {filename1}'}), 404
+    if not os.path.exists(path2):
+        return jsonify({'error': f'File not found: {filename2}'}), 404
+    
+    try:
+        # Convert PDFs to images
+        images1 = convert_from_path(path1, dpi=150)
+        images2 = convert_from_path(path2, dpi=150)
+        
+        # Handle page count differences
+        max_pages = max(len(images1), len(images2))
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base1 = os.path.splitext(secure_filename(filename1))[0]
+        base2 = os.path.splitext(secure_filename(filename2))[0]
+        zip_filename = f"compare_{timestamp}_{base1}_vs_{base2}.zip"
+        zip_path = os.path.join(app.config['OUTPUT_FOLDER'], zip_filename)
+        
+        differences_found = []
+        
+        with zipfile.ZipFile(zip_path, 'w') as zf:
+            for i in range(max_pages):
+                # Get images for this page (or create blank if one PDF is shorter)
+                if i < len(images1):
+                    img1 = images1[i].convert('RGB')
+                else:
+                    # Create blank image matching img2 size
+                    img1 = Image.new('RGB', images2[i].size, (255, 255, 255))
+                
+                if i < len(images2):
+                    img2 = images2[i].convert('RGB')
+                else:
+                    # Create blank image matching img1 size
+                    img2 = Image.new('RGB', images1[i].size, (255, 255, 255))
+                
+                # Resize to match if dimensions differ
+                if img1.size != img2.size:
+                    # Resize img2 to match img1
+                    img2 = img2.resize(img1.size, Image.Resampling.LANCZOS)
+                
+                # Calculate difference
+                diff = ImageChops.difference(img1, img2)
+                
+                # Check if there are any differences
+                diff_bbox = diff.getbbox()
+                has_diff = diff_bbox is not None
+                
+                if has_diff:
+                    differences_found.append(i + 1)
+                
+                # Create side-by-side comparison
+                width = img1.width + img2.width + 20  # 20px gap
+                height = max(img1.height, img2.height)
+                side_by_side = Image.new('RGB', (width, height), (240, 240, 240))
+                side_by_side.paste(img1, (0, 0))
+                side_by_side.paste(img2, (img1.width + 20, 0))
+                
+                # Save side-by-side
+                sbs_name = f"page_{i+1}_sidebyside.jpg"
+                sbs_buffer = io.BytesIO()
+                side_by_side.save(sbs_buffer, 'JPEG', quality=85)
+                sbs_buffer.seek(0)
+                zf.writestr(sbs_name, sbs_buffer.getvalue())
+                
+                # Create diff overlay (highlight differences in red)
+                if has_diff:
+                    # Convert diff to grayscale and threshold
+                    diff_gray = diff.convert('L')
+                    # Create a red overlay for differences
+                    diff_overlay = Image.new('RGBA', img1.size, (0, 0, 0, 0))
+                    
+                    # Iterate pixels and highlight differences
+                    diff_pixels = diff_gray.load()
+                    overlay_pixels = diff_overlay.load()
+                    
+                    for x in range(diff_gray.width):
+                        for y in range(diff_gray.height):
+                            if diff_pixels[x, y] > 20:  # Threshold for noise
+                                overlay_pixels[x, y] = (255, 0, 0, 128)  # Semi-transparent red
+                    
+                    # Composite overlay on img1
+                    img1_rgba = img1.convert('RGBA')
+                    diff_result = Image.alpha_composite(img1_rgba, diff_overlay)
+                    
+                    diff_name = f"page_{i+1}_diff.png"
+                    diff_buffer = io.BytesIO()
+                    diff_result.save(diff_buffer, 'PNG')
+                    diff_buffer.seek(0)
+                    zf.writestr(diff_name, diff_buffer.getvalue())
+            
+            # Create summary JSON
+            summary = {
+                'pdf1': filename1,
+                'pdf2': filename2,
+                'pages_pdf1': len(images1),
+                'pages_pdf2': len(images2),
+                'pages_with_differences': differences_found,
+                'total_differences': len(differences_found)
+            }
+            import json
+            zf.writestr('summary.json', json.dumps(summary, indent=2))
+        
+        return jsonify({
+            'filename': zip_filename,
+            'url': url_for('download_file', filename=zip_filename),
+            'summary': summary
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 # --- AI Chat Routes ---
 

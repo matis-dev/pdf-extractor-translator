@@ -117,6 +117,12 @@ const ribbonConfig = {
                 { id: 'sharding', icon: 'bi-grid-3x3', label: 'Split (Burst)', action: 'globalAction', function: 'shardPdf' },
                 { id: 'merge', icon: 'bi-files', label: 'Append', action: 'triggerUpload', inputId: 'pdf-append' },
             ]
+        },
+        {
+            group: 'Compare',
+            tools: [
+                { id: 'compare-pdf', icon: 'bi-file-diff', label: 'Compare', action: 'globalAction', function: 'openCompareModal' }
+            ]
         }
     ],
     'process': [

@@ -523,3 +523,48 @@ def test_ribbon_functional(page: Page, live_server_url):
         if os.path.exists(pdf_path):
             try: os.remove(pdf_path)
             except: pass
+
+def test_compare_pdf_ui(page: Page, live_server_url):
+    """Test Compare PDFs modal UI flow."""
+    from reportlab.pdfgen import canvas
+    
+    # Create test PDF
+    pdf_name = "compare_ui_test.pdf"
+    absolute_pdf_path = os.path.abspath(pdf_name)
+    c = canvas.Canvas(absolute_pdf_path)
+    c.drawString(100, 750, "Compare UI Test")
+    c.save()
+    
+    try:
+        page.goto(live_server_url)
+        page.set_input_files("input#pdf_file", absolute_pdf_path)
+        page.get_by_text("Upload & Edit").click()
+        
+        # Wait for editor
+        expect(page.locator("#sidebar")).to_be_visible()
+        
+        # Switch to Tools tab
+        page.get_by_text("Tools", exact=True).click()
+        
+        # Verify Compare button is visible
+        expect(page.locator("#compare-pdf")).to_be_visible()
+        
+        # Click Compare button
+        page.locator("#compare-pdf").click()
+        
+        # Modal should open
+        expect(page.locator("#compareModal")).to_be_visible()
+        
+        # Verify modal elements
+        expect(page.locator("#pdf-compare")).to_be_visible()  # File input
+        expect(page.locator("#compare-run-btn")).to_be_visible()  # Run button
+        expect(page.locator("#compare-run-btn")).to_be_disabled()  # Should be disabled initially
+        
+        # Close modal
+        page.locator("#compareModal .btn-close").click()
+        expect(page.locator("#compareModal")).not_to_be_visible()
+        
+    finally:
+        if os.path.exists(absolute_pdf_path):
+            try: os.remove(absolute_pdf_path)
+            except: pass

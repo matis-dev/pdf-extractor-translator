@@ -245,3 +245,58 @@ async function compressSelectedFiles() {
         window.location.reload();
     }, 3000);
 }
+
+async function compareSelectedFiles() {
+    const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.value);
+
+    if (selectedFiles.length !== 2) {
+        showToast("Please select exactly two files to compare.", 'warning');
+        return;
+    }
+
+    const progressContainer = document.getElementById('batch-progress-container');
+    progressContainer.innerHTML = `
+        <div class="alert alert-info">
+            <div class="spinner-border spinner-border-sm" role="status"></div> Comparing ${selectedFiles[0]} and ${selectedFiles[1]}...
+        </div>
+    `;
+    progressContainer.style.display = 'block';
+
+    try {
+        const res = await fetch('/compare', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filename1: selectedFiles[0],
+                filename2: selectedFiles[1]
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            showToast("Comparison successful!", 'success');
+            // Format differences text
+            let diffText = 'No differences found.';
+            if (data.summary && data.summary.total_differences > 0) {
+                diffText = `Found ${data.summary.total_differences} page(s) with differences.`;
+            }
+
+            progressContainer.innerHTML = `
+                <div class="alert alert-success">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>Comparison Complete!</strong>
+                        <a href="${data.url}" class="btn btn-primary btn-sm"><i class="bi bi-download"></i> Download Report</a>
+                    </div>
+                    <small>${diffText}</small>
+                </div>
+            `;
+        } else {
+            showToast(data.error || "Comparison failed", 'danger');
+            progressContainer.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+        }
+    } catch (e) {
+        handleApiError(e, "Error comparing files");
+        progressContainer.style.display = 'none';
+    }
+}

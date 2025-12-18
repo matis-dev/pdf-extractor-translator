@@ -18,6 +18,7 @@ import * as extraction from './modules/extraction.js';
 import { splitPdf } from './modules/split.js';
 import * as notes from './modules/notes.js';
 import { initAIChat } from './modules/ai_chat.js';
+import * as compare from './modules/compare.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -47,7 +48,13 @@ Object.assign(window, {
     movePageUp: pages.movePageUp,
     movePageDown: pages.movePageDown,
     shardPdf: pages.shardPdf,
-    manageSecurity: () => document.getElementById('security-modal').style.display = 'block'
+    manageSecurity: () => document.getElementById('security-modal').style.display = 'block',
+    // Compare PDFs
+    openCompareModal: compare.openCompareModal,
+    closeCompareModal: compare.closeCompareModal,
+    handleCompareFileSelect: compare.handleCompareFileSelect,
+    runComparison: compare.runComparison,
+    currentFilename: window.filename
 });
 
 // Initialize

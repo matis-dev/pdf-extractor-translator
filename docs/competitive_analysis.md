@@ -50,7 +50,7 @@ iLovePDF is a comprehensive, cloud-based PDF platform offering 25+ tools for PDF
 | Add Page Numbers         |         ✅         |        ❌        | **Gap**                  |
 | Add Watermark            |         ✅         |        ❌        | **Gap**                  |
 | Crop PDF                 |         ✅         |        ❌        | **Gap**                  |
-| Compare PDFs             |         ✅         |        ❌        | **Gap**                  |
+| Compare PDFs             |         ✅         |        ✅        | Parity                   |
 | Scan to PDF              |         ✅         |        ❌        | **Gap**                  |
 | **Translation**          |
 | Offline Translation      |         ❌         |        ✅        | **Our Advantage**        |
@@ -137,7 +137,7 @@ Based on the competitive analysis, here are features that would significantly en
 | **6. Add Watermark**         | Branding, document protection   | 2 pts  | ✅ Done |
 | **7. Add Page Numbers**      | Professional document finishing | 2 pts  | ✅ Done |
 | **8. PDF to JPG**            | Common conversion need          | 3 pts  | ✅ Done |
-| **9. Compare PDFs**          | Diff between document versions  | 5 pts  |        |
+| **9. Compare PDFs**          | Diff between document versions  | 5 pts  | ✅ Done |
 | **10. Comments/Annotations** | Collaborative review workflows  | 4 pts  | ✅ Done |
 
 ### Low Priority (Future Consideration)
