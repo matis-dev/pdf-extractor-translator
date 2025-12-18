@@ -125,8 +125,8 @@ body {
 }
 
 .page-control-btn {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: none;
     color: white;
@@ -433,7 +433,7 @@ body {
     padding: 5px 8px;
     color: var(--text-color);
     cursor: pointer;
-    min-width: 40px;
+    min-width: 44px;
     height: 55px;
 }
 
@@ -441,6 +441,12 @@ body {
     background-color: var(--thumbnail-hover);
     border-color: var(--border-color);
     color: #0d6efd;
+}
+
+.ribbon-btn:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: -2px;
+    background-color: var(--thumbnail-hover);
 }
 
 .ribbon-btn i {

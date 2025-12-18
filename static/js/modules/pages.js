@@ -4,6 +4,8 @@ import { saveState } from './history.js';
 import { refreshView } from './viewer.js';
 import { closePageExtractionModal } from './ui.js';
 
+let pageToDelete = -1;
+
 export async function rotatePage(pageIndex) {
     await saveState();
     const page = state.pdfDoc.getPage(pageIndex);
@@ -16,24 +18,34 @@ export async function rotateCurrentPage() {
     await rotatePage(state.selectedPageIndex);
 }
 
-export async function deletePage(pageIndex) {
+export function deletePage(pageIndex) {
     if (state.pdfDoc.getPageCount() <= 1) {
         showToast("Cannot delete the last page.", "warning");
         return;
     }
-    if (!confirm("Are you sure you want to delete this page?")) return;
+    pageToDelete = pageIndex;
+    new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+}
+
+export async function confirmDeletePage() {
+    const modalEl = document.getElementById('deleteConfirmModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+    if (pageToDelete === -1) return;
 
     await saveState();
-    state.pdfDoc.removePage(pageIndex);
+    state.pdfDoc.removePage(pageToDelete);
 
     if (state.selectedPageIndex >= state.pdfDoc.getPageCount()) {
         state.selectedPageIndex = state.pdfDoc.getPageCount() - 1;
     }
     await refreshView();
+    pageToDelete = -1;
 }
 
 export async function deleteCurrentPage() {
-    await deletePage(state.selectedPageIndex);
+    deletePage(state.selectedPageIndex);
 }
 
 export async function movePage(pageIndex, direction) {

@@ -7,7 +7,7 @@ def test_index_page(page: Page, live_server_url):
     """Test that index page loads and has correct title."""
     page.goto(live_server_url)
     expect(page).to_have_title("PDF Content Extractor")
-    expect(page.locator("h1")).to_contain_text("PDF Extractor & Editor")
+    expect(page.locator(".navbar-brand")).to_contain_text("PDF Extractor & Editor")
 
 def test_unit_index(client, app):
     """Debug test to check if index route exists in app."""
@@ -131,9 +131,12 @@ def test_thumbnails(page: Page, live_server_url):
         expect(page.locator(".thumbnail-item").nth(2)).to_have_class(re.compile(r"active"))
         
         # Test Delete Page 2
-        # Set dialog handler BEFORE clicking
-        page.once("dialog", lambda dialog: dialog.accept())
+        page.locator(".page-container[data-page-index='1']").scroll_into_view_if_needed()
         page.locator(".page-container[data-page-index='1'] .btn-delete").click(force=True)
+        
+        # Handle Bootstrap Modal
+        expect(page.locator("#deleteConfirmModal")).to_be_visible()
+        page.locator("#deleteConfirmModal button:has-text('Delete')").click(force=True)
         
         # Wait for count to benefit 2
         expect(page.locator("#thumbnails-container .thumbnail-item")).to_have_count(2, timeout=5000)

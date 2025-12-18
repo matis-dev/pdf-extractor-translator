@@ -114,7 +114,7 @@ const ribbonConfig = {
             group: 'File',
             tools: [
                 { id: 'split', icon: 'bi-scissors', label: 'Split', action: 'globalAction', function: 'splitPdf' },
-                { id: 'sharding', icon: 'bi-grid-3x3', label: 'Split (Burst)', action: 'globalAction', function: 'shardPdf' },
+                { id: 'sharding', icon: 'bi-grid-3x3', label: 'Split All Pages', action: 'globalAction', function: 'shardPdf' },
                 { id: 'merge', icon: 'bi-files', label: 'Append', action: 'triggerUpload', inputId: 'pdf-append' },
             ]
         },

@@ -157,6 +157,18 @@ export function updateHistoryButtons(undoStack, redoStack) {
     if (redoBtn) redoBtn.disabled = redoStack.length === 0;
 }
 
+export function updateUnsavedIndicator(hasChanges) {
+    const titleEl = document.querySelector('.file-name');
+    if (!titleEl) return;
+
+    let text = titleEl.innerText;
+    if (hasChanges && !text.endsWith('*')) {
+        titleEl.innerText = text + '*';
+    } else if (!hasChanges && text.endsWith('*')) {
+        titleEl.innerText = text.slice(0, -1);
+    }
+}
+
 // Password & Security Modals
 let passwordResolve = null;
 let passwordReject = null;

@@ -6,6 +6,7 @@ try {
 
 import { state, history as historyState } from './modules/state.js';
 import * as ui from './modules/ui.js';
+import { updateUnsavedIndicator } from './modules/ui.js';
 import { initRibbon } from './modules/ribbon.js';
 import { loadPdf, refreshView, zoomIn, zoomOut } from './modules/viewer.js';
 import * as historyModule from './modules/history.js';
@@ -45,6 +46,7 @@ Object.assign(window, {
     // Page Actions
     rotatePage: pages.rotateCurrentPage,
     deletePage: pages.deleteCurrentPage,
+    confirmDeletePage: pages.confirmDeletePage,
     movePageUp: pages.movePageUp,
     movePageDown: pages.movePageDown,
     shardPdf: pages.shardPdf,
@@ -82,6 +84,8 @@ async function init() {
 
         // Initialize history
         historyModule.saveState(false);
+        state.hasUnsavedChanges = false;
+        updateUnsavedIndicator(false);
         ui.updateHistoryButtons(historyState.undoStack, historyState.redoStack);
 
         setupContextMenu();
@@ -146,6 +150,13 @@ function setupContextMenu() {
     }
 
     // Global listeners
+    window.addEventListener('beforeunload', (e) => {
+        if (state.hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
     document.addEventListener('mouseup', annotations.handleGlobalMouseUp);
 
     // Sync form inputs to PDF model

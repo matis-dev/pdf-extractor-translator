@@ -21,7 +21,8 @@ export const state = {
     },
     pageToExtractIndex: -1,
     // Constants
-    MAX_HISTORY: 50
+    MAX_HISTORY: 50,
+    hasUnsavedChanges: false
 };
 
 export const history = {

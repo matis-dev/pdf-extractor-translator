@@ -1,7 +1,7 @@
 
 import { state } from './state.js';
 import { commitAnnotations } from './annotations.js';
-import { closePageExtractionModal } from './ui.js';
+import { closePageExtractionModal, updateUnsavedIndicator } from './ui.js';
 
 export async function performExtraction(pageIndex, x, y, w, h, pageWidth, pageHeight) {
     document.getElementById('processing-overlay').style.display = 'flex';
@@ -174,6 +174,8 @@ export async function saveChanges() {
     formData.append('pdf_file', blob, state.filename);
 
     await fetch('/save_pdf', { method: 'POST', body: formData });
+    state.hasUnsavedChanges = false;
+    updateUnsavedIndicator(false);
     showToast('Changes saved successfully!', 'success'); // replaced alert
     setTimeout(() => location.reload(), 1000); // Wait for toast? or just reload
 }

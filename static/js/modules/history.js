@@ -2,12 +2,14 @@
 import { state, history } from './state.js';
 import { commitAnnotations } from './annotations.js';
 import { loadPdf } from './viewer.js';
-import { updateHistoryButtons } from './ui.js';
+import { updateHistoryButtons, updateUnsavedIndicator } from './ui.js';
 
 export async function saveState(shouldCommit = true) {
     if (shouldCommit) {
         try {
             await commitAnnotations();
+            state.hasUnsavedChanges = true;
+            updateUnsavedIndicator(true);
         } catch (e) {
             handleApiError(e, "Error committing annotations");
         }
