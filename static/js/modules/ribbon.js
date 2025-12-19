@@ -97,6 +97,7 @@ const ribbonConfig = {
             group: 'Security',
             tools: [
                 { id: 'redact', icon: 'bi-eraser-fill', label: 'Redact', action: 'setMode', value: 'redact' },
+                { id: 'watermark', icon: 'bi-water', label: 'Watermark', action: 'globalAction', function: 'openWatermarkModal' },
                 { id: 'manage-security', icon: 'bi-shield-lock', label: 'Security', action: 'globalAction', function: 'manageSecurity' },
                 { id: 'sign', icon: 'bi-pen', label: 'Sign', action: 'globalAction', function: 'openSignatureModal' }
             ]
@@ -106,7 +107,6 @@ const ribbonConfig = {
         {
             group: 'Pages',
             tools: [
-                { id: 'watermark', icon: 'bi-water', label: 'Watermark', action: 'globalAction', function: 'openWatermarkModal' },
                 { id: 'page-numbers', icon: 'bi-123', label: 'Page #', action: 'globalAction', function: 'openPageNumbersModal' }
             ]
         },

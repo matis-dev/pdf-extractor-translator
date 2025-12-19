@@ -334,8 +334,8 @@ def test_watermark_ui(page: Page, live_server_url):
         # Wait for editor
         expect(page.locator("#sidebar")).to_be_visible()
         
-        # Click Watermark button (Tools Tab)
-        page.locator(".tab-btn").filter(has_text="Tools").click()
+        # Click Watermark button (Protect Tab)
+        page.locator(".tab-btn").filter(has_text="Protect").click()
         page.locator("#watermark").click()
         
         # Check Modal
@@ -593,10 +593,11 @@ def test_ribbon_functional(page: Page, live_server_url):
         page.locator(".tab-btn").filter(has_text="Protect").click()
         expect(page.locator("#redact")).to_be_visible()
         expect(page.locator("#sign")).to_be_visible()
+        expect(page.locator("#watermark")).to_be_visible()
 
         # Switch to Tools
         page.locator(".tab-btn").filter(has_text="Tools").click()
-        expect(page.locator("#watermark")).to_be_visible()
+        # expect(page.locator("#watermark")).to_be_visible() # Moved to Protect
         expect(page.locator("#split")).to_be_visible()
 
         # Switch to Process
