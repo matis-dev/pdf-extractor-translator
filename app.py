@@ -746,4 +746,6 @@ def ai_pull():
     return jsonify({'success': True, 'message': f"Started downloading {model}. Check status in a few minutes."})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode)

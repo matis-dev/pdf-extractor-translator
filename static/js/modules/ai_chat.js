@@ -337,6 +337,14 @@ async function sendMessage() {
     }
 }
 
+// Helper to escape HTML characters
+function escapeHtml(text) {
+    if (!text) return text;
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function addMessage(text, type) {
     const container = document.getElementById('ai-messages');
     const div = document.createElement('div');
@@ -362,7 +370,7 @@ function addBotMessage(text, isAction = false, sources = null) {
             html += `<div class="mt-2 pt-2 border-top text-muted small"><strong>Sources:</strong>`;
             sources.forEach(s => {
                 const pageNum = parseInt(s.page) + 1; // LangChain uses 0-indexed sometimes
-                html += `<div class="mt-1">📄 <strong>Page ${s.page}</strong>: ${s.content}</div>`;
+                html += `<div class="mt-1">📄 <strong>Page ${escapeHtml(s.page)}</strong>: ${escapeHtml(s.content)}</div>`;
             });
             html += `</div>`;
         }
