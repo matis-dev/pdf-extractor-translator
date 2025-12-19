@@ -1,4 +1,4 @@
-![Status](https://img.shields.io/badge/Status-Beta-yellow) ![License](https://img.shields.io/badge/License-MIT-blue) ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+![Status](https://img.shields.io/badge/Status-Beta-yellow) ![License](https://img.shields.io/badge/License-GPLv3-blue) ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 
 # PDF Content Extractor & Translator
 
