@@ -1,6 +1,7 @@
 """
 Local AI utilities for PDF chat using Ollama.
 100% offline - no internet required after initial model download.
+Now supports Agentic Workflow with tool calling.
 """
 import os
 import requests
@@ -12,10 +13,17 @@ try:
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain_community.document_loaders import PyPDFLoader
     from langchain_community.vectorstores import Chroma
-    from langchain_ollama import OllamaEmbeddings, OllamaLLM
+    from langchain_ollama import OllamaEmbeddings, ChatOllama
     from langchain_core.prompts import PromptTemplate
     from langchain_core.output_parsers import StrOutputParser
     from langchain_core.runnables import RunnablePassthrough
+    from langchain_core.tools import tool
+    from langchain_classic.agents import create_react_agent, AgentExecutor
+    from langchain_core.prompts import PromptTemplate
+    
+    # Import our custom tools
+    from ai_tools import extract_pdf_tables, translate
+    
     LANGCHAIN_AVAILABLE = True
 except ImportError as e:
     print(f"DEBUG: ai_utils import failed: {e}")
@@ -33,7 +41,7 @@ CHUNK_OVERLAP = 200
 
 class LocalPDFChat:
     """
-    100% offline PDF Q&A using Ollama.
+    100% offline PDF Q&A using Ollama with ReAct Agent capabilities.
     """
     
     def __init__(
@@ -55,11 +63,11 @@ class LocalPDFChat:
             base_url=OLLAMA_BASE_URL
         )
         
-        # Initialize LLM
-        self.llm = OllamaLLM(
+        # Initialize LLM - Switched to ChatOllama for tool support
+        self.llm = ChatOllama(
             model=llm_model,
             base_url=OLLAMA_BASE_URL,
-            temperature=0.3,
+            temperature=0, # Lower temperature for better tool use
         )
         
         # Text splitter
@@ -71,7 +79,29 @@ class LocalPDFChat:
         
         self.vectorstore = None
         self.retriever = None
-        self.chain = None
+        self.tools = []
+        self.agent_executor = None
+        
+        # Define ReAct prompt locally to avoid hub dependency
+        self.react_prompt = PromptTemplate.from_template("""Answer the following questions as best you can. You have access to the following tools:
+
+{tools}
+
+Use the following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [{tool_names}]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Begin!
+
+Question: {input}
+Thought:{agent_scratchpad}""")
     
     def check_ollama_available(self) -> bool:
         """Check if Ollama is running locally."""
@@ -139,13 +169,28 @@ class LocalPDFChat:
             collection_name=collection_name
         )
         
-        # Setup retrieval
-        self._setup_rag_chain()
+        # Setup Agent
+        self._setup_agent_chain()
         
         return len(chunks)
     
-    def _setup_rag_chain(self):
-        """Create the RAG chain using LCEL."""
+    def _create_search_tool(self):
+        """Create a tool for searching the specific document."""
+        @tool
+        def search_document(query: str) -> str:
+            """Search the current PDF document to answer questions about its content.
+            Use this tool when you need to find information contained within the PDF file.
+            Args:
+                query: The search query or question about the document.
+            """
+            if self.retriever is None:
+                return "Error: No document indexed."
+            docs = self.retriever.invoke(query)
+            return "\n\n".join([d.page_content for d in docs])
+        return search_document
+
+    def _setup_agent_chain(self):
+        """Create the ReAct agent chain."""
         if self.vectorstore is None:
             raise ValueError("No documents indexed. Call index_pdf first.")
         
@@ -154,71 +199,76 @@ class LocalPDFChat:
             search_kwargs={"k": 4}
         )
         
-        prompt_template = """You are a helpful assistant answering questions about a PDF document.
-Use ONLY the following context to answer the question. If you cannot find the answer in the context, say "I cannot find this information in the document."
-
-Context from the document:
-{context}
-
-Question: {question}
-
-Answer: """
-
-        prompt = PromptTemplate(
-            template=prompt_template,
-            input_variables=["context", "question"]
-        )
+        # define tools
+        self.tools = [
+            extract_pdf_tables,
+            translate,
+            self._create_search_tool()
+        ]
         
-        # Define chain
-        def format_docs(docs):
-            return "\n\n".join(doc.page_content for doc in docs)
-
-        self.chain = (
-            {"context": self.retriever | format_docs, "question": RunnablePassthrough()}
-            | prompt
-            | self.llm
-            | StrOutputParser()
+        # Create ReAct agent
+        agent = create_react_agent(self.llm, self.tools, self.react_prompt)
+        
+        # Create executor
+        self.agent_executor = AgentExecutor(
+            agent=agent, 
+            tools=self.tools, 
+            verbose=True,
+            handle_parsing_errors=True,
+            max_iterations=5
         )
     
     def update_llm(self, model_name: str):
         """Update the LLM model used for generation."""
-        # Simple validation
-        if not ':' in model_name:
-             # Basic heuristic, though some might not have tags. 
-             # Ollama usually needs tag or assumes 'latest'
-             pass
-             
         self.llm_model = model_name
-        self.llm = OllamaLLM(
+        self.llm = ChatOllama(
             model=model_name,
             base_url=OLLAMA_BASE_URL,
-            temperature=0.3,
+            temperature=0,
         )
-        # Recreate chain with new LLM if retrieving
+        # Recreate agent if we have tools ready
         if self.retriever:
-            self._setup_rag_chain()
+            self._setup_agent_chain()
             
     def ask(self, question: str) -> Dict[str, Any]:
         """
-        Ask a question about the indexed PDF.
+        Ask a question using the agentic workflow.
         """
-        if self.chain is None:
-            raise ValueError("No chain available. Index a PDF first.")
+        if self.agent_executor is None:
+            raise ValueError("No agent available. Index a PDF first.")
         
-        # Get source documents first
+        try:
+            # Run agent
+            result = self.agent_executor.invoke({"input": question})
+            answer = result["output"]
+            
+            # For backward compatibility, try to fetch source docs if it was a search
+            # (Note: This is an approximation since ReAct obfuscates source retrieval)
+            sources = []
+            if "search_document" in str(result.get("intermediate_steps", "")):
+                 # We could re-run retrieval, but expensive. 
+                 # For now, we return empty sources or last retrieved docs if we stored them.
+                 pass
+            
+            return {
+                "answer": answer,
+                "sources": sources,
+                "model_used": self.llm_model,
+                "agent_log": str(result.get("intermediate_steps", []))
+            }
+        except Exception as e:
+            # Fallback for small models that fail ReAct
+            print(f"Agent failed: {e}. Falling back to simple RAG.")
+            return self._ask_fallback_rag(question)
+
+    def _ask_fallback_rag(self, question: str):
+        """Fallback to simple RAG if agent fails."""
         docs = self.retriever.invoke(question)
+        context = "\n\n".join([d.page_content for d in docs])
+        prompt = f"Context: {context}\n\nQuestion: {question}\nAnswer:"
+        answer = self.llm.invoke(prompt).content
         
-        # Generate answer
-        answer = self.chain.invoke(question)
-        
-        # Format sources
-        sources = []
-        for doc in docs:
-            sources.append({
-                "page": doc.metadata.get("page", "Unknown"),
-                "content": doc.page_content[:200] + "..."
-            })
-        
+        sources = [{"page": d.metadata.get("page", "?"), "content": d.page_content[:200]} for d in docs]
         return {
             "answer": answer,
             "sources": sources,

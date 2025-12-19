@@ -75,7 +75,7 @@ def extract_tables(pdf_path: str):
     _log.info(
         f"Successfully extracted {len(conv_res.document.tables)} tables to '{output_dir}'."
     )
-    return output_dir
+    return str(output_dir)
 
 
 if __name__ == "__main__":

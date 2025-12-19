@@ -320,12 +320,9 @@ async function sendMessage() {
             let text = data.answer;
             // Append sources
             if (data.sources && data.sources.length > 0) {
-                // text += "\n\nSources:\n";
-                // data.sources.forEach(s => text += `- Page ${s.page}: "${s.content.substring(0, 50)}..."\n`);
-                // We render sources nicely in HTML instead
-                addBotMessage(text, false, data.sources);
+                addBotMessage(text, false, data.sources, data.agent_log);
             } else {
-                addBotMessage(text);
+                addBotMessage(text, false, null, data.agent_log);
             }
         }
 
@@ -354,7 +351,7 @@ function addMessage(text, type) {
     container.scrollTop = container.scrollHeight;
 }
 
-function addBotMessage(text, isAction = false, sources = null) {
+function addBotMessage(text, isAction = false, sources = null, agentLog = null) {
     const container = document.getElementById('ai-messages');
     const div = document.createElement('div');
     div.className = `ai-message bot`;
@@ -364,19 +361,37 @@ function addBotMessage(text, isAction = false, sources = null) {
         window.indexPdfAction = indexDocument; // Expose for click
     } else {
         // Convert simple markdown to HTML (basic)
-        let html = text.replace(/\n/g, '<br>');
+        let html = escapeHtml(text).replace(/\n/g, '<br>');
 
-        if (sources) {
+        // Detect file paths and create links
+        // Regex for absolute paths like /home/.../outputs/...
+        const pathRegex = /(\/home\/[^\s\<]+)/g;
+        html = html.replace(pathRegex, (match) => {
+            const filename = match.split('/').pop();
+            const url = `/outputs/${filename}`;
+            return `<a href="${url}" target="_blank" class="fw-bold text-success"><i class="bi bi-download"></i> Download ${filename}</a>`;
+        });
+
+        if (sources && sources.length > 0) {
             html += `<div class="mt-2 pt-2 border-top text-muted small"><strong>Sources:</strong>`;
             sources.forEach(s => {
-                const pageNum = parseInt(s.page) + 1; // LangChain uses 0-indexed sometimes
                 html += `<div class="mt-1">📄 <strong>Page ${escapeHtml(s.page)}</strong>: ${escapeHtml(s.content)}</div>`;
             });
             html += `</div>`;
         }
-        div.innerHTML = html;
+
+        // Render Agent Log/Thought Process if available (passed as sources or separate field?)
+        // In the updated backend, we pass 'agent_log'. We need to update sendMessage to pass it here.
+        // Let's assume 'sources' argument might contain an 'agent_log' property if we change call signature or just use a new arg.
+        // For minimal change, let's look at a new arguments object or standard consistent object.
     }
 
+    // Agent Log (Thought Process)
+    if (agentLog && agentLog.length > 5) { // Simple check
+        html += `<details class="mt-2"><summary class="text-muted small">Show Thought Process</summary><pre class="bg-light p-2 mt-1 small text-wrap">${escapeHtml(agentLog)}</pre></details>`;
+    }
+
+    div.innerHTML = div.innerHTML || html; // Fallback or updated html
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
