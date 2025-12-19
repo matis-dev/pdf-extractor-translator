@@ -1,20 +1,30 @@
 import os
 import shutil
 import warnings
+import io
+import threading
+import uuid
+import json
+import subprocess
 from pathlib import Path
+from datetime import datetime
+
 from flask import Flask, request, render_template, send_from_directory, url_for, redirect, jsonify
 from werkzeug.utils import secure_filename
 import zipfile
-from datetime import datetime
 
-# Suppress specific Pydantic warnings from Docling
-warnings.filterwarnings("ignore", message="Field .* has conflict with protected namespace 'model_'")
+# Third-party imports
+import pdfplumber
+import redis
+from pypdf import PdfReader, PdfWriter
+from pdf2image import convert_from_path
+from PIL import Image, ImageChops, ImageDraw
 
-# Import the refactored extraction functions
-# from extract_full_document_to_word import extract_full_document_to_word
-# from extract_tables_to_csv import extract_tables as extract_tables_to_csv
+# App specific imports
 from celery_utils import celery_init_app
-from tasks import process_pdf_task
+from tasks import process_pdf_task, run_pdf_extraction
+from translation_utils import translate_text
+from ai_utils import get_pdf_chat_instance, LANGCHAIN_AVAILABLE
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -75,10 +85,12 @@ def create_zip():
     if not filenames:
         return {'error': 'No filenames provided'}, 400
 
-    import zipfile
-    import io
+    filenames = request.json.get('filenames', [])
+    if not filenames:
+        return {'error': 'No filenames provided'}, 400
 
     memory_file = io.BytesIO()
+
     with zipfile.ZipFile(memory_file, 'w') as zf:
         for fname in filenames:
             file_path = os.path.join(app.config['OUTPUT_FOLDER'], fname)
@@ -99,19 +111,22 @@ def create_zip():
 def editor(filename):
     return render_template('editor.html', filename=filename)
 
-# ... (imports)
-from tasks import process_pdf_task, run_pdf_extraction
-import redis
+# ... (imports moved to top)
+
 
 # ... (app config)
 
+# Helper to check Redis availability
 # Helper to check Redis availability
 def is_redis_available():
     try:
         r = redis.from_url(app.config['CELERY']['broker_url'])
         r.ping()
         return True
-    except:
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+        return False
+    except Exception:
+        # Catch other potential redis errors but avoid bare except
         return False
 
 # Mock task for synchronous execution
@@ -137,6 +152,8 @@ class MockTask:
 # Global store for sync results (in-memory, cleared on restart)
 # In production, use a localized database or file
 sync_results = {}
+# Global store for active model pulls
+pulling_models = set()
 
 @app.route('/process_request', methods=['POST'])
 def process_request():
@@ -152,8 +169,8 @@ def process_request():
         return {'task_id': task.id, 'mode': 'async'}, 202
     else:
         # Run synchronously
-        import uuid
         task_id = str(uuid.uuid4())
+
         
         try:
             # We can't really do progress updates easily in sync mode without websockets
@@ -213,10 +230,14 @@ def show_results(filename):
 
 @app.route('/outputs/<filename>')
 def download_file(filename):
+    if secure_filename(filename) != filename:
+         return "Invalid filename", 400
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename, as_attachment=True)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
+    if secure_filename(filename) != filename:
+         return "Invalid filename", 400
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/save_pdf', methods=['POST'])
@@ -235,17 +256,23 @@ def save_pdf():
 
 @app.route('/extract_text_region', methods=['POST'])
 def extract_text_region():
-    import pdfplumber
-    
     filename = request.form.get('filename')
-    page_index = int(request.form.get('page_index'))
-    x = float(request.form.get('x'))
-    y = float(request.form.get('y'))
-    w = float(request.form.get('w'))
-    h = float(request.form.get('h'))
-    page_width_dom = float(request.form.get('page_width'))
-    page_height_dom = float(request.form.get('page_height'))
     
+    # Input validation
+    try:
+        page_index = int(request.form.get('page_index', 0))
+        x = float(request.form.get('x', 0))
+        y = float(request.form.get('y', 0))
+        w = float(request.form.get('w', 0))
+        h = float(request.form.get('h', 0))
+        page_width_dom = float(request.form.get('page_width', 0))
+        page_height_dom = float(request.form.get('page_height', 0))
+    except (ValueError, TypeError) as e:
+         return {'error': f'Invalid parameters: {str(e)}'}, 400
+    
+    if not filename:
+         return {'error': 'Filename required'}, 400
+         
     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     
     try:
@@ -276,9 +303,9 @@ def extract_text_region():
     except Exception as e:
         return {'error': str(e)}, 500
 
+
 @app.route('/translate_content', methods=['POST'])
 def translate_content():
-    from translation_utils import translate_text
     
     text = request.form.get('text')
     source_lang = request.form.get('source_lang')
@@ -294,12 +321,9 @@ def translate_content():
         return {'error': str(e)}, 500
 
 
+
 @app.route('/merge', methods=['POST'])
 def merge_files():
-    from pypdf import PdfWriter
-    from datetime import datetime
-    from flask import jsonify
-    
     data = request.json
     filenames = data.get('filenames', [])
     
@@ -327,12 +351,9 @@ def merge_files():
         return jsonify({'error': str(e)}), 500
 
 
+
 @app.route('/compress', methods=['POST'])
 def compress_file():
-    import subprocess
-    from datetime import datetime
-    from flask import jsonify
-    
     filename = request.json.get('filename')
     if not filename:
          return jsonify({'error': 'Filename required'}), 400
@@ -361,16 +382,9 @@ def compress_file():
         return jsonify({'error': 'Compression failed'}), 500
 
 
+
 @app.route('/split', methods=['POST'])
 def split_pdf():
-    import zipfile
-    import os
-    from io import BytesIO
-    from pypdf import PdfReader, PdfWriter
-    from datetime import datetime
-    from flask import request, jsonify, url_for
-    from werkzeug.utils import secure_filename
-    
     filename = request.json.get('filename')
     ranges = request.json.get('ranges') # List of strings "1-3", "5", etc.
     
@@ -431,11 +445,10 @@ def split_pdf():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/pdf-to-jpg', methods=['POST'])
 def pdf_to_jpg():
     try:
-        from pdf2image import convert_from_path
-        
         filename = request.json.get('filename')
         if not filename:
              return jsonify({'error': 'Filename required'}), 400
@@ -467,11 +480,10 @@ def pdf_to_jpg():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/repair', methods=['POST'])
 def repair_pdf():
     try:
-        from pypdf import PdfReader, PdfWriter
-        
         filename = request.json.get('filename')
         if not filename:
              return jsonify({'error': 'Filename required'}), 400
@@ -505,12 +517,10 @@ def repair_pdf():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/compare', methods=['POST'])
 def compare_pdfs():
     """Compare two PDF files visually and highlight differences."""
-    from pdf2image import convert_from_path
-    from PIL import Image, ImageChops, ImageDraw
-    import io
     
     filename1 = request.json.get('filename1')  # Current PDF
     filename2 = request.json.get('filename2')  # Comparison PDF (already uploaded)
@@ -636,6 +646,7 @@ def compare_pdfs():
 
 # --- AI Chat Routes ---
 
+
 @app.route('/ai/status')
 def ai_status():
     """Check if local AI is available."""
@@ -679,7 +690,9 @@ def ai_index_pdf():
     if not os.path.exists(pdf_path):
         return jsonify({'error': 'File not found'}), 404
     
+
     try:
+        # from ai_utils import get_pdf_chat_instance # Moved to top/local
         from ai_utils import get_pdf_chat_instance
         chat = get_pdf_chat_instance()
         
@@ -704,6 +717,7 @@ def ai_ask():
     if not question:
         return jsonify({'error': 'Question required'}), 400
     
+
     try:
         from ai_utils import get_pdf_chat_instance
         chat = get_pdf_chat_instance()
@@ -724,28 +738,30 @@ def ai_pull():
     if not model:
         return jsonify({'error': 'Model name required'}), 400
         
+    if model in pulling_models:
+        return jsonify({'error': f'Model {model} is already being pulled.'}), 409
+        
     def pull_background(model_name):
         try:
             print(f"Starting pull for {model_name}...")
             # Use requests to talk to Ollama directly
             import requests
-            # stream=False waits until done (which might timeout Nginx/Flask).
-            # We just want to trigger it.
-            # But the user needs to know when it's done.
-            # For this MVP, we will rely on checking /ai/status later.
+            # stream=False waits until done
             requests.post('http://localhost:11434/api/pull', json={'name': model_name, 'stream': False})
             print(f"Finished pull for {model_name}")
         except Exception as e:
             print(f"Error pulling {model_name}: {e}")
+        finally:
+            pulling_models.discard(model_name)
 
     # Start in background thread
-    import threading
+    pulling_models.add(model)
     thread = threading.Thread(target=pull_background, args=(model,))
     thread.start()
     
     return jsonify({'success': True, 'message': f"Started downloading {model}. Check status in a few minutes."})
 
+
 if __name__ == '__main__':
-    import os
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     app.run(debug=debug_mode)

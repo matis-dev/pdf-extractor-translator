@@ -183,9 +183,6 @@ export function initRibbon() {
     // Default to Home
     switchTab('home');
     document.body.setAttribute('data-ribbon-initialized', 'true');
-    // Default to Home
-    switchTab('home');
-    document.body.setAttribute('data-ribbon-initialized', 'true');
     console.log("Ribbon initialized!");
 }
 window.initRibbon = initRibbon;

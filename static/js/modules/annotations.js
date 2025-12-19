@@ -20,6 +20,7 @@ function ensureTextSettings() {
 
 // Drag-to-Draw State
 let isDrawing = false;
+let isCommitting = false;
 let startX, startY;
 let currentRect = null;
 let currentPath = null;
@@ -29,6 +30,8 @@ let pathPoints = [];
 
 export function initDrawListeners(container, pageIndex) {
     container.addEventListener('mousedown', (e) => {
+        if (isCommitting) return; // Prevent interaction while processing
+
         const { modes } = state;
         if (!modes.redact && !modes.highlight && !modes.extract && !modes.shape) {
             return;
@@ -272,15 +275,17 @@ export async function handleGlobalMouseUp() {
 
     currentRect = null; currentPath = null; currentSvg = null; currentShapeElement = null;
 
-    // Save state
-    await saveState(false);
-
+    isCommitting = true;
     try {
+        // Save state
+        await saveState(false);
         await commitAnnotations();
     } catch (e) {
         handleApiError(e, "Error committing annotations");
+    } finally {
+        await refreshView();
+        isCommitting = false;
     }
-    await refreshView();
 }
 
 export async function addTextAnnotation(e, pageIndex) {

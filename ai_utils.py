@@ -78,7 +78,9 @@ class LocalPDFChat:
         try:
             response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=2)
             return response.status_code == 200
-        except:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            return False
+        except Exception:
             return False
     
     def check_models_installed(self) -> Dict[str, Any]:
@@ -99,7 +101,9 @@ class LocalPDFChat:
                     "required_embedding": self.embedding_model,
                     "required_llm": self.llm_model
                 }
-        except:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            pass
+        except Exception:
             pass
         return {"embedding": False, "llm": False, "available_models": []}
     
