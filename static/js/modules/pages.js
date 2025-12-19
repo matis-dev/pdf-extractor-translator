@@ -101,7 +101,7 @@ async function reorderPages(newOrder) {
 export function extractSinglePage(pageIndex) {
     state.pageToExtractIndex = pageIndex;
     document.getElementById('extract-page-number').innerText = pageIndex + 1;
-    document.getElementById('page-extraction-modal').style.display = 'block';
+    new bootstrap.Modal(document.getElementById('page-extraction-modal')).show();
 }
 
 export async function saveSinglePagePdf() {

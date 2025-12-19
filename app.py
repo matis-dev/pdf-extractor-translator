@@ -36,7 +36,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 def is_valid_file(filename):
-    return not (filename.startswith('.') or filename.startswith('~') or filename.endswith('#'))
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf'} and not (filename.startswith('.') or filename.startswith('~') or filename.endswith('#'))
 
 @app.route('/')
 def index():

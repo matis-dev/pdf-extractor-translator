@@ -44,7 +44,7 @@
                 <i class="bi bi-arrow-clockwise"></i>
             </button>
             <div class="vr mx-2"></div>
-            <button class="btn btn-primary btn-sm" onclick="saveChanges()">
+            <button class="btn btn-primary btn-sm" onclick="saveChanges()" data-testid="save-btn">
                 <i class="bi bi-floppy"></i> Save
             </button>
         </div>
@@ -55,142 +55,168 @@
         <div id="ribbon-content"></div>
     </div>
 
-    <div id="editor-container">
-        <div id="sidebar">
+    <div id="editor-container" data-testid="editor-container">
+        <div id="sidebar" data-testid="sidebar">
             <h5 class="mb-3">Pages</h5>
             <div id="thumbnails-container" class="mb-3"></div>
             <hr>
             <h5 class="mb-3">Tools</h5>
             <!-- Extraction Result Modal -->
-            <div id="extraction-modal" class="modal">
-                <div class="modal-content">
-                    <span class="close" onclick="closeModal()">&times;</span>
-                    <h5>Extracted Text</h5>
-
-                    <div class="mb-3 d-flex gap-2 align-items-center">
-                        <select id="source-lang" class="form-select form-select-sm">
-                            <option value="en">English</option>
-                            <option value="es">Spanish</option>
-                            <option value="fr">French</option>
-                            <option value="de">German</option>
-                            <option value="pl">Polish</option>
-                            <option value="pt">Portuguese</option>
-                            <option value="it">Italian</option>
-                            <option value="nl">Dutch</option>
-                            <option value="ru">Russian</option>
-                        </select>
-                        <span>&rarr;</span>
-                        <select id="target-lang" class="form-select form-select-sm">
-                            <option value="es">Spanish</option>
-                            <option value="en">English</option>
-                            <option value="fr">French</option>
-                            <option value="de">German</option>
-                            <option value="pl">Polish</option>
-                            <option value="pt">Portuguese</option>
-                            <option value="it">Italian</option>
-                            <option value="nl">Dutch</option>
-                            <option value="ru">Russian</option>
-                        </select>
-                        <button class="btn btn-sm btn-outline-primary"
-                            onclick="translateExtractedText()">Translate</button>
-                    </div>
-
-                    <textarea id="extracted-text-area" class="form-control" rows="10"></textarea>
-                    <div class="mt-3 text-end">
-                        <button class="btn btn-secondary" onclick="closeModal()">Close</button>
-                        <button class="btn btn-primary" onclick="copyExtractedText()">Copy to Clipboard</button>
+            <!-- Extraction Result Modal -->
+            <div id="extraction-modal" class="modal fade" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Extracted Text</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3 d-flex gap-2 align-items-center">
+                                <label class="form-label mb-0">Translate:</label>
+                                <select id="source-lang" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="en">English</option>
+                                    <option value="es">Spanish</option>
+                                    <option value="fr">French</option>
+                                    <option value="de">German</option>
+                                    <option value="pl">Polish</option>
+                                    <option value="pt">Portuguese</option>
+                                    <option value="it">Italian</option>
+                                    <option value="nl">Dutch</option>
+                                    <option value="ru">Russian</option>
+                                </select>
+                                <span>&rarr;</span>
+                                <select id="target-lang" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="es">Spanish</option>
+                                    <option value="en">English</option>
+                                    <option value="fr">French</option>
+                                    <option value="de">German</option>
+                                    <option value="pl">Polish</option>
+                                    <option value="pt">Portuguese</option>
+                                    <option value="it">Italian</option>
+                                    <option value="nl">Dutch</option>
+                                    <option value="ru">Russian</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary"
+                                    onclick="translateExtractedText()">Translate</button>
+                            </div>
+                            <textarea id="extracted-text-area" class="form-control" rows="10"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" onclick="copyExtractedText()">Copy to
+                                Clipboard</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Page Extraction Modal -->
-            <div id="page-extraction-modal" class="modal">
-                <div class="modal-content">
-                    <span class="close" onclick="closePageExtractionModal()">&times;</span>
-                    <h5>Extract & Process Page</h5>
-                    <p>Extracting Page <span id="extract-page-number"></span></p>
-
-                    <div class="mb-3">
-                        <label class="form-label">Target Format</label>
-                        <select id="page-extract-format" class="form-select">
-                            <option value="docx">Word (.docx)</option>
-                            <option value="odt">OpenDocument (.odt)</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Translation (Optional)</label>
-                        <div class="d-flex gap-2 align-items-center">
-                            <select id="page-source-lang" class="form-select form-select-sm">
-                                <option value="en">English (Source)</option>
-                                <option value="es">Spanish</option>
-                                <option value="fr">French</option>
-                                <option value="de">German</option>
-                                <option value="pl">Polish</option>
-                                <option value="pt">Portuguese</option>
-                                <option value="it">Italian</option>
-                                <option value="nl">Dutch</option>
-                                <option value="ru">Russian</option>
-                            </select>
-                            <span>&rarr;</span>
-                            <select id="page-target-lang" class="form-select form-select-sm">
-                                <option value="none">No Translation</option>
-                                <option value="es">Spanish</option>
-                                <option value="en">English</option>
-                                <option value="fr">French</option>
-                                <option value="de">German</option>
-                                <option value="pl">Polish</option>
-                                <option value="pt">Portuguese</option>
-                                <option value="it">Italian</option>
-                                <option value="nl">Dutch</option>
-                                <option value="ru">Russian</option>
-                            </select>
+            <div id="page-extraction-modal" class="modal fade" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Extract & Process Page</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                    </div>
+                        <div class="modal-body">
+                            <p>Extracting Page <span id="extract-page-number"></span></p>
 
-                    <div class="mt-3 text-end">
-                        <button class="btn btn-secondary" onclick="closePageExtractionModal()">Cancel</button>
-                        <button class="btn btn-success" onclick="saveSinglePagePdf()">Save Page as PDF</button>
-                        <button class="btn btn-primary" onclick="submitPageExtraction()">Start Extraction</button>
+                            <div class="mb-3">
+                                <label class="form-label">Target Format</label>
+                                <select id="page-extract-format" class="form-select">
+                                    <option value="docx">Word (.docx)</option>
+                                    <option value="odt">OpenDocument (.odt)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Translation (Optional)</label>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <select id="page-source-lang" class="form-select form-select-sm">
+                                        <option value="en">English (Source)</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="fr">French</option>
+                                        <option value="de">German</option>
+                                        <option value="pl">Polish</option>
+                                        <option value="pt">Portuguese</option>
+                                        <option value="it">Italian</option>
+                                        <option value="nl">Dutch</option>
+                                        <option value="ru">Russian</option>
+                                    </select>
+                                    <span>&rarr;</span>
+                                    <select id="page-target-lang" class="form-select form-select-sm">
+                                        <option value="none">No Translation</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="en">English</option>
+                                        <option value="fr">French</option>
+                                        <option value="de">German</option>
+                                        <option value="pl">Polish</option>
+                                        <option value="pt">Portuguese</option>
+                                        <option value="it">Italian</option>
+                                        <option value="nl">Dutch</option>
+                                        <option value="ru">Russian</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" onclick="saveSinglePagePdf()">Save Page as
+                                PDF</button>
+                            <button type="button" class="btn btn-primary" onclick="submitPageExtraction()">Start
+                                Extraction</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Password Prompt Modal -->
-            <div id="password-prompt-modal" class="modal" data-bs-backdrop="static" data-bs-keyboard="false">
-                <div class="modal-content" style="max-width: 400px;">
-                    <h5>Password Required</h5>
-                    <p>This PDF is protected. Please enter the password to open it.</p>
-                    <div class="mb-3">
-                        <input type="password" id="pdf-open-password" class="form-control" placeholder="Password"
-                            onkeydown="if(event.key==='Enter') submitPassword()">
+            <div id="password-prompt-modal" class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false"
+                tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Password Required</h5>
+                        </div>
+                        <div class="modal-body">
+                            <p>This PDF is protected. Please enter the password to open it.</p>
+                            <div class="mb-3">
+                                <input type="password" id="pdf-open-password" class="form-control"
+                                    placeholder="Password" onkeydown="if(event.key==='Enter') submitPassword()">
+                            </div>
+                            <div id="password-error" class="text-danger mt-2 small" style="display:none;"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="cancelPassword()">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="submitPassword()">Open</button>
+                        </div>
                     </div>
-                    <div class="text-end">
-                        <button class="btn btn-secondary" onclick="cancelPassword()">Cancel</button>
-                        <button class="btn btn-primary" onclick="submitPassword()">Open</button>
-                    </div>
-                    <div id="password-error" class="text-danger mt-2 small" style="display:none;"></div>
                 </div>
             </div>
 
             <!-- Security Options Modal -->
-            <div id="security-modal" class="modal">
-                <div class="modal-content" style="max-width: 400px;">
-                    <span class="close" onclick="closeSecurityModal()">&times;</span>
-                    <h5>PDF Security</h5>
-
-                    <div class="mb-3">
-                        <label class="form-label">Set New Password</label>
-                        <input type="password" id="new-pdf-password" class="form-control mb-2"
-                            placeholder="New Password">
-                        <input type="password" id="confirm-pdf-password" class="form-control"
-                            placeholder="Confirm Password">
-                        <div class="form-text">Leave blank to remove password protection.</div>
-                    </div>
-
-                    <div class="text-end">
-                        <button class="btn btn-secondary" onclick="closeSecurityModal()">Cancel</button>
-                        <button class="btn btn-primary" onclick="saveSecuritySettings()">Save Settings</button>
+            <div id="security-modal" class="modal fade" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">PDF Security</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Set New Password</label>
+                                <input type="password" id="new-pdf-password" class="form-control mb-2"
+                                    placeholder="New Password">
+                                <input type="password" id="confirm-pdf-password" class="form-control"
+                                    placeholder="Confirm Password">
+                                <div class="form-text">Leave blank to remove password protection.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveSecuritySettings()">Save
+                                Settings</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -351,7 +377,7 @@
             </div>
 
             <!-- Watermark Modal -->
-            <div class="modal fade" id="watermarkModal" tabindex="-1">
+            <div class="modal fade" id="watermarkModal" tabindex="-1" data-testid="watermark-modal">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -392,14 +418,15 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="applyWatermark()">Apply</button>
+                            <button type="button" class="btn btn-primary" onclick="applyWatermark()"
+                                data-testid="apply-watermark-btn">Apply</button>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Compare PDFs Modal -->
-            <div class="modal fade" id="compareModal" tabindex="-1">
+            <div class="modal fade" id="compareModal" tabindex="-1" data-testid="compare-modal">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -423,7 +450,7 @@
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
                                 onclick="closeCompareModal()">Cancel</button>
                             <button type="button" class="btn btn-primary" id="compare-run-btn" onclick="runComparison()"
-                                disabled>
+                                disabled data-testid="run-comparison-btn">
                                 <i class="bi bi-play-circle me-1"></i>Run Comparison
                             </button>
                         </div>
@@ -508,6 +535,30 @@
 
         <div id="main-preview">
             <div id="pdf-viewer"></div>
+        </div>
+    </div>
+
+    <!-- Command Palette Modal -->
+    <div id="command-palette-modal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="cmd-search" class="form-control border-0 shadow-none"
+                            placeholder="Type a command..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="cmd-results" class="list-group list-group-flush">
+                        <!-- Results go here -->
+                    </div>
+                </div>
+                <div class="modal-footer p-1">
+                    <small class="text-muted ms-auto me-2">Use <kbd>↑</kbd> <kbd>↓</kbd> to navigate, <kbd>Enter</kbd>
+                        to select</small>
+                </div>
+            </div>
         </div>
     </div>
 

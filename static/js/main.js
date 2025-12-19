@@ -20,6 +20,7 @@ import { splitPdf } from './modules/split.js';
 import * as notes from './modules/notes.js';
 import { initAIChat } from './modules/ai_chat.js';
 import * as compare from './modules/compare.js';
+import { initCommandPalette, registerCommand } from './modules/command_palette.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -68,6 +69,8 @@ async function init() {
         ui.initTheme();
         initRibbon();
         initAIChat();
+        initCommandPalette();
+        registerCommands();
         document.body.setAttribute('data-ribbon-called', 'true');
 
         state.filename = window.filename;
@@ -133,7 +136,10 @@ function setupContextMenu() {
                 const rect = container.getBoundingClientRect();
                 // Reusing logic from modules/annotations.js which attaches listeners to page containers
             } else if (state.modes.note) {
-                // Notes logic
+                const rect = container.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = (e.clientY - rect.top) / rect.height;
+                notes.handleNoteClick(e, i, x, y);
             }
         });
     }
@@ -207,6 +213,36 @@ function setupContextMenu() {
             ui.showToast("Password removed. Please save changes.", "success");
         }
     });
+}
+
+function registerCommands() {
+    registerCommand('save', 'Save Changes', () => extraction.saveChanges(), 'bi-save');
+    registerCommand('undo', 'Undo', () => historyModule.undo(), 'bi-arrow-counterclockwise');
+    registerCommand('redo', 'Redo', () => historyModule.redo(), 'bi-arrow-clockwise');
+    registerCommand('dark-mode', 'Toggle Dark Mode', () => ui.toggleDarkMode(), 'bi-moon');
+    registerCommand('zoom-in', 'Zoom In', () => zoomIn(), 'bi-zoom-in');
+    registerCommand('zoom-out', 'Zoom Out', () => zoomOut(), 'bi-zoom-out');
+
+    // Tools
+    registerCommand('mode-text', 'Add Text Tool', () => ui.toggleTextMode(), 'bi-fonts');
+    registerCommand('mode-note', 'Add Sticky Note', () => ui.toggleNoteMode(), 'bi-sticky');
+    registerCommand('mode-redact', 'Redact Tool', () => ui.toggleRedactMode(), 'bi-eraser');
+    registerCommand('mode-highlight', 'Highlight Tool', () => ui.toggleHighlightMode(), 'bi-highlighter');
+    registerCommand('watermark', 'Add Watermark', () => openWatermarkModal(), 'bi-badge-ad');
+    registerCommand('signature', 'Add Signature', () => openSignatureModal(), 'bi-pen-fill'); // Fixed calling function
+    registerCommand('page-numbers', 'Add Page Numbers', () => openPageNumbersModal(), 'bi-123');
+
+    // Page Actions
+    registerCommand('rotate-page', 'Rotate Current Page', () => pages.rotateCurrentPage(), 'bi-arrow-repeat');
+    registerCommand('delete-page', 'Delete Current Page', () => pages.deleteCurrentPage(), 'bi-trash');
+    registerCommand('move-up', 'Move Page Up', () => pages.movePageUp(), 'bi-arrow-up');
+    registerCommand('move-down', 'Move Page Down', () => pages.movePageDown(), 'bi-arrow-down');
+    registerCommand('extract-page', 'Extract Current Page', () => pages.extractSinglePage(state.selectedPageIndex), 'bi-file-earmark-arrow-up');
+
+    // Misc
+    registerCommand('split-pdf', 'Split / Burst PDF', () => splitPdf(), 'bi-grid-3x3');
+    registerCommand('compare', 'Compare PDFs', () => compare.openCompareModal(), 'bi-columns');
+    registerCommand('security', 'Security Settings', () => ui.openSecurityModal(), 'bi-shield-lock');
 }
 
 // Start

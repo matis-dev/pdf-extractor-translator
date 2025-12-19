@@ -141,13 +141,15 @@ export function toggleNoteMode() {
 }
 
 export function closeModal() {
-    const modal = document.getElementById('extraction-modal');
-    if (modal) modal.style.display = 'none';
+    const el = document.getElementById('extraction-modal');
+    const modal = bootstrap.Modal.getInstance(el);
+    if (modal) modal.hide();
 }
 
 export function closePageExtractionModal() {
-    const modal = document.getElementById('page-extraction-modal');
-    if (modal) modal.style.display = 'none';
+    const el = document.getElementById('page-extraction-modal');
+    const modal = bootstrap.Modal.getInstance(el);
+    if (modal) modal.hide();
 }
 
 export function updateHistoryButtons(undoStack, redoStack) {
@@ -175,7 +177,7 @@ let passwordReject = null;
 
 export function requestPassword(errorMessage) {
     return new Promise((resolve, reject) => {
-        const modal = document.getElementById('password-prompt-modal');
+        const modalEl = document.getElementById('password-prompt-modal');
         const errorDiv = document.getElementById('password-error');
         const input = document.getElementById('pdf-open-password');
 
@@ -187,8 +189,13 @@ export function requestPassword(errorMessage) {
             errorDiv.style.display = 'none';
         }
 
-        modal.style.display = 'block';
-        input.focus();
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        // Focus input after modal is shown
+        modalEl.addEventListener('shown.bs.modal', () => {
+            input.focus();
+        }, { once: true });
 
         passwordResolve = resolve;
         passwordReject = reject;
@@ -199,7 +206,9 @@ export function submitPassword() {
     const input = document.getElementById('pdf-open-password');
     const password = input.value;
     if (passwordResolve) {
-        document.getElementById('password-prompt-modal').style.display = 'none';
+        const modal = bootstrap.Modal.getInstance(document.getElementById('password-prompt-modal'));
+        if (modal) modal.hide();
+
         passwordResolve(password);
         passwordResolve = null;
         passwordReject = null;
@@ -208,7 +217,9 @@ export function submitPassword() {
 
 export function cancelPassword() {
     if (passwordReject) {
-        document.getElementById('password-prompt-modal').style.display = 'none';
+        const modal = bootstrap.Modal.getInstance(document.getElementById('password-prompt-modal'));
+        if (modal) modal.hide();
+
         passwordReject(new Error("Password cancelled"));
         passwordResolve = null;
         passwordReject = null;
@@ -217,13 +228,14 @@ export function cancelPassword() {
 
 // Security Settings Modal
 export function openSecurityModal() {
-    document.getElementById('security-modal').style.display = 'block';
+    new bootstrap.Modal(document.getElementById('security-modal')).show();
     document.getElementById('new-pdf-password').value = '';
     document.getElementById('confirm-pdf-password').value = '';
 }
 
 export function closeSecurityModal() {
-    document.getElementById('security-modal').style.display = 'none';
+    const modal = bootstrap.Modal.getInstance(document.getElementById('security-modal'));
+    if (modal) modal.hide();
 }
 
 export function saveSecuritySettings() {

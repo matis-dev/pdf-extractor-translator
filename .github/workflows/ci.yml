@@ -20,6 +20,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: "3.12"
+        cache: 'pip'
         
     - name: Install dependencies
       run: |
@@ -32,3 +33,13 @@ jobs:
     - name: Run Tests
       run: |
         pytest tests/ -v
+        
+    - name: Upload Test Artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          test-results/
+          test_output.log
+        retention-days: 7

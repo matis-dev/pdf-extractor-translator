@@ -300,3 +300,17 @@ async function compareSelectedFiles() {
         progressContainer.style.display = 'none';
     }
 }
+
+function updateBatchUI() {
+    const checked = document.querySelectorAll('.file-checkbox:checked').length > 0;
+    const container = document.getElementById('batch-actions-container');
+    if (container) container.style.display = checked ? 'block' : 'none';
+}
+
+document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('file-checkbox') || e.target.id === 'check-all') {
+        updateBatchUI();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', updateBatchUI);

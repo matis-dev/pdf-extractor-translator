@@ -1,6 +1,7 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock
+import io
 
 def test_index_page(client):
     """Test that the index page loads successfully."""
@@ -29,6 +30,18 @@ def test_upload_empty_filename(client):
     data = {'pdf_file': (b'', '')}
     response = client.post('/upload', data=data, content_type='multipart/form-data')
     assert response.status_code == 400
+
+
+
+def test_upload_invalid_extension(client):
+    """Test uploading a file with invalid extension."""
+    data = {'pdf_file': (io.BytesIO(b'content'), 'test.txt')}
+    response = client.post('/upload', data=data, content_type='multipart/form-data')
+    
+    # Logic: if not saved, it redirects to index (302) but not editor.
+    # Actually if saved_files is empty, it falls through to `return redirect(url_for('index'))`
+    assert response.status_code == 302
+    assert '/editor/' not in response.location
 
 @patch('app.process_pdf_task')
 def test_process_request(mock_task, client):
@@ -72,6 +85,8 @@ def test_task_status_success(mock_task, client):
     mock_result.state = 'SUCCESS'
     mock_result.info = {'result_file': 'output.docx', 'status': 'Completed'}
     mock_task.AsyncResult.return_value = mock_result
+    
+    response = client.get('/status/fake-id')
     
     assert response.status_code == 200
     assert response.json['state'] == 'SUCCESS'

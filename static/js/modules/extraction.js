@@ -24,7 +24,7 @@ export async function performExtraction(pageIndex, x, y, w, h, pageWidth, pageHe
 
         if (data.text) {
             document.getElementById('extracted-text-area').value = data.text;
-            document.getElementById('extraction-modal').style.display = 'block';
+            new bootstrap.Modal(document.getElementById('extraction-modal')).show();
         } else {
             showToast('No text found in selected area.', 'info');
         }
@@ -166,16 +166,25 @@ export async function submitPageExtraction() {
 }
 
 export async function saveChanges() {
-    await commitAnnotations();
-    const savedBytes = await state.pdfDoc.save();
+    try {
+        await commitAnnotations();
+        const savedBytes = await state.pdfDoc.save();
 
-    const blob = new Blob([savedBytes], { type: 'application/pdf' });
-    const formData = new FormData();
-    formData.append('pdf_file', blob, state.filename);
+        const blob = new Blob([savedBytes], { type: 'application/pdf' });
+        const formData = new FormData();
+        formData.append('pdf_file', blob, state.filename);
 
-    await fetch('/save_pdf', { method: 'POST', body: formData });
-    state.hasUnsavedChanges = false;
-    updateUnsavedIndicator(false);
-    showToast('Changes saved successfully!', 'success'); // replaced alert
-    setTimeout(() => location.reload(), 1000); // Wait for toast? or just reload
+        const response = await fetch('/save_pdf', { method: 'POST', body: formData });
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status} ${response.statusText}`);
+        }
+
+        state.hasUnsavedChanges = false;
+        updateUnsavedIndicator(false);
+        showToast('Changes saved successfully!', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } catch (e) {
+        console.error("Save failed", e);
+        showToast("Error saving file: " + e.message, 'danger');
+    }
 }
