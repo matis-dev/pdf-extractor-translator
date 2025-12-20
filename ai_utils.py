@@ -7,6 +7,9 @@ import os
 import requests
 from pathlib import Path
 from typing import List, Optional, Dict, Any
+from logging_config import get_logger
+
+logger = get_logger("ai_utils")
 
 # LangChain Imports
 try:
@@ -26,7 +29,7 @@ try:
     
     LANGCHAIN_AVAILABLE = True
 except ImportError as e:
-    print(f"DEBUG: ai_utils import failed: {e}")
+    logger.debug(f"ai_utils import failed: {e}")
     LANGCHAIN_AVAILABLE = False
 
 # Configuration
@@ -258,7 +261,7 @@ Thought:{agent_scratchpad}""")
             }
         except Exception as e:
             # Fallback for small models that fail ReAct
-            print(f"Agent failed: {e}. Falling back to simple RAG.")
+            logger.warning(f"Agent failed: {e}. Falling back to simple RAG.")
             return self._ask_fallback_rag(question)
 
     def _ask_fallback_rag(self, question: str):

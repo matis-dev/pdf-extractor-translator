@@ -35,6 +35,10 @@
         </div>
 
         <div class="app-actions">
+            <button class="btn btn-outline-warning btn-sm me-2" data-bs-toggle="modal" data-bs-target="#bugReportModal"
+                title="Report Issue">
+                <i class="bi bi-bug"></i>
+            </button>
             <button class="btn btn-outline-secondary btn-sm" onclick="appHistory.undo()" id="undo-btn" disabled
                 title="Undo">
                 <i class="bi bi-arrow-counterclockwise"></i>
@@ -576,6 +580,48 @@
         window.filename = "{{ filename }}";
     </script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/bug_reporter.js') }}"></script>
+
+    <!-- Bug Report Modal -->
+    <div class="modal fade" id="bugReportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-bug text-warning me-2"></i>Report an Issue</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Found a bug? Describe it below to help us fix it.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">What happened?</label>
+                        <textarea id="bug-description" class="form-control" rows="4"
+                            placeholder="Describe what you were doing when the error occurred..."></textarea>
+                    </div>
+
+                    <div class="card bg-light border-0 mb-3">
+                        <div class="card-body py-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include-logs-check" checked>
+                                <label class="form-check-label small" for="include-logs-check">
+                                    Include debug logs (Recommended)
+                                </label>
+                            </div>
+                            <div id="system-info-preview" class="mt-2 ps-4">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" id="bug-report-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="generate-report-btn">
+                        <i class="bi bi-magic me-1"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

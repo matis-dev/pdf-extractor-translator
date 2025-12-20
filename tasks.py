@@ -7,6 +7,9 @@ from extract_full_document_to_word import extract_full_document_to_word
 from extract_tables_to_csv import extract_tables as extract_tables_to_csv
 from translation_utils import translate_text, install_languages
 import subprocess
+from logging_config import get_logger
+
+logger = get_logger("tasks")
 
 def get_unique_filename(directory, filename):
     """Generates a unique filename by appending a counter if the file exists.
@@ -30,7 +33,7 @@ def get_unique_filename(directory, filename):
 try:
     install_languages()
 except Exception as e:
-    print(f"Warning: Could not install languages: {e}")
+    logger.warning(f"Could not install languages: {e}")
 
 @shared_task(bind=True)
 def process_pdf_task(self, extraction_type, filename, upload_folder, output_folder, target_lang=None, source_lang='en'):

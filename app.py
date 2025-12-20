@@ -25,6 +25,11 @@ from celery_utils import celery_init_app
 from tasks import process_pdf_task, run_pdf_extraction
 from translation_utils import translate_text
 from ai_utils import get_pdf_chat_instance, LANGCHAIN_AVAILABLE
+from logging_config import setup_logging, get_logger
+
+# Initialize logging
+setup_logging()
+logger = get_logger("app")
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -783,14 +788,14 @@ def ai_pull():
         
     def pull_background(model_name):
         try:
-            print(f"Starting pull for {model_name}...")
+            logger.info(f"Starting pull for {model_name}...")
             # Use requests to talk to Ollama directly
             import requests
             # stream=False waits until done
             requests.post('http://localhost:11434/api/pull', json={'name': model_name, 'stream': False})
-            print(f"Finished pull for {model_name}")
+            logger.info(f"Finished pull for {model_name}")
         except Exception as e:
-            print(f"Error pulling {model_name}: {e}")
+            logger.error(f"Error pulling {model_name}: {e}")
         finally:
             pulling_models.discard(model_name)
 
@@ -798,6 +803,73 @@ def ai_pull():
     pulling_models.add(model)
     thread = threading.Thread(target=pull_background, args=(model,))
     thread.start()
+    
+    return jsonify({'status': 'started', 'message': f'Pulling {model} in background'})
+
+
+# --- Bug Reporting Routes ---
+
+@app.route('/api/system-info')
+def get_system_info():
+    """Returns safe system information for bug reports."""
+    import sys
+    import platform
+    
+    info = {
+        'os': platform.platform(),
+        'python_version': sys.version.split(' ')[0],
+        'app_dir': os.getcwd(),
+        'redis_available': is_redis_available(),
+        'langchain_available': LANGCHAIN_AVAILABLE
+    }
+    return jsonify(info)
+
+@app.route('/api/generate-report', methods=['POST'])
+def generate_bug_report():
+    """Generates a ZIP file containing logs and user description."""
+    description = request.json.get('description', 'No description provided.')
+    include_logs = request.json.get('include_logs', True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_filename = f"bug_report_{timestamp}.zip"
+    report_path = os.path.join(app.config['OUTPUT_FOLDER'], report_filename)
+    
+    try:
+        with zipfile.ZipFile(report_path, 'w') as zf:
+            # 1. Add user description
+            zf.writestr('description.txt', description)
+            
+            # 2. Add System Info
+            import sys
+            import platform
+            sys_info = (
+                f"OS: {platform.platform()}\n"
+                f"Python: {sys.version}\n"
+                f"Working Dir: {os.getcwd()}\n"
+                f"Redis Available: {is_redis_available()}\n"
+                f"LangChain Available: {LANGCHAIN_AVAILABLE}\n"
+            )
+            zf.writestr('system_info.txt', sys_info)
+            
+            # 3. Add Logs (if requested)
+            if include_logs:
+                log_path = os.path.join('logs', 'app.log')
+                if os.path.exists(log_path):
+                    zf.write(log_path, 'app.log')
+                else:
+                    zf.writestr('app.log', 'Log file not found.')
+                    
+        return jsonify({
+            'filename': report_filename,
+            'url': url_for('download_file', filename=report_filename)
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to generate bug report: {e}")
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
     
     return jsonify({'success': True, 'message': f"Started downloading {model}. Check status in a few minutes."})
 
