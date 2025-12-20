@@ -52,10 +52,17 @@ sudo apt update && sudo apt install redis-server tesseract-ocr libtesseract-dev 
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
+# Start everything with one script
+./scripts/start.sh
+```
+
+**Alternative (Manual)**
+```bash
 # Start services (in separate terminals)
 redis-server
-celery -A tasks worker --loglevel=info
-python app.py
+export PYTHONPATH=$(pwd)/src
+celery -A src.app.celery worker --loglevel=info
+python src/app.py
 ```
 
 ---

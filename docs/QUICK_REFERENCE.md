@@ -4,10 +4,17 @@
 
 ---
 
-## 🚀 Starting the Application
+### 🚀 Startup
 
-### Docker (Recommended)
+**Manual (Local)**
 ```bash
+./scripts/start.sh
+```
+
+**Docker**
+```bash
+./scripts/start.sh --docker
+# OR
 docker-compose up --build        # First time / after changes
 docker-compose up                # Subsequent runs
 docker-compose down              # Stop all services

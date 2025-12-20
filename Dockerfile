@@ -32,22 +32,19 @@ RUN pip install --no-cache-dir gunicorn gevent
 COPY . .
 
 # Pre-install translation models to bake them into the image
-RUN python translation_utils.py || echo "Warning: Failed to install translation models during build. They will be installed on first use if needed."
+# Set PYTHONPATH so internal imports in translation_utils work
+ENV PYTHONPATH=/app/src
+RUN python src/translation_utils.py || echo "Warning: Failed to install translation models during build. They will be installed on first use if needed."
 
 # Create necessary directories
 RUN mkdir -p uploads outputs
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV FLASK_APP=app.py
+ENV FLASK_APP=src/app.py
 
 # Expose port
 EXPOSE 5000
 
-# Install Argos Translate languages on build or entrypoint?
-# Doing it in Python script on startup is safer for cache, 
-# but we can try to pre-warm it here if we want faster startup.
-# For now, let the app handle it on first run or use a startup script.
-
-# Default command
-CMD ["gunicorn", "-k", "gevent", "--workers", "1", "--timeout", "300", "--bind", "0.0.0.0:5000", "app:app"]
+# Default command pointing to src.app module
+CMD ["gunicorn", "-k", "gevent", "--workers", "1", "--timeout", "300", "--bind", "0.0.0.0:5000", "src.app:app"]

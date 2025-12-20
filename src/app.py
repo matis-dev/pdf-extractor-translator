@@ -31,10 +31,15 @@ from logging_config import setup_logging, get_logger
 setup_logging()
 logger = get_logger("app")
 
+# Configuration
+BASE_DIR = Path(__file__).resolve().parent.parent
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', str(BASE_DIR / 'uploads'))
+OUTPUT_FOLDER = os.environ.get('OUTPUT_FOLDER', str(BASE_DIR / 'outputs'))
+
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['OUTPUT_FOLDER'] = 'outputs'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload size
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB upload limit
 
 # Celery Configuration
 app.config.from_mapping(

@@ -3,8 +3,12 @@
 # PDF Extractor - Unified Start Script
 # Usage: ./start.sh [--docker]
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="$PROJECT_DIR/venv"
+
+# cd to project root for consistent paths
+cd "$PROJECT_DIR"
 
 # Function to check if a port is in use
 check_port() {
@@ -41,7 +45,6 @@ if [[ "$1" == "--docker" ]]; then
 fi
 
 # --- LOCAL MODE ---
-
 echo "🚀 Starting PDF Extractor (Local Mode)..."
 
 # 1. Activate Virtual Environment
@@ -75,14 +78,16 @@ fi
 
 if [ "$HAS_REDIS" = true ]; then
     echo "🔄 Starting Celery worker..."
-    celery -A app.celery worker --loglevel=error &
+    export PYTHONPATH=$PROJECT_DIR/src
+    celery -A src.app.celery worker --loglevel=error &
     CELERY_PID=$!
     echo "   Worker PID: $CELERY_PID"
 fi
 
 # 5. Start Flask App
 echo "🌐 Starting Web Server..."
-python app.py &
+export PYTHONPATH=$PROJECT_DIR/src
+python src/app.py &
 FLASK_PID=$!
 
 echo "--------------------------------------------------------"
