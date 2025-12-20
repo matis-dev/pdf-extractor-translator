@@ -9,8 +9,14 @@ from translation_utils import translate_text, install_languages
 import subprocess
 
 def get_unique_filename(directory, filename):
-    """
-    Returns a unique filename by appending (n) if the file already exists.
+    """Generates a unique filename by appending a counter if the file exists.
+
+    Args:
+        directory (str): The directory specifically where the file will be saved.
+        filename (str): The original desired filename.
+
+    Returns:
+        str: A unique filename that does not conflict with existing files in the directory.
     """
     base, ext = os.path.splitext(filename)
     counter = 1
@@ -28,8 +34,18 @@ except Exception as e:
 
 @shared_task(bind=True)
 def process_pdf_task(self, extraction_type, filename, upload_folder, output_folder, target_lang=None, source_lang='en'):
-    """
-    Background task to process PDF files.
+    """Celery background task to handle PDF extraction and optional translation.
+
+    Args:
+        extraction_type (str): The mode of extraction ('word', 'odt', 'csv').
+        filename (str): Name of the uploaded PDF file.
+        upload_folder (str): Path to the folder containing uploads.
+        output_folder (str): Path to the folder where results should be saved.
+        target_lang (str, optional): ISO code for translation (e.g., 'es'). Defaults to None.
+        source_lang (str, optional): ISO code of original document. Defaults to 'en'.
+
+    Returns:
+        dict: A result dictionary containing status and result_file path.
     """
     def update_progress(state, meta):
         self.update_state(state=state, meta=meta)
@@ -45,8 +61,22 @@ def process_pdf_task(self, extraction_type, filename, upload_folder, output_fold
     )
 
 def run_pdf_extraction(extraction_type, filename, upload_folder, output_folder, target_lang=None, source_lang='en', progress_callback=None):
-    """
-    Core PDF extraction logic, decoupled from Celery.
+    """Core PDF extraction logic, decoupled from Celery for testability.
+
+    This function handles the heavy lifting of calling Docling, processing tables,
+    and performing text translation on the resulting document.
+
+    Args:
+        extraction_type (str): Type of output requested.
+        filename (str): Input filename.
+        upload_folder (str): Source directory.
+        output_folder (str): Destination directory.
+        target_lang (str, optional): Target language for translation.
+        source_lang (str): Source language.
+        progress_callback (callable, optional): function(state, meta) to report progress.
+
+    Returns:
+        dict: Completion status and final filename.
     """
     if progress_callback:
         progress_callback('PROCESSING', {'status': 'Starting extraction...', 'current': 0, 'total': 100})

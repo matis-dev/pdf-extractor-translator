@@ -1,31 +1,100 @@
-![Status](https://img.shields.io/badge/Status-Beta-yellow) ![License](https://img.shields.io/badge/License-MIT-blue) ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
-
 # PDF Content Extractor & Translator
+
+![Status](https://img.shields.io/badge/Status-Beta-yellow) ![License](https://img.shields.io/badge/License-MIT-blue) ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 
 A powerful, privacy-focused tool to extract structured content from PDF documents. It converts PDFs into editable formats like Microsoft Word (`.docx`), OpenDocument Text (`.odt`), and CSV (for tables), with built-in offline translation capabilities.
 
-Powered by [Docling](https://github.com/DS4SD/docling) for advanced document parsing, **Flask** for the web interface, and **Celery** for background task processing.
+---
+
+## 📑 Table of Contents
+- [🚀 Key Features](#-key-features)
+- [🏁 Quick Start](#-quick-start)
+- [🛠️ Prerequisites & Installation](#️-prerequisites--installation)
+- [🏗️ Architecture Overview](#️-architecture-overview)
+- [🖥️ Usage: Web Application](#️-usage-web-application)
+- [💻 Usage: CLI](#-usage-command-line-interface-cli)
+- [🧪 Running Tests](#-running-tests)
+- [🤝 Contributing](#-contributing)
+
+---
 
 ## 🚀 Key Features
 
-*   **Full Document Extraction:** Converts PDFs to `.docx` preserving structure (headings, paragraphs, lists) and styling.
-*   **Table Extraction:** Detects tables and exports them to CSV files or directly into Word documents.
-*   **Document Manipulation:**
-    *   **Merge:** Combine multiple PDFs into a single file.
-    *   **Split:** Extract specific page ranges into separate files.
-    *   **Compress:** Reduce file size for easier sharing.
-    *   **Repair:** Attempt to fix corrupted PDF files.
-    *   **Convert:** Export PDF pages as high-quality JPG images.
-*   **Editor Tools:**
-    *   **Annotations:** Highlight text, redact sensitive info, and add sticky notes.
-    *   **Shapes:** Draw rectangles, circles, lines, and arrows.
-    *   **Watermark:** Add custom text or image watermarks.
-    *   **Page Numbers:** Add customizable pagination.
-    *   **Signatures:** Sign documents by drawing, typing, or uploading a signature.
-*   **Offline Translation:** Translate extracted content (including tables!) to **Spanish**, **French**, or **German** locally using `argostranslate`. No API keys required.
-*   **Format Conversion:** Supports `.odt` output (requires `pandoc`).
-*   **Asynchronous Processing:** Handles large files efficiently using background workers (Redis + Celery).
-*   **Dual Mode:** Run as a user-friendly Web Application or as standalone Command-Line Scripts.
+*   **Full Document Extraction:** Converts PDFs to `.docx` preserving structure (headings, paragraphs, lists) and styling assisted by [Docling](https://github.com/DS4SD/docling).
+*   **Table Extraction:** Detects tables and exports them to CSV or Word documents.
+*   **Offline Translation:** Local translation to Spanish, French, German, and more using `argostranslate`. **No API keys needed.**
+*   **PDF Editor:** Annotate, redact, sign, and manipulate pages (merge/split/compress).
+*   **Local AI Chat:** ask questions about your PDFs 100% offline via Ollama.
+*   **Dual Mode:** Web UI (Flask) or Command-Line scripts.
+
+---
+
+## 🏁 Quick Start
+
+### 🐳 Option A: Docker (Recommended)
+The fastest way to get started with all dependencies (Redis, Tesseract, models) pre-configured.
+
+```bash
+git clone https://github.com/matis-dev/pdf-extractor-translator.git
+cd pdf-extractor-translator
+docker-compose up --build
+```
+*Access at: http://localhost:5000*
+
+### 🐍 Option B: Manual Setup
+Requires **Python 3.9+** and system dependencies.
+
+```bash
+# Install system deps (Ubuntu/Debian)
+sudo apt update && sudo apt install redis-server tesseract-ocr libtesseract-dev pandoc
+
+# Setup Python environment
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+# Start services (in separate terminals)
+redis-server
+celery -A tasks worker --loglevel=info
+python app.py
+```
+
+---
+
+## 🏗️ Architecture Overview
+
+```mermaid
+graph TD
+    User((User)) --> WebUI[Flask Web App]
+    User --> CLI[Python CLI Scripts]
+    
+    WebUI --> Tasks[Celery Tasks]
+    Tasks --> Docling[Docling Engine]
+    Tasks --> Translation[Argos Translate]
+    
+    Docling --> PDF[PDF Processing]
+    Translation --> LocalModels[Local NLP Models]
+    
+    subgraph Storage
+        Redis[(Redis Queue)]
+        Uploads[Uploads/Outputs Folder]
+        Chroma[(ChromaDB)]
+    end
+    
+    Tasks <--> Redis
+    WebUI <--> Uploads
+    Tasks <--> Uploads
+    Tasks <--> Chroma
+```
+
+---
+
+## 📸 Screenshots
+
+### Home Page - Library & Upload
+![Home Page](docs/screenshots/home_page.png)
+
+### Editor Page - Annotation & Manipulation Tools
+![Editor Page](docs/screenshots/editor_page.png)
 
 ---
 
@@ -133,8 +202,50 @@ python extract_tables_to_word.py input_document.pdf
 *   `tasks.py`: Celery tasks for handling long-running extractions and translations.
 *   `extract_*.py`: Core logic scripts for Docling-based extraction.
 *   `templates/`: HTML templates for the web interface.
-*   `uploads/` & `outputs/`: Directories for storing temporary files.
-*   `translation_utils.py`: Helper functions for `argostranslate`.
+## 📂 Project Structure
+
+*   `app.py`: Main Flask application entry point.
+*   `tasks.py`: Celery tasks for handling long-running extractions and translations.
+*   `ai_utils.py`: Local AI and RAG logic.
+*   `mcp_server.py`: MCP Server for AI assistants (see [MCP_README.md](MCP_README.md)).
+*   `docs/`:
+    *   [API Reference](docs/API.md) - Detailed route documentation.
+    *   [Development Guide](docs/DEVELOPMENT.md) - Deep dive for contributors.
+    *   [Architecture Diagram](#️-architecture-overview)
+*   `static/`: Frontend assets (JS modules, CSS).
+*   `templates/`: HTML templates.
+
+---
+
+## 🧪 Running Tests
+
+### Prerequisites
+Install development dependencies:
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Run All Tests
+```bash
+python -m pytest
+```
+
+### Run Specific Test File
+```bash
+python -m pytest tests/test_frontend.py -v
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! 
+
+- **Getting Started:** See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for technical setup.
+- **Workflow:** Read [CONTRIBUTING.md](CONTRIBUTING.md) for pull request guidelines.
+- **Standards:** We adhere to a [Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
 
 ## ⚠️ Troubleshooting
 

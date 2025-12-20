@@ -2,8 +2,10 @@ import argostranslate.package
 import argostranslate.translate
 
 def install_languages():
-    """
-    Installs packages for English <-> Spanish, French, German.
+    """Updates the package index and installs translation models for supported languages.
+
+    Supported pairs include English and: Spanish, French, German, Polish, 
+    Portuguese, Italian, Dutch, and Russian.
     """
     argostranslate.package.update_package_index()
     available_packages = argostranslate.package.get_available_packages()
@@ -31,8 +33,15 @@ def install_languages():
             argostranslate.package.install_from_path(package_to_install.download())
 
 def translate_text(text, target_lang, source_lang='en'):
-    """
-    Translates text from source_lang to target_lang.
+    """Translates text between two ISO language codes using Argos Translate.
+
+    Args:
+        text (str): The string content to translate.
+        target_lang (str): ISO code of the target language.
+        source_lang (str): ISO code of the source language. Defaults to 'en'.
+
+    Returns:
+        str: The translated text, or the original text if translation fails.
     """
     try:
         if source_lang == target_lang:

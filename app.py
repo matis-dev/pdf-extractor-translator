@@ -46,6 +46,14 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 def is_valid_file(filename):
+    """Validates if a file is a PDF and not a hidden/system file.
+
+    Args:
+        filename (str): The name of the file to check.
+
+    Returns:
+        bool: True if the file is a valid PDF, False otherwise.
+    """
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf'} and not (filename.startswith('.') or filename.startswith('~') or filename.endswith('#'))
 
 @app.route('/')
@@ -111,14 +119,14 @@ def create_zip():
 def editor(filename):
     return render_template('editor.html', filename=filename)
 
-# ... (imports moved to top)
 
-
-# ... (app config)
-
-# Helper to check Redis availability
 # Helper to check Redis availability
 def is_redis_available():
+    """Checks if the Redis server is reachable for Celery background tasks.
+
+    Returns:
+        bool: True if Redis is available, False otherwise.
+    """
     try:
         r = redis.from_url(app.config['CELERY']['broker_url'])
         r.ping()
@@ -126,7 +134,6 @@ def is_redis_available():
     except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
         return False
     except Exception:
-        # Catch other potential redis errors but avoid bare except
         return False
 
 # Mock task for synchronous execution
@@ -157,6 +164,20 @@ pulling_models = set()
 
 @app.route('/process_request', methods=['POST'])
 def process_request():
+    """Endpoint to initiate document extraction or translation.
+
+    This route handles both asynchronous (Celery) and synchronous 
+    (blocking) execution based on Redis availability.
+
+    Form Data:
+        filename (str): Source PDF filename.
+        extraction_type (str): Output format ('word', 'odt', 'csv').
+        target_lang (str): ISO code for translation.
+        source_lang (str): Source ISO code.
+
+    Returns:
+        JSON: {task_id, mode} and 202 status.
+    """
     filename = request.form.get('filename')
     extraction_type = request.form.get('extraction_type')
     target_lang = request.form.get('target_lang')
@@ -256,6 +277,17 @@ def save_pdf():
 
 @app.route('/extract_text_region', methods=['POST'])
 def extract_text_region():
+    """Extracts text from a coordinate-bounded region of a PDF page.
+
+    Form Data:
+        filename (str): PDF name.
+        page_index (int): 0-indexed page number.
+        x, y, w, h (float): Region coordinates in DOM units.
+        page_width, page_height (float): DOM dimensions of the page.
+
+    Returns:
+        JSON: {text: str} or error message.
+    """
     filename = request.form.get('filename')
     
     # Input validation
@@ -520,7 +552,15 @@ def repair_pdf():
 
 @app.route('/compare', methods=['POST'])
 def compare_pdfs():
-    """Compare two PDF files visually and highlight differences."""
+    """Visually compares two PDFs and generates a ZIP of differences.
+
+    Request Body (JSON):
+        filename1 (str): Primary (active) PDF.
+        filename2 (str): Secondary PDF to compare against.
+
+    Returns:
+        JSON: {filename, url, summary} containing ZIP path and diff stats.
+    """
     
     filename1 = request.json.get('filename1')  # Current PDF
     filename2 = request.json.get('filename2')  # Comparison PDF (already uploaded)
