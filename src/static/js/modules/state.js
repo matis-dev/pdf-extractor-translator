@@ -12,6 +12,10 @@ export const state = {
         highlight: false,
         extract: false,
         note: false,
+        select: false,
+        hand: false,
+        zoomIn: false,
+        zoomOut: false,
         shape: null // 'rect', 'ellipse', 'line', 'arrow'
     },
     shapeSettings: {

@@ -30,14 +30,25 @@ let pathPoints = [];
 
 export function initDrawListeners(container, pageIndex) {
     container.addEventListener('mousedown', (e) => {
+        if (state.modes.select) {
+            handleSelectionClick(e, container);
+            return;
+        }
+
         if (isCommitting) return; // Prevent interaction while processing
 
         const { modes } = state;
         if (!modes.redact && !modes.highlight && !modes.extract && !modes.shape) {
             return;
         }
-        if (e.target.classList.contains('text-annotation') ||
-            e.target.classList.contains('image-annotation') ||
+        if (e.target.classList.contains('text-annotation')) {
+            // Enable selection/move even if in Text/Shape mode
+            handleSelectionClick(e, container);
+            return;
+        }
+
+        if (e.target.classList.contains('image-annotation') ||
+            e.target.classList.contains('selection-handle') || // Don't draw over handles
             e.target.classList.contains('annotation-rect') ||
             e.target.closest('svg')) return;
 
@@ -301,9 +312,14 @@ export async function addTextAnnotation(e, pageIndex) {
 
     const input = document.createElement('div');
     input.contentEditable = true;
-    input.className = 'text-annotation';
+    input.classList.add('text-annotation');
+    // Default to not editable until double-clicked in Select mode (or initially created)
+    // But since we are creating it, leave it focused and editable?
+    // Actually user wants standard flow. Let's start it editable.
+    input.style.position = 'absolute';
     input.style.left = `${x}px`;
     input.style.top = `${y}px`;
+    input.style.minWidth = '50px';
     input.innerText = "Type here";
 
     // Apply Settings
@@ -325,14 +341,29 @@ export async function addTextAnnotation(e, pageIndex) {
 
     // Deselect on outside click? (handled in initDrawListeners or global)
 
-    makeDraggable(input);
+    // Remove legacy makeDraggable(input); now handled by selection overlay
+    // But creation drag... we might want to keep it? 
+    // Actually unified selection is better.
+    // makeDraggable(input); 
+
     pageContainer.appendChild(input);
     input.focus();
 
-    // Select immediately
-    input.classList.add('selected');
+    // Handling Blur to exit edit mode
+    input.addEventListener('blur', () => {
+        input.contentEditable = false;
+        // input.style.cursor = 'move'; // Handled by CSS
+        // If empty, remove?
+        if (!input.innerText.trim()) {
+            input.remove();
+        }
+    });
 
-    toggleTextMode();
+    // Select immediately causing overlay to appear?
+    // toggleTextMode(); // REMOVED: Keep text mode active!
+
+    // If we want to type immediately, we keep it editable. Use 'blur' to finish.
+    input.classList.add('selected');
 }
 
 export async function addTextField() {
@@ -403,6 +434,7 @@ function makeDraggable(el) {
     let startX, startY, initialLeft, initialTop;
 
     el.addEventListener('mousedown', (e) => {
+        if (state.modes.select) return; // Disable legacy drag in Select Mode
         if (el.classList.contains('text-annotation') && state.modes.text) return;
 
         isDragging = true;
@@ -797,4 +829,232 @@ export async function addSignatureAnnotation(dataUrl) {
         makeDraggable(img);
         pageContainer.appendChild(img);
     };
+}
+
+/* Selection & Resize Logic */
+let selectedOverlay = null;
+
+function handleSelectionClick(e, container) {
+    if (e.target.closest('.selection-handle')) return; // Allow handle drag
+
+    const svg = e.target.closest('.shape-annotation');
+    const text = e.target.closest('.text-annotation');
+
+    if (text) {
+        selectShape(text, container, e);
+        e.stopPropagation();
+        return;
+    }
+
+    if (svg) {
+        // Only select if it matches supported types (rect for now)
+        if (svg.dataset.type === 'rect') {
+            selectShape(svg, container, e);
+            e.stopPropagation(); // prevent other listeners
+        }
+    } else {
+        // If click is not on a shape, deselect (unless we clicked an existing handle, covered above)
+        deselectAll();
+    }
+}
+
+function deselectAll() {
+    if (selectedOverlay) {
+        selectedOverlay.remove();
+        selectedOverlay = null;
+    }
+    // Also ensure no text is currently being edited if we deselect? 
+    // Or we leave it editable if user clicked inside? 
+    // If we deselect, we should probably blur and make non-editable.
+    document.querySelectorAll('.text-annotation[contenteditable="true"]').forEach(el => {
+        // el.contentEditable = false; // Only if not focused?
+        // Actually, if we deselect, we imply we are done editing?
+        // Let's rely on standard blur for now.
+    });
+}
+
+function selectShape(element, container, initialEvent = null) {
+    deselectAll();
+
+    let x, y, w, h, rectEl;
+    let isText = false;
+
+    if (element.classList.contains('text-annotation')) {
+        isText = true;
+        x = parseFloat(element.style.left);
+        y = parseFloat(element.style.top);
+        w = element.offsetWidth; // Use offsetWidth/Height for text
+        h = element.offsetHeight;
+    } else {
+        // SVG
+        rectEl = element.querySelector('rect');
+        if (!rectEl) return;
+        x = parseFloat(rectEl.getAttribute('x'));
+        y = parseFloat(rectEl.getAttribute('y'));
+        w = parseFloat(rectEl.getAttribute('width'));
+        h = parseFloat(rectEl.getAttribute('height'));
+    }
+
+    // Create Overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'selection-overlay';
+    Object.assign(overlay.style, {
+        left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`,
+        pointerEvents: 'auto', // Enable interaction with overlay for move
+        cursor: 'move'
+    });
+
+    // Store reference
+    overlay.dataset.targetId = element.id || 'annot-' + Date.now();
+
+    // Move Handler on Overlay body
+    overlay.onmousedown = (e) => startSelectionDrag(e, null, overlay, element, container, isText);
+
+    // Double Click to Edit (Text)
+    if (isText) {
+        overlay.ondblclick = (e) => {
+            e.stopPropagation();
+            enableTextEditing(element, overlay);
+        };
+    }
+
+    // Add handles (only for shapes for now, text resizing is font-size based usually, or we can enable if complex)
+    // For now, let's enable resize for Rects, maybe block for Text or implement font scaling later?
+    // User asked to move text. Let's just enable move for Text. Handles for Shape.
+    if (!isText) {
+        const directions = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+        directions.forEach(dir => {
+            const handle = document.createElement('div');
+            handle.className = `selection-handle handle-${dir}`;
+            handle.onmousedown = (e) => startSelectionDrag(e, dir, overlay, element, container, isText);
+            overlay.appendChild(handle);
+        });
+    }
+
+    container.appendChild(overlay);
+    selectedOverlay = overlay;
+
+    if (initialEvent) {
+        startSelectionDrag(initialEvent, null, overlay, element, container, isText);
+    }
+}
+
+function startSelectionDrag(e, dir, overlay, element, container, isText) {
+    e.stopPropagation();
+    e.preventDefault(); // Prevent text selection
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    // Parse starting values
+    const startLeft = parseFloat(overlay.style.left);
+    const startTop = parseFloat(overlay.style.top);
+    const startW = parseFloat(overlay.style.width);
+    const startH = parseFloat(overlay.style.height);
+
+    const onMove = (ev) => {
+        ev.preventDefault();
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+
+        let newLeft = startLeft;
+        let newTop = startTop;
+        let newW = startW;
+        let newH = startH;
+
+        if (!dir) {
+            // MOVE
+            newLeft = startLeft + dx;
+            newTop = startTop + dy;
+
+            // Boundary checks could go here
+        } else {
+            // RESIZE (Only shapes reach here for now)
+            // Horizontal
+            if (dir.includes('e')) {
+                newW = Math.max(5, startW + dx); // Min width 5
+            }
+            if (dir.includes('w')) {
+                const potentialW = startW - dx;
+                if (potentialW >= 5) {
+                    newW = potentialW;
+                    newLeft = startLeft + dx;
+                } else {
+                    newW = 5;
+                    newLeft = startLeft + (startW - 5);
+                }
+            }
+
+            // Vertical
+            if (dir.includes('s')) {
+                newH = Math.max(5, startH + dy);
+            }
+            if (dir.includes('n')) {
+                const potentialH = startH - dy;
+                if (potentialH >= 5) {
+                    newH = potentialH;
+                    newTop = startTop + dy;
+                } else {
+                    newH = 5;
+                    newTop = startTop + (startH - 5);
+                }
+            }
+        }
+
+        // Apply to Overlay
+        overlay.style.left = `${newLeft}px`;
+        overlay.style.top = `${newTop}px`;
+        overlay.style.width = `${newW}px`;
+        overlay.style.height = `${newH}px`;
+
+        // Apply to Target Element
+        if (isText) {
+            element.style.left = `${newLeft}px`;
+            element.style.top = `${newTop}px`;
+            // Text resizing logic if we enabled handles? 
+            // For now, no resize on text.
+        } else {
+            // SVG Rect
+            const rectEl = element.querySelector('rect');
+            if (rectEl) {
+                rectEl.setAttribute('x', newLeft);
+                rectEl.setAttribute('y', newTop);
+                rectEl.setAttribute('width', newW);
+                rectEl.setAttribute('height', newH);
+            }
+        }
+    };
+
+    const onUp = async () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        await saveState(false);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+}
+
+function enableTextEditing(element, overlay) {
+    // Hide overlay so user can interact with text directly
+    overlay.style.display = 'none'; // Temporarily hide
+
+    // Ensure element is editable and focused
+    element.contentEditable = true;
+    element.focus();
+
+    const onBlur = () => {
+        // When done, show overlay again or just exit edit mode?
+        // If we stay in Select mode, we might want to re-select it?
+        // Or just go back to neutral state?
+        // Let's go back to neutral (deselected) or re-show overlay if still selected?
+        // Simplest: Just exit edit mode.
+        // element.contentEditable = false; // Optional, to prevent accidental edits
+        if (selectedOverlay === overlay) {
+            // If we are still the "active" selection, re-show overlay?
+            overlay.style.display = 'block';
+        }
+        element.removeEventListener('blur', onBlur);
+    };
+    element.addEventListener('blur', onBlur);
 }

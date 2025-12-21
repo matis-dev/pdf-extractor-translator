@@ -8,7 +8,7 @@ import { state, history as historyState } from './modules/state.js';
 import * as ui from './modules/ui.js';
 import { updateUnsavedIndicator } from './modules/ui.js';
 import { initRibbon } from './modules/ribbon.js';
-import { loadPdf, refreshView, zoomIn, zoomOut } from './modules/viewer.js';
+import { loadPdf, refreshView, zoomIn, zoomOut, initHandPan } from './modules/viewer.js';
 import * as historyModule from './modules/history.js';
 import * as pages from './modules/pages.js';
 import { openPageNumbersModal, applyPageNumbers } from './modules/pages.js';
@@ -69,6 +69,7 @@ async function init() {
         ui.initTheme();
         initRibbon();
         initAIChat();
+        initHandPan();
         initCommandPalette();
         registerCommands();
         document.body.setAttribute('data-ribbon-called', 'true');

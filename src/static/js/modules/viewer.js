@@ -209,6 +209,53 @@ function addPageControls(pageContainer, i, totalPages) {
     pageContainer.appendChild(controlsDiv);
 }
 
+export function initHandPan() {
+    const container = document.getElementById('main-preview');
+    if (!container) return;
+
+    let isPanning = false;
+    let startX, startY, scrollLeft, scrollTop;
+
+    container.addEventListener('mousedown', (e) => {
+        if (!state.modes.hand) return;
+        isPanning = true;
+        startX = e.pageX - container.offsetLeft;
+        startY = e.pageY - container.offsetTop;
+        scrollLeft = container.scrollLeft;
+        scrollTop = container.scrollTop;
+        container.style.cursor = 'grabbing';
+        document.body.style.cursor = 'grabbing';
+    });
+
+    container.addEventListener('mouseleave', () => {
+        if (state.modes.hand) {
+            isPanning = false;
+            container.style.cursor = 'grab';
+            document.body.style.cursor = 'grab';
+        }
+    });
+
+    container.addEventListener('mouseup', () => {
+        if (state.modes.hand) {
+            isPanning = false;
+            container.style.cursor = 'grab';
+            document.body.style.cursor = 'grab';
+        }
+    });
+
+    container.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        if (!state.modes.hand) return;
+        e.preventDefault();
+        const x = e.pageX - container.offsetLeft;
+        const y = e.pageY - container.offsetTop;
+        const walkX = (x - startX) * 1.5; // Scroll speed multiplier
+        const walkY = (y - startY) * 1.5;
+        container.scrollLeft = scrollLeft - walkX;
+        container.scrollTop = scrollTop - walkY;
+    });
+}
+
 export async function renderThumbnails(bytes, password = null) {
     const container = document.getElementById('thumbnails-container');
     container.innerHTML = '';
@@ -266,6 +313,21 @@ export async function renderThumbnails(bytes, password = null) {
 
 export function handlePageClick(e, index) {
     if (e) e.stopPropagation(); // prevent bubbling if needed, though usually fine
+
+    if (state.modes.zoomIn) {
+        zoomIn();
+        return;
+    }
+    if (state.modes.zoomOut) {
+        zoomOut();
+        return;
+    }
+
+    // Ignore clicks on existing annotations or overlays
+    if (e.target.closest('.text-annotation') || e.target.closest('.selection-overlay') || e.target.closest('.shape-annotation') || e.target.closest('.selection-handle')) {
+        return;
+    }
+
     state.selectedPageIndex = index;
     updateActiveThumbnail();
 

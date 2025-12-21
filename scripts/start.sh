@@ -87,6 +87,7 @@ fi
 # 5. Start Flask App
 echo "🌐 Starting Web Server..."
 export PYTHONPATH=$PROJECT_DIR/src
+export FLASK_DEBUG=true
 python src/app.py &
 FLASK_PID=$!
 

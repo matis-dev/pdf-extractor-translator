@@ -33,6 +33,10 @@ export function setShapeMode(mode) {
     } else {
         state.modes.shape = mode;
         // Turn off others
+        state.modes.hand = false;
+        state.modes.select = false;
+        state.modes.zoomIn = false;
+        state.modes.zoomOut = false;
         state.modes.text = false;
         state.modes.redact = false;
         state.modes.highlight = false;
@@ -46,48 +50,117 @@ export function updateShapeSettings(key, value) {
 }
 
 export function updateButtonStates() {
-    const redactBtn = document.getElementById('redact');
-    const highlightBtn = document.getElementById('highlight');
-    const extractBtn = document.getElementById('extract'); // Ribbon doesn't have extract button? 'start-process' is there. Wait.
-    // 'extract' mode button? In Ribbon 'process' tab, there is 'start-process' (Run).
-    // There is no 'extract' mode button in Ribbon config I saw.
-    // Check Config:
-    // 'edit': add-text, add-image. 'Forms'.
-    // 'comment': highlight, note. Shapes.
-    // 'protect': redact.
-    // There is NO 'extract' tool in Ribbon config for Area Extraction?
-    // User requested "Enhance Text Annotation". Extraction was previous.
-    // If 'extract' button missing, getting it returns null, safe.
-
-    // I will fix the ones that exist: redact, highlight, add-text.
-    const textBtn = document.getElementById('add-text');
-
-    // Shape buttons
-    const shapeBtns = {
-        rect: document.getElementById('shape-rect'),
-        ellipse: document.getElementById('shape-ellipse'),
-        line: document.getElementById('shape-line'),
-        arrow: document.getElementById('shape-arrow')
+    const updateBtn = (id, isActive) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            if (isActive) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
     };
 
-    if (redactBtn) redactBtn.className = state.modes.redact ? 'btn btn-danger' : 'btn btn-outline-danger';
-    if (highlightBtn) highlightBtn.className = state.modes.highlight ? 'btn btn-warning' : 'btn btn-outline-warning';
-    if (extractBtn) extractBtn.className = state.modes.extract ? 'btn btn-info' : 'btn btn-outline-info';
-    if (textBtn) textBtn.className = state.modes.text ? 'btn btn-primary' : 'btn btn-outline-primary';
+    updateBtn('redact', state.modes.redact);
+    updateBtn('highlight', state.modes.highlight);
+    updateBtn('add-text', state.modes.text);
+    updateBtn('tool-select', state.modes.select);
+    updateBtn('tool-select', state.modes.select);
+    updateBtn('tool-hand', state.modes.hand);
+    updateBtn('zoom-in', state.modes.zoomIn);
+    updateBtn('zoom-out', state.modes.zoomOut);
+    // extract mode might not have a ribbon button yet, skipping
 
-    // Update shape buttons
-    for (const [key, btn] of Object.entries(shapeBtns)) {
-        if (btn) btn.className = state.modes.shape === key ? 'btn btn-secondary' : 'btn btn-outline-secondary';
-    }
+    // Shape buttons
+    updateBtn('shape-rect', state.modes.shape === 'rect');
+    updateBtn('shape-ellipse', state.modes.shape === 'ellipse');
+    updateBtn('shape-line', state.modes.shape === 'line');
+    updateBtn('shape-arrow', state.modes.shape === 'arrow');
+    updateBtn('note', state.modes.note);
 
-    const anyMode = state.modes.redact || state.modes.highlight || state.modes.text || state.modes.extract || state.modes.shape;
+    const container = document.getElementById('main-preview');
+    if (container) container.style.cursor = ''; // Reset container cursor
+
+    const anyMode = state.modes.redact || state.modes.highlight || state.modes.text || state.modes.shape || state.modes.note;
     document.body.style.cursor = anyMode ? 'crosshair' : 'default';
     if (state.modes.text) document.body.style.cursor = 'text';
     if (state.modes.note) document.body.style.cursor = 'copy';
+    if (state.modes.select) document.body.style.cursor = 'default';
+    if (state.modes.hand) {
+        document.body.style.cursor = 'grab';
+        if (container) container.style.cursor = 'grab';
+    }
+    if (state.modes.zoomIn) document.body.style.cursor = 'zoom-in';
+    if (state.modes.zoomOut) document.body.style.cursor = 'zoom-out';
+}
+
+export function toggleZoomInMode() {
+    state.modes.zoomIn = !state.modes.zoomIn;
+    if (state.modes.zoomIn) {
+        state.modes.zoomOut = false;
+        state.modes.hand = false;
+        state.modes.select = false;
+        state.modes.redact = false;
+        state.modes.highlight = false;
+        state.modes.text = false;
+        state.modes.extract = false;
+        state.modes.note = false;
+        state.modes.shape = null;
+    }
+    updateButtonStates();
+}
+
+export function toggleZoomOutMode() {
+    state.modes.zoomOut = !state.modes.zoomOut;
+    if (state.modes.zoomOut) {
+        state.modes.zoomIn = false;
+        state.modes.hand = false;
+        state.modes.select = false;
+        state.modes.redact = false;
+        state.modes.highlight = false;
+        state.modes.text = false;
+        state.modes.extract = false;
+        state.modes.note = false;
+        state.modes.shape = null;
+    }
+    updateButtonStates();
+}
+
+export function toggleHandMode() {
+    state.modes.hand = !state.modes.hand;
+    if (state.modes.hand) {
+        state.modes.zoomIn = false;
+        state.modes.zoomOut = false;
+        state.modes.select = false;
+        state.modes.redact = false;
+        state.modes.highlight = false;
+        state.modes.text = false;
+        state.modes.extract = false;
+        state.modes.note = false;
+        state.modes.shape = null;
+    }
+    updateButtonStates();
+}
+
+export function toggleSelectMode() {
+    state.modes.select = !state.modes.select;
+    if (state.modes.select) {
+        state.modes.zoomIn = false;
+        state.modes.zoomOut = false;
+        state.modes.hand = false;
+        state.modes.redact = false;
+        state.modes.highlight = false;
+        state.modes.text = false;
+        state.modes.extract = false;
+        state.modes.note = false;
+        state.modes.shape = null;
+    }
+    updateButtonStates();
 }
 
 export function toggleRedactMode() {
     state.modes.redact = !state.modes.redact;
+    state.modes.zoomIn = false;
+    state.modes.zoomOut = false;
+    state.modes.hand = false;
+    state.modes.select = false;
     state.modes.text = false;
     state.modes.highlight = false;
     state.modes.extract = false;
@@ -98,6 +171,10 @@ export function toggleRedactMode() {
 
 export function toggleHighlightMode() {
     state.modes.highlight = !state.modes.highlight;
+    state.modes.zoomIn = false;
+    state.modes.zoomOut = false;
+    state.modes.hand = false;
+    state.modes.select = false;
     state.modes.text = false;
     state.modes.redact = false;
     state.modes.extract = false;
@@ -108,6 +185,10 @@ export function toggleHighlightMode() {
 
 export function toggleExtractMode() {
     state.modes.extract = !state.modes.extract;
+    state.modes.zoomIn = false;
+    state.modes.zoomOut = false;
+    state.modes.hand = false;
+    state.modes.select = false;
     state.modes.text = false;
     state.modes.redact = false;
     state.modes.highlight = false;
@@ -119,6 +200,10 @@ export function toggleExtractMode() {
 export function toggleTextMode() {
     state.modes.text = !state.modes.text;
     if (state.modes.text) {
+        state.modes.zoomIn = false;
+        state.modes.zoomOut = false;
+        state.modes.hand = false;
+        state.modes.select = false;
         state.modes.redact = false;
         state.modes.highlight = false;
         state.modes.extract = false;
@@ -131,6 +216,10 @@ export function toggleTextMode() {
 export function toggleNoteMode() {
     state.modes.note = !state.modes.note;
     if (state.modes.note) {
+        state.modes.zoomIn = false;
+        state.modes.zoomOut = false;
+        state.modes.hand = false;
+        state.modes.select = false;
         state.modes.text = false;
         state.modes.redact = false;
         state.modes.highlight = false;

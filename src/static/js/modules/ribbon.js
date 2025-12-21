@@ -2,18 +2,20 @@
 const ribbonConfig = {
     'home': [
         {
+            group: 'File',
+            tools: [
+                { id: 'save-btn', icon: 'bi-floppy', label: 'Save', action: 'globalAction', function: 'saveChanges' },
+                { id: 'undo-btn', icon: 'bi-arrow-counterclockwise', label: 'Undo', action: 'globalAction', function: 'undoAction' },
+                { id: 'redo-btn', icon: 'bi-arrow-clockwise', label: 'Redo', action: 'globalAction', function: 'redoAction' }
+            ]
+        },
+        {
             group: 'View',
             tools: [
                 { id: 'tool-hand', icon: 'bi-hand-index-thumb', label: 'Hand', action: 'setMode', value: 'hand' },
                 { id: 'tool-select', icon: 'bi-cursor', label: 'Select', action: 'setMode', value: 'select' },
-                { id: 'zoom-in', icon: 'bi-zoom-in', label: 'Zoom In', action: 'globalAction', function: 'zoomIn' },
-                { id: 'zoom-out', icon: 'bi-zoom-out', label: 'Zoom Out', action: 'globalAction', function: 'zoomOut' }
-            ]
-        },
-        {
-            group: 'Theme',
-            tools: [
-                { id: 'theme-toggle', icon: 'bi-moon', label: 'Dark Mode', action: 'globalAction', function: 'toggleDarkMode' }
+                { id: 'zoom-in', icon: 'bi-zoom-in', label: 'Zoom In', action: 'setMode', value: 'zoomIn' },
+                { id: 'zoom-out', icon: 'bi-zoom-out', label: 'Zoom Out', action: 'setMode', value: 'zoomOut' }
             ]
         }
     ],
@@ -132,7 +134,7 @@ const ribbonConfig = {
                 {
                     type: 'html', html: `
                     <div class="d-flex flex-column gap-1">
-                        <select id="ribbon-extract-type" class="form-select form-select-sm" style="width:120px; font-size: 0.8rem;">
+                        <select id="ribbon-extract-type" class="form-select form-select-sm" style="width:180px; font-size: 0.8rem;">
                             <option value="word">Word (.docx)</option>
                             <option value="odt">ODT</option>
                             <option value="csv">Tables (CSV)</option>
@@ -143,7 +145,7 @@ const ribbonConfig = {
                 {
                     type: 'html', html: `
                     <div class="d-flex flex-column gap-1">
-                        <select id="ribbon-target-lang" class="form-select form-select-sm" style="width:120px; font-size: 0.8rem;">
+                        <select id="ribbon-target-lang" class="form-select form-select-sm" style="width:180px; font-size: 0.8rem;">
                             <option value="none">No Trans.</option>
                             <option value="en">English</option>
                             <option value="es">Spanish</option>
@@ -170,14 +172,29 @@ export function initRibbon() {
     }
 
     console.log("Ribbon containers found. Rendering tabs...");
-    // Render Tabs
-    tabContainer.innerHTML = ''; // Clear existing
+
+    // Find or create a wrapper for tabs to avoid wiping static content
+    let tabsWrapper = document.getElementById('ribbon-tabs-wrapper');
+    if (!tabsWrapper) {
+        tabsWrapper = document.createElement('div');
+        tabsWrapper.id = 'ribbon-tabs-wrapper';
+        tabsWrapper.className = 'd-flex gap-1';
+        // Insert after the first child (Back/Filename group)
+        if (tabContainer.firstChild) {
+            tabContainer.insertBefore(tabsWrapper, tabContainer.children[1] || null);
+        } else {
+            tabContainer.appendChild(tabsWrapper);
+        }
+    }
+
+    // Render Tabs into wrapper
+    tabsWrapper.innerHTML = '';
     Object.keys(ribbonConfig).forEach(tabKey => {
         const btn = document.createElement('button');
         btn.className = 'tab-btn';
         btn.textContent = tabKey.charAt(0).toUpperCase() + tabKey.slice(1);
         btn.onclick = () => switchTab(tabKey);
-        tabContainer.appendChild(btn);
+        tabsWrapper.appendChild(btn);
     });
 
     // Default to Home
@@ -242,15 +259,16 @@ function switchTab(tabName) {
 function handleAction(tool) {
     if (tool.action === 'setMode') {
         if (tool.value === 'text') window.toggleTextMode();
+        else if (tool.value === 'select') window.toggleSelectMode();
         else if (tool.value === 'highlight') window.toggleHighlightMode();
         else if (tool.value === 'redact') window.toggleRedactMode();
         else if (tool.value === 'note') window.toggleNoteMode();
         else if (tool.value === 'hand') {
-            // Reset all modes
-            if (window.state && window.state.modes) {
-                Object.keys(window.state.modes).forEach(k => window.state.modes[k] = false);
-            }
-            // Visual reset? 
+            window.toggleHandMode();
+        } else if (tool.value === 'zoomIn') {
+            window.toggleZoomInMode();
+        } else if (tool.value === 'zoomOut') {
+            window.toggleZoomOutMode();
         }
     } else if (tool.action === 'setShape') {
         window.setShapeMode(tool.value);
@@ -262,6 +280,10 @@ function handleAction(tool) {
         if (typeof tool.function === 'function') tool.function();
     }
 }
+
+// Global wrappers for history
+window.undoAction = () => window.appHistory && window.appHistory.undo();
+window.redoAction = () => window.appHistory && window.appHistory.redo();
 
 // Helper to submit processing from ribbon inputs
 window.submitRibbonProcessing = function () {

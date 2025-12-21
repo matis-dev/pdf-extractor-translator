@@ -23,24 +23,72 @@
     --modal-bg: #2b3035;
     --modal-text: #f8f9fa;
     --accent-color: #0d6efd;
+    --text-color-muted: #adb5bd;
     /* For title bar buttons */
 }
 
 body {
     height: 100vh;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    /* Horizontal split: Sidebar | Main Content */
     overflow: hidden;
     background-color: var(--bg-body);
     color: var(--text-color);
     margin: 0;
-    /* Ensure no margin causing white gaps */
 }
 
-#editor-container {
+#layout-wrapper {
+    /* No longer needed if body handles it, but let's keep it consistent */
+}
+
+/* Sidebar is now a direct child of body (via our HTML realignment) */
+#sidebar {
+    width: 260px;
+    height: 100%;
+    /* Full height */
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    z-index: 100;
+    /* Ensure checks over other elements if needed */
+    z-index: 100;
+    /* Ensure checks over other elements if needed */
+}
+
+/* Specific overrides for buttons/text in dark mode to ensure visibility */
+[data-theme="dark"] .file-name {
+    color: var(--text-color) !important;
+}
+
+[data-theme="dark"] #theme-toggle {
+    color: var(--text-color) !important;
+}
+
+[data-theme="dark"] .text-body {
+    color: var(--text-color) !important;
+}
+
+#main-content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    /* Prevent flex overflow */
+}
+
+/* Old #editor-container is now just the preview wrapper inside main-content-wrapper */
+#main-preview-container {
     flex: 1;
     display: flex;
     overflow: hidden;
+    position: relative;
+    background-color: #525659;
 }
 
 #main-preview {
@@ -51,6 +99,8 @@ body {
     justify-content: center;
     padding: 20px;
     position: relative;
+    width: 100%;
+    /* Ensure it fills width */
 }
 
 #pdf-viewer {
@@ -248,12 +298,24 @@ body {
 
 /* Thumbnails */
 #thumbnails-container {
-    max-height: 300px;
+    flex: 1;
+    /* Take all remaining height */
     overflow-y: auto;
+    min-height: 0;
+    /* Important for firefox flex scrolling */
     border: 1px solid var(--border-color);
     background: var(--card-bg);
     padding: 10px;
     border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+#sidebar .alert {
+    margin-top: auto;
+    /* Push to bottom if container doesn't fill */
+    margin-bottom: 0;
+    padding: 8px 10px;
+    font-size: 0.85rem;
 }
 
 .thumbnail-item {
@@ -444,9 +506,15 @@ body {
 }
 
 .ribbon-btn:focus {
-    outline: 2px solid #0d6efd;
-    outline-offset: -2px;
+    outline: none;
+    /* Removed thick blue outline */
     background-color: var(--thumbnail-hover);
+}
+
+.ribbon-btn.active {
+    background-color: var(--thumbnail-active-bg);
+    color: #0d6efd;
+    border-color: var(--thumbnail-active-border);
 }
 
 .ribbon-btn i {
@@ -461,13 +529,14 @@ body {
 
 /* Adjust Sidebar */
 #sidebar {
-    width: 200px;
+    width: 260px;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     padding: 10px;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    /* Prevent sidebar itself from scrolling, let children scroll */
 }
 
 /* API Error Handling */
@@ -510,6 +579,15 @@ body {
 .annotationLayer .textAnnotation img {
     position: absolute;
     cursor: pointer;
+}
+
+.text-annotation {
+    cursor: move;
+}
+
+.text-annotation[contenteditable="true"] {
+    cursor: text;
+    cursor: auto;
 }
 
 .annotationLayer .textWidgetAnnotation input,
@@ -563,5 +641,73 @@ body {
     font-family: sans-serif;
     font-size: 0.8em;
     line-height: 1.2;
-    word-wrap: break-word;
-}
+
+    /* Selection & Resize Handles */
+    .selection-overlay {
+        position: absolute;
+        border: 1px dashed #007bff;
+        background: rgba(0, 123, 255, 0.1);
+        /* Subtle fill */
+        z-index: 1000;
+        pointer-events: none;
+        /* Container doesn't block, handles do */
+    }
+
+    .selection-handle {
+        width: 10px;
+        height: 10px;
+        background: #007bff;
+        border: 1px solid white;
+        border-radius: 50%;
+        position: absolute;
+        pointer-events: auto;
+        z-index: 1001;
+    }
+
+    .handle-nw {
+        top: 0;
+        left: 0;
+        cursor: nwse-resize;
+    }
+
+    .handle-n {
+        top: 0;
+        left: 50%;
+        cursor: ns-resize;
+    }
+
+    .handle-ne {
+        top: 0;
+        right: 0;
+        cursor: nesw-resize;
+    }
+
+    .handle-e {
+        top: 50%;
+        right: 0;
+        cursor: ew-resize;
+    }
+
+    .handle-se {
+        bottom: 0;
+        right: 0;
+        cursor: nwse-resize;
+    }
+
+    .handle-s {
+        bottom: 0;
+        left: 50%;
+        cursor: ns-resize;
+    }
+
+    .handle-sw {
+        bottom: 0;
+        left: 0;
+        cursor: nesw-resize;
+    }
+
+    .handle-w {
+        top: 50%;
+        left: 0;
+        cursor: ew-resize;
+    }

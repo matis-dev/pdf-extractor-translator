@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Editor - {{ filename }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ai_chat.css') }}">
@@ -24,523 +24,453 @@
     </div>
 
     <!-- Title Bar -->
-    <div id="title-bar">
-        <div class="app-branding">
-            <a href="/" class="text-decoration-none text-body" title="Back to Library">
-                <i class="bi bi-arrow-left-circle-fill" style="font-size: 1.2rem;"></i>
-            </a>
-            <span class="fw-bold">PDF Editor</span>
-            <span class="text-muted mx-2">|</span>
-            <span class="file-name">{{ filename }}</span>
+
+
+    <!-- Main Horizontal Layout -->
+    <!-- Sidebar (Left Column) -->
+    <div id="sidebar" data-testid="sidebar">
+        <h5 class="mb-3">Pages</h5>
+        <div id="thumbnails-container" class="mb-3"></div>
+
+        <!-- Extraction Result Modal -->
+        <!-- Extraction Result Modal -->
+        <div id="extraction-modal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Extracted Text</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3 d-flex gap-2 align-items-center">
+                            <label class="form-label mb-0">Translate:</label>
+                            <select id="source-lang" class="form-select form-select-sm" style="width: auto;">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="pl">Polish</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="it">Italian</option>
+                                <option value="nl">Dutch</option>
+                                <option value="ru">Russian</option>
+                            </select>
+                            <span>&rarr;</span>
+                            <select id="target-lang" class="form-select form-select-sm" style="width: auto;">
+                                <option value="es">Spanish</option>
+                                <option value="en">English</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="pl">Polish</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="it">Italian</option>
+                                <option value="nl">Dutch</option>
+                                <option value="ru">Russian</option>
+                            </select>
+                            <button class="btn btn-sm btn-outline-primary"
+                                onclick="translateExtractedText()">Translate</button>
+                        </div>
+                        <textarea id="extracted-text-area" class="form-control" rows="10"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="copyExtractedText()">Copy to
+                            Clipboard</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="app-actions">
-            <button class="btn btn-outline-warning btn-sm me-2" data-bs-toggle="modal" data-bs-target="#bugReportModal"
-                title="Report Issue">
-                <i class="bi bi-bug"></i>
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="appHistory.undo()" id="undo-btn" disabled
-                title="Undo">
-                <i class="bi bi-arrow-counterclockwise"></i>
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="appHistory.redo()" id="redo-btn" disabled
-                title="Redo">
-                <i class="bi bi-arrow-clockwise"></i>
-            </button>
-            <div class="vr mx-2"></div>
-            <button class="btn btn-primary btn-sm" onclick="saveChanges()" data-testid="save-btn">
-                <i class="bi bi-floppy"></i> Save
-            </button>
+        <!-- Page Extraction Modal -->
+        <div id="page-extraction-modal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Extract & Process Page</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Format</label>
+                            <select id="page-extract-format" class="form-select">
+                                <option value="docx">Word (.docx)</option>
+                                <option value="odt">OpenDocument (.odt)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="submitPageExtraction()">Start
+                            Extraction</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden Process Form (Used by Ribbon) -->
+        <form action="/process_request" method="post" id="process-form" style="display:none;">
+            <input type="hidden" name="filename" value="{{ filename }}">
+            <input type="hidden" name="extraction_type" value="">
+            <input type="hidden" name="target_lang" value="">
+            <!-- Other fields if needed -->
+        </form>
+
+        <div class="alert alert-info small mt-auto mb-0 p-2">
+            <i class="bi bi-info-circle"></i> Click on a page to select it.
         </div>
     </div>
 
-    <div id="tab-bar"></div>
-    <div id="ribbon-container">
-        <div id="ribbon-content"></div>
-    </div>
 
-    <div id="editor-container" data-testid="editor-container">
-        <div id="sidebar" data-testid="sidebar">
-            <h5 class="mb-3">Pages</h5>
-            <div id="thumbnails-container" class="mb-3"></div>
-            <hr>
-            <h5 class="mb-3">Tools</h5>
-            <!-- Extraction Result Modal -->
-            <!-- Extraction Result Modal -->
-            <div id="extraction-modal" class="modal fade" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Extracted Text</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3 d-flex gap-2 align-items-center">
-                                <label class="form-label mb-0">Translate:</label>
-                                <select id="source-lang" class="form-select form-select-sm" style="width: auto;">
-                                    <option value="en">English</option>
-                                    <option value="es">Spanish</option>
-                                    <option value="fr">French</option>
-                                    <option value="de">German</option>
-                                    <option value="pl">Polish</option>
-                                    <option value="pt">Portuguese</option>
-                                    <option value="it">Italian</option>
-                                    <option value="nl">Dutch</option>
-                                    <option value="ru">Russian</option>
-                                </select>
-                                <span>&rarr;</span>
-                                <select id="target-lang" class="form-select form-select-sm" style="width: auto;">
-                                    <option value="es">Spanish</option>
-                                    <option value="en">English</option>
-                                    <option value="fr">French</option>
-                                    <option value="de">German</option>
-                                    <option value="pl">Polish</option>
-                                    <option value="pt">Portuguese</option>
-                                    <option value="it">Italian</option>
-                                    <option value="nl">Dutch</option>
-                                    <option value="ru">Russian</option>
-                                </select>
-                                <button class="btn btn-sm btn-outline-primary"
-                                    onclick="translateExtractedText()">Translate</button>
-                            </div>
-                            <textarea id="extracted-text-area" class="form-control" rows="10"></textarea>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" onclick="copyExtractedText()">Copy to
-                                Clipboard</button>
-                        </div>
-                    </div>
-                </div>
+    <!-- Right Column: Tabs, Ribbon, Preview -->
+    <div id="main-content-wrapper">
+        <div id="tab-bar">
+            <!-- Left Side: Branding & File -->
+            <div class="d-flex align-items-center gap-2 me-3">
+                <a href="/" class="text-decoration-none text-body" title="Back to Library">
+                    <i class="bi bi-arrow-left-circle-fill" style="font-size: 1.2rem;"></i>
+                </a>
+                <span class="fw-bold fs-6">PDF Editor</span>
+
+                <div class="vr mx-2 h-50"></div>
+
+                <span class="file-name small text-muted border-0 p-0">{{ filename }}</span>
+
+                <div class="vr mx-2 h-50"></div>
             </div>
+            <!-- Tabs injected here by JS -->
 
-            <!-- Page Extraction Modal -->
-            <div id="page-extraction-modal" class="modal fade" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Extract & Process Page</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Extracting Page <span id="extract-page-number"></span></p>
-
-                            <div class="mb-3">
-                                <label class="form-label">Target Format</label>
-                                <select id="page-extract-format" class="form-select">
-                                    <option value="docx">Word (.docx)</option>
-                                    <option value="odt">OpenDocument (.odt)</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Translation (Optional)</label>
-                                <div class="d-flex gap-2 align-items-center">
-                                    <select id="page-source-lang" class="form-select form-select-sm">
-                                        <option value="en">English (Source)</option>
-                                        <option value="es">Spanish</option>
-                                        <option value="fr">French</option>
-                                        <option value="de">German</option>
-                                        <option value="pl">Polish</option>
-                                        <option value="pt">Portuguese</option>
-                                        <option value="it">Italian</option>
-                                        <option value="nl">Dutch</option>
-                                        <option value="ru">Russian</option>
-                                    </select>
-                                    <span>&rarr;</span>
-                                    <select id="page-target-lang" class="form-select form-select-sm">
-                                        <option value="none">No Translation</option>
-                                        <option value="es">Spanish</option>
-                                        <option value="en">English</option>
-                                        <option value="fr">French</option>
-                                        <option value="de">German</option>
-                                        <option value="pl">Polish</option>
-                                        <option value="pt">Portuguese</option>
-                                        <option value="it">Italian</option>
-                                        <option value="nl">Dutch</option>
-                                        <option value="ru">Russian</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-success" onclick="saveSinglePagePdf()">Save Page as
-                                PDF</button>
-                            <button type="button" class="btn btn-primary" onclick="submitPageExtraction()">Start
-                                Extraction</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Password Prompt Modal -->
-            <div id="password-prompt-modal" class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false"
-                tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Password Required</h5>
-                        </div>
-                        <div class="modal-body">
-                            <p>This PDF is protected. Please enter the password to open it.</p>
-                            <div class="mb-3">
-                                <input type="password" id="pdf-open-password" class="form-control"
-                                    placeholder="Password" onkeydown="if(event.key==='Enter') submitPassword()">
-                            </div>
-                            <div id="password-error" class="text-danger mt-2 small" style="display:none;"></div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" onclick="cancelPassword()">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="submitPassword()">Open</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Security Options Modal -->
-            <div id="security-modal" class="modal fade" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">PDF Security</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Set New Password</label>
-                                <input type="password" id="new-pdf-password" class="form-control mb-2"
-                                    placeholder="New Password">
-                                <input type="password" id="confirm-pdf-password" class="form-control"
-                                    placeholder="Confirm Password">
-                                <div class="form-text">Leave blank to remove password protection.</div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="saveSecuritySettings()">Save
-                                Settings</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Context Menu -->
-            <div id="context-menu">
-                <div class="item" id="delete-item">Delete</div>
-            </div>
-
-            <!-- Page Actions Toolbar -->
-            <div class="d-flex gap-2 justify-content-center mb-3">
-                <button class="btn btn-sm btn-outline-secondary" onclick="rotatePage()" title="Rotate Current Page"><i
-                        class="bi bi-arrow-clockwise"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deletePage()" title="Delete Current Page"><i
-                        class="bi bi-trash"></i></button>
-                <button class="btn btn-sm btn-outline-primary" onclick="movePageUp()" title="Move Up"><i
-                        class="bi bi-arrow-up"></i></button>
-                <button class="btn btn-sm btn-outline-primary" onclick="movePageDown()" title="Move Down"><i
-                        class="bi bi-arrow-down"></i></button>
-            </div>
-
-            <!-- Modals preserved below -->
-
-            <!-- ... existing ... -->
-
-            <!-- Note Modal -->
-            <div class="modal fade" id="noteModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Add Note</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <input type="hidden" id="note-modal-page-index">
-                            <input type="hidden" id="note-modal-x">
-                            <input type="hidden" id="note-modal-y">
-                            <div class="mb-3">
-                                <label class="form-label">Note Text</label>
-                                <textarea class="form-control" id="note-text" rows="3"></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="applyNote()">Add Note</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ... existing ... -->
-
-            <!-- Signature Modal -->
-            <div class="modal fade" id="signatureModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Add Signature</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <ul class="nav nav-tabs mb-3" role="tablist">
-                                <li class="nav-item">
-                                    <button class="nav-link active" id="tab-draw" data-bs-toggle="tab"
-                                        data-bs-target="#sig-draw" type="button" role="tab">Draw</button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link" id="tab-type" data-bs-toggle="tab"
-                                        data-bs-target="#sig-type" type="button" role="tab">Type</button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link" id="tab-upload" data-bs-toggle="tab"
-                                        data-bs-target="#sig-upload" type="button" role="tab">Upload</button>
-                                </li>
-                            </ul>
-                            <div class="tab-content">
-                                <div class="tab-pane fade show active" id="sig-draw" role="tabpanel">
-                                    <div class="border bg-light mb-2" style="height: 200px; cursor: crosshair;">
-                                        <canvas id="signature-canvas"
-                                            style="width: 100%; height: 100%; touch-action: none;"></canvas>
-                                    </div>
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        onclick="clearSignature()">Clear</button>
-                                </div>
-                                <div class="tab-pane fade" id="sig-type" role="tabpanel">
-                                    <div class="mb-3">
-                                        <label class="form-label">Type Name</label>
-                                        <input type="text" class="form-control form-control-lg" id="sig-type-input"
-                                            placeholder="John Doe" style="font-family: 'Dancing Script', cursive;">
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="sig-upload" role="tabpanel">
-                                    <div class="mb-3">
-                                        <label class="form-label">Upload Image</label>
-                                        <input type="file" class="form-control" id="sig-upload-input"
-                                            accept="image/png, image/jpeg">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="applySignature()">Apply
-                                Signature</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ... existing content ... -->
-
-            <!-- Page Numbers Modal -->
-            <div class="modal fade" id="pageNumbersModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Add Page Numbers</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Format</label>
-                                <select class="form-select" id="pn-format">
-                                    <option value="Page X of Y">Page X of Y</option>
-                                    <option value="Page X">Page X</option>
-                                    <option value="X of Y">X of Y</option>
-                                    <option value="X">X</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Position</label>
-                                <select class="form-select" id="pn-position">
-                                    <option value="bottom-center">Bottom Center</option>
-                                    <option value="bottom-right">Bottom Right</option>
-                                    <option value="bottom-left">Bottom Left</option>
-                                    <option value="top-center">Top Center</option>
-                                    <option value="top-right">Top Right</option>
-                                    <option value="top-left">Top Left</option>
-                                </select>
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <label class="form-label">Start Number</label>
-                                    <input type="number" class="form-control" id="pn-start" value="1" min="1">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Font Size</label>
-                                    <input type="number" class="form-control" id="pn-size" value="12" min="8" max="72">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="applyPageNumbers()">Apply</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Watermark Modal -->
-            <div class="modal fade" id="watermarkModal" tabindex="-1" data-testid="watermark-modal">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Add Watermark</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Watermark Text</label>
-                                <input type="text" class="form-control" id="watermark-text" value="CONFIDENTIAL">
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <label class="form-label">Color</label>
-                                    <input type="color" class="form-control form-control-color w-100"
-                                        id="watermark-color" value="#cccccc">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Opacity (0-1)</label>
-                                    <input type="number" class="form-control" id="watermark-opacity" value="0.3"
-                                        step="0.1" min="0.1" max="1.0">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Size</label>
-                                    <input type="number" class="form-control" id="watermark-size" value="48" min="12"
-                                        max="120">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Rotation</label>
-                                    <select class="form-select" id="watermark-rotation">
-                                        <option value="45">Diagonal (45°)</option>
-                                        <option value="0">Horizontal (0°)</option>
-                                        <option value="-45">Diagonal (-45°)</option>
-                                        <option value="90">Vertical (90°)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="applyWatermark()"
-                                data-testid="apply-watermark-btn">Apply</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Compare PDFs Modal -->
-            <div class="modal fade" id="compareModal" tabindex="-1" data-testid="compare-modal">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title"><i class="bi bi-file-diff me-2"></i>Compare PDFs</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                onclick="closeCompareModal()"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p class="text-muted small">Compare the current PDF with another PDF to highlight visual
-                                differences.</p>
-
-                            <div class="mb-3">
-                                <label class="form-label">Select PDF to Compare</label>
-                                <input type="file" class="form-control" id="pdf-compare" accept=".pdf"
-                                    onchange="handleCompareFileSelect(event)">
-                            </div>
-
-                            <div id="compare-status" class="mb-3"></div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
-                                onclick="closeCompareModal()">Cancel</button>
-                            <button type="button" class="btn btn-primary" id="compare-run-btn" onclick="runComparison()"
-                                disabled data-testid="run-comparison-btn">
-                                <i class="bi bi-play-circle me-1"></i>Run Comparison
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Delete Confirmation Modal -->
-            <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Delete Page</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Are you sure you want to delete this page? This action can be undone.</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-danger" onclick="confirmDeletePage()">Delete</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="alert alert-info small">
-                <i class="bi bi-info-circle"></i> Click on a page to select it.
-            </div>
-
-            <hr>
-
-            <!-- Hidden Process Form (Used by Ribbon) -->
-            <form action="/process_request" method="post" id="process-form" style="display:none;">
-                <input type="hidden" name="filename" value="{{ filename }}">
-
-                <div class="mb-3">
-                    <label class="form-label">Extraction Type</label>
-                    <select class="form-select" name="extraction_type">
-                        <option value="word">Word (.docx)</option>
-                        <option value="odt">OpenDocument (.odt)</option>
-                        <option value="csv">Tables to CSV</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Source Language</label>
-                    <select class="form-select" name="source_lang">
-                        <option value="en" selected>English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                        <option value="de">German</option>
-                        <option value="pl">Polish</option>
-                        <option value="pt">Portuguese</option>
-                        <option value="it">Italian</option>
-                        <option value="nl">Dutch</option>
-                        <option value="ru">Russian</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Translate To</label>
-                    <select class="form-select" name="target_lang">
-                        <option value="none">None</option>
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                        <option value="de">German</option>
-                        <option value="pl">Polish</option>
-                        <option value="pt">Portuguese</option>
-                        <option value="it">Italian</option>
-                        <option value="nl">Dutch</option>
-                        <option value="ru">Russian</option>
-                    </select>
-                </div>
-
-                <button type="button" class="btn btn-primary w-100" onclick="submitProcessing()">
-                    Start Processing
+            <!-- Right Side: Utils -->
+            <div class="ms-auto d-flex gap-3 align-items-center">
+                <button id="theme-toggle" class="btn btn-link text-body p-0" onclick="toggleDarkMode()"
+                    title="Toggle Dark Mode">
+                    <i class="bi bi-moon"></i>
                 </button>
-            </form>
+                <button class="btn btn-link text-warning p-0" data-bs-toggle="modal" data-bs-target="#bugReportModal"
+                    title="Report Issue">
+                    <i class="bi bi-bug-fill"></i>
+                </button>
+            </div>
         </div>
 
-        <div id="main-preview">
-            <div id="pdf-viewer"></div>
+        <div id="ribbon-container">
+            <div id="ribbon-content"></div>
+        </div>
+
+        <div id="main-preview-container">
+            <div id="main-preview">
+                <div id="pdf-viewer"></div>
+            </div>
         </div>
     </div>
+
+
+    <!-- Extraction Result Modal -->
+    <!-- Extraction Result Modal -->
+
+
+
+
+    <!-- Password Prompt Modal -->
+    <div id="password-prompt-modal" class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Password Required</h5>
+                </div>
+                <div class="modal-body">
+                    <p>This PDF is protected. Please enter the password to open it.</p>
+                    <div class="mb-3">
+                        <input type="password" id="pdf-open-password" class="form-control" placeholder="Password"
+                            onkeydown="if(event.key==='Enter') submitPassword()">
+                    </div>
+                    <div id="password-error" class="text-danger mt-2 small" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="cancelPassword()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitPassword()">Open</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Options Modal -->
+    <div id="security-modal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">PDF Security</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Set New Password</label>
+                        <input type="password" id="new-pdf-password" class="form-control mb-2"
+                            placeholder="New Password">
+                        <input type="password" id="confirm-pdf-password" class="form-control"
+                            placeholder="Confirm Password">
+                        <div class="form-text">Leave blank to remove password protection.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSecuritySettings()">Save
+                        Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu">
+        <div class="item" id="delete-item">Delete</div>
+    </div>
+
+
+
+    <!-- Modals preserved below -->
+
+    <!-- ... existing ... -->
+
+    <!-- Note Modal -->
+    <div class="modal fade" id="noteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Note</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="note-modal-page-index">
+                    <input type="hidden" id="note-modal-x">
+                    <input type="hidden" id="note-modal-y">
+                    <div class="mb-3">
+                        <label class="form-label">Note Text</label>
+                        <textarea class="form-control" id="note-text" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="applyNote()">Add Note</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ... existing ... -->
+
+    <!-- Signature Modal -->
+    <div class="modal fade" id="signatureModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Signature</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="tab-draw" data-bs-toggle="tab"
+                                data-bs-target="#sig-draw" type="button" role="tab">Draw</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="tab-type" data-bs-toggle="tab" data-bs-target="#sig-type"
+                                type="button" role="tab">Type</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="tab-upload" data-bs-toggle="tab" data-bs-target="#sig-upload"
+                                type="button" role="tab">Upload</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="sig-draw" role="tabpanel">
+                            <div class="border bg-light mb-2" style="height: 200px; cursor: crosshair;">
+                                <canvas id="signature-canvas"
+                                    style="width: 100%; height: 100%; touch-action: none;"></canvas>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearSignature()">Clear</button>
+                        </div>
+                        <div class="tab-pane fade" id="sig-type" role="tabpanel">
+                            <div class="mb-3">
+                                <label class="form-label">Type Name</label>
+                                <input type="text" class="form-control form-control-lg" id="sig-type-input"
+                                    placeholder="John Doe" style="font-family: 'Dancing Script', cursive;">
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="sig-upload" role="tabpanel">
+                            <div class="mb-3">
+                                <label class="form-label">Upload Image</label>
+                                <input type="file" class="form-control" id="sig-upload-input"
+                                    accept="image/png, image/jpeg">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="applySignature()">Apply
+                        Signature</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ... existing content ... -->
+
+    <!-- Page Numbers Modal -->
+    <div class="modal fade" id="pageNumbersModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Page Numbers</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Format</label>
+                        <select class="form-select" id="pn-format">
+                            <option value="Page X of Y">Page X of Y</option>
+                            <option value="Page X">Page X</option>
+                            <option value="X of Y">X of Y</option>
+                            <option value="X">X</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Position</label>
+                        <select class="form-select" id="pn-position">
+                            <option value="bottom-center">Bottom Center</option>
+                            <option value="bottom-right">Bottom Right</option>
+                            <option value="bottom-left">Bottom Left</option>
+                            <option value="top-center">Top Center</option>
+                            <option value="top-right">Top Right</option>
+                            <option value="top-left">Top Left</option>
+                        </select>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Start Number</label>
+                            <input type="number" class="form-control" id="pn-start" value="1" min="1">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Font Size</label>
+                            <input type="number" class="form-control" id="pn-size" value="12" min="8" max="72">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="applyPageNumbers()">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Watermark Modal -->
+    <div class="modal fade" id="watermarkModal" tabindex="-1" data-testid="watermark-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Watermark</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Watermark Text</label>
+                        <input type="text" class="form-control" id="watermark-text" value="CONFIDENTIAL">
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Color</label>
+                            <input type="color" class="form-control form-control-color w-100" id="watermark-color"
+                                value="#cccccc">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Opacity (0-1)</label>
+                            <input type="number" class="form-control" id="watermark-opacity" value="0.3" step="0.1"
+                                min="0.1" max="1.0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Size</label>
+                            <input type="number" class="form-control" id="watermark-size" value="48" min="12" max="120">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Rotation</label>
+                            <select class="form-select" id="watermark-rotation">
+                                <option value="45">Diagonal (45°)</option>
+                                <option value="0">Horizontal (0°)</option>
+                                <option value="-45">Diagonal (-45°)</option>
+                                <option value="90">Vertical (90°)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="applyWatermark()"
+                        data-testid="apply-watermark-btn">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compare PDFs Modal -->
+    <div class="modal fade" id="compareModal" tabindex="-1" data-testid="compare-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-file-diff me-2"></i>Compare PDFs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        onclick="closeCompareModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Compare the current PDF with another PDF to highlight visual
+                        differences.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Select PDF to Compare</label>
+                        <input type="file" class="form-control" id="pdf-compare" accept=".pdf"
+                            onchange="handleCompareFileSelect(event)">
+                    </div>
+
+                    <div id="compare-status" class="mb-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        onclick="closeCompareModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="compare-run-btn" onclick="runComparison()"
+                        disabled data-testid="run-comparison-btn">
+                        <i class="bi bi-play-circle me-1"></i>Run Comparison
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Page</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this page? This action can be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDeletePage()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    <!-- Hidden Process Form (Used by Ribbon) -->
+
+
 
     <!-- Command Palette Modal -->
     <div id="command-palette-modal" class="modal fade" tabindex="-1">

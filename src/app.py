@@ -32,11 +32,16 @@ setup_logging()
 logger = get_logger("app")
 
 # Configuration
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent # Project root
+SRC_DIR = Path(__file__).resolve().parent
+
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', str(BASE_DIR / 'uploads'))
 OUTPUT_FOLDER = os.environ.get('OUTPUT_FOLDER', str(BASE_DIR / 'outputs'))
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            static_folder=str(SRC_DIR / 'static'), 
+            template_folder=str(SRC_DIR / 'templates'))
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB upload limit
@@ -872,12 +877,6 @@ def generate_bug_report():
     except Exception as e:
         logger.error(f"Failed to generate bug report: {e}")
         return jsonify({'error': str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
-    
-    return jsonify({'success': True, 'message': f"Started downloading {model}. Check status in a few minutes."})
-
 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'

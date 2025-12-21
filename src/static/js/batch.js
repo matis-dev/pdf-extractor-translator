@@ -304,11 +304,24 @@ async function compareSelectedFiles() {
 function updateBatchUI() {
     const checked = document.querySelectorAll('.file-checkbox:checked').length > 0;
     const container = document.getElementById('batch-actions-container');
-    if (container) container.style.display = checked ? 'block' : 'none';
+    if (container) {
+        if (checked) {
+            container.classList.remove('d-none');
+        } else {
+            container.classList.add('d-none');
+        }
+    }
 }
 
 document.addEventListener('change', (e) => {
-    if (e.target.classList.contains('file-checkbox') || e.target.id === 'check-all') {
+    // Handle "Select All" logic here to ensure events are synced
+    if (e.target.id === 'check-all') {
+        const checkboxes = document.querySelectorAll('.file-checkbox');
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+        updateBatchUI();
+    }
+    // Handle individual checkboxes
+    else if (e.target.classList.contains('file-checkbox')) {
         updateBatchUI();
     }
 });
