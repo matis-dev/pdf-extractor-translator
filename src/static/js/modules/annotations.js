@@ -11,7 +11,11 @@ function ensureTextSettings() {
             fontSize: 16,
             color: '#000000',
             isBold: false,
-            isItalic: false
+            isItalic: false,
+            // Background defaults (Opaque White, per user request)
+            backgroundColor: '#ffffff',
+            backgroundAlpha: 1.0,
+            isTransparent: false
         };
     }
 }
@@ -302,68 +306,157 @@ export async function handleGlobalMouseUp() {
 export async function addTextAnnotation(e, pageIndex) {
     if (e.target.classList.contains('text-annotation')) return;
 
+    // Check if there is an active selection
+    const activeSelection = document.querySelector('.text-annotation.selected') || document.querySelector('.text-annotation[contenteditable="true"]');
+
+    if (activeSelection) {
+        // If there's an active text field, clicking outside should JUST deselect/deactivate it.
+        // It should NOT create a new text field immediately.
+        activeSelection.classList.remove('selected');
+        // Force blur if editing
+        if (activeSelection.isContentEditable) {
+            activeSelection.blur();
+        }
+        return; // CONSUME the click. Do not create new active.
+    }
+
     ensureTextSettings();
-    await saveState();
+    await saveState(false);
 
     const pageContainer = document.querySelectorAll('.page-container')[pageIndex];
+    if (!pageContainer) return; // Guard
+
+    // Position relative to page container
     const rect = pageContainer.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
     const input = document.createElement('div');
-    input.contentEditable = true;
-    input.classList.add('text-annotation');
-    // Default to not editable until double-clicked in Select mode (or initially created)
-    // But since we are creating it, leave it focused and editable?
-    // Actually user wants standard flow. Let's start it editable.
-    input.style.position = 'absolute';
-    input.style.left = `${x}px`;
-    input.style.top = `${y}px`;
-    input.style.minWidth = '50px';
+    input.id = `text-annot-${Date.now()}`;
+    input.className = 'text-annotation';
+    input.contentEditable = false; // Start inactive
     input.innerText = "Type here";
 
-    // Apply Settings
-    if (state.textSettings) {
-        input.style.fontFamily = state.textSettings.fontFamily;
-        input.style.fontSize = `${state.textSettings.fontSize}px`;
-        input.style.color = state.textSettings.color;
-        if (state.textSettings.isBold) input.style.fontWeight = 'bold';
-        if (state.textSettings.isItalic) input.style.fontStyle = 'italic';
-    }
-
-    // Selection Logic
-    input.addEventListener('click', (ev) => {
-        ev.stopPropagation(); // Prevent creation
-        document.querySelectorAll('.text-annotation.selected').forEach(el => el.classList.remove('selected'));
-        input.classList.add('selected');
-        // Update Ribbon UI to match? (Optional: complicated to reverse sync yet)
+    Object.assign(input.style, {
+        position: 'absolute',
+        left: `${x}px`,
+        top: `${y}px`,
+        zIndex: '100',
+        minWidth: '50px',
+        // Apply current settings
+        fontFamily: state.textSettings?.fontFamily || 'Helvetica',
+        fontSize: `${state.textSettings?.fontSize || 16}px`,
+        color: state.textSettings?.color || '#000000',
+        fontWeight: state.textSettings?.isBold ? 'bold' : 'normal',
+        fontStyle: state.textSettings?.isItalic ? 'italic' : 'normal',
+        backgroundColor: state.textSettings?.isTransparent ? 'transparent' :
+            hexToRgba(state.textSettings.backgroundColor, state.textSettings.backgroundAlpha)
     });
 
-    // Deselect on outside click? (handled in initDrawListeners or global)
+    // Store settings in dataset for commit/persistence
+    input.dataset.bgColor = state.textSettings.backgroundColor;
+    input.dataset.bgAlpha = state.textSettings.backgroundAlpha;
+    input.dataset.isTransparent = state.textSettings.isTransparent;
 
-    // Remove legacy makeDraggable(input); now handled by selection overlay
-    // But creation drag... we might want to keep it? 
-    // Actually unified selection is better.
-    // makeDraggable(input); 
+    // Attach Interaction Logic
+    setupTextInteraction(input, pageContainer);
+
+    // Manual Selection Logic
+    // Deselect others
+    document.querySelectorAll('.text-annotation.selected').forEach(el => el.classList.remove('selected'));
+    input.classList.add('selected');
+
+    input.addEventListener('mousedown', (ev) => {
+        // e.stopPropagation() is handled in setupTextInteraction but we need this to run
+        // setupTextInteraction uses mousedown too. Multiple listeners are fine.
+        document.querySelectorAll('.text-annotation.selected').forEach(el => el.classList.remove('selected'));
+        input.classList.add('selected');
+
+        // Optional: Load this element's styles into global state/ribbon? 
+        // For now, we assume global state dictates new styles, 
+        // but selecting existing should probably NOT overwrite global state unless we implement a "pick style" feature.
+    });
 
     pageContainer.appendChild(input);
-    input.focus();
 
-    // Handling Blur to exit edit mode
-    input.addEventListener('blur', () => {
-        input.contentEditable = false;
-        // input.style.cursor = 'move'; // Handled by CSS
-        // If empty, remove?
-        if (!input.innerText.trim()) {
-            input.remove();
+    // Note: We do NOT focus or select immediately. User must interact.
+    // Or do we want to allow typing immediately upon creation? 
+    // User request: "start from the beginning with 'Add Test' functionality... click outside... non-active". 
+    // Usually new text should terminate in edit mode for convenience.
+    // Let's force edit mode once initially.
+    activateTextEdit(input);
+
+    // Ensure Text Mode stays active
+    state.modes.text = true;
+    if (window.updateButtonStates) window.updateButtonStates();
+}
+
+function setupTextInteraction(element, container) {
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    // 1. Drag / Move Logic (MouseDown)
+    element.addEventListener('mousedown', (e) => {
+        if (element.isContentEditable) return; // Don't drag if editing
+        if (e.button !== 0) return; // Only left click
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = element.offsetLeft;
+        initialTop = element.offsetTop;
+
+        element.classList.add('dragging');
+        e.stopPropagation(); // Prevent page pan or other selections
+    });
+
+    // Global drag listeners (handled usually by window but let's be localized if possible, or global for smoothness)
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        element.style.left = `${initialLeft + dx}px`;
+        element.style.top = `${initialTop + dy}px`;
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            element.classList.remove('dragging');
+            // Optional: Save state here?
         }
     });
 
-    // Select immediately causing overlay to appear?
-    // toggleTextMode(); // REMOVED: Keep text mode active!
+    // 2. Edit Logic (Double Click)
+    element.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        activateTextEdit(element);
+    });
+}
 
-    // If we want to type immediately, we keep it editable. Use 'blur' to finish.
-    input.classList.add('selected');
+function activateTextEdit(element) {
+    element.contentEditable = true;
+    element.focus();
+
+    // Select all text for easy replacement
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const finishEdit = () => {
+        element.contentEditable = false;
+        element.removeEventListener('blur', finishEdit);
+        if (!element.innerText.trim()) {
+            element.remove(); // Clean up empty
+        }
+    };
+
+    element.addEventListener('blur', finishEdit);
 }
 
 export async function addTextField() {
@@ -714,8 +807,25 @@ export async function commitAnnotations() {
         });
     }
 
+    // Remove existing annotations including text
     document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .drawing-annotation, .shape-annotation, .watermark-annotation').forEach(el => el.remove());
 }
+
+// Helper to re-attach listeners after undo/redo or load
+// This logic should ideally be called when loading from PDF, BUT 
+// current commitAnnotations burns text into PDF canvas/stream. 
+// So text annotations become part of the PDF content and rely on PDF.js rendering.
+// Changes are destructive (burned in). 
+// The user flow describes editing "before" burning? 
+// Or does the app support editable annotations?
+// Based on current code:
+// commitAnnotations() -> draws text onto PDF bytes -> reload PDF.
+// So once saved/committed, they are no longer DOM elements but pixels/vectors in PDF.
+// This refactor affects the "pre-commit" stage (DOM overlay).
+// IMPORTANT: We need to ensure that loaded annotations (if any) are just PDF content, 
+// OR if we want them editable, we shouldn't burn them yet.
+// Current architecture seems to be "edit overlay -> generic save -> burn".
+// So this logic logic applies to the overlay elements only.
 
 export function openWatermarkModal() {
     new bootstrap.Modal(document.getElementById('watermarkModal')).show();
@@ -841,7 +951,8 @@ function handleSelectionClick(e, container) {
     const text = e.target.closest('.text-annotation');
 
     if (text) {
-        selectShape(text, container, e);
+        // Text interaction is handled directly by its own listeners now.
+        // We might just want to prevent bubbling to page click.
         e.stopPropagation();
         return;
     }
@@ -877,14 +988,11 @@ function selectShape(element, container, initialEvent = null) {
     deselectAll();
 
     let x, y, w, h, rectEl;
-    let isText = false;
 
     if (element.classList.contains('text-annotation')) {
-        isText = true;
-        x = parseFloat(element.style.left);
-        y = parseFloat(element.style.top);
-        w = element.offsetWidth; // Use offsetWidth/Height for text
-        h = element.offsetHeight;
+        // Text is now handled by its own listeners. 
+        // We should not create an overlay for it.
+        return;
     } else {
         // SVG
         rectEl = element.querySelector('rect');
@@ -908,38 +1016,26 @@ function selectShape(element, container, initialEvent = null) {
     overlay.dataset.targetId = element.id || 'annot-' + Date.now();
 
     // Move Handler on Overlay body
-    overlay.onmousedown = (e) => startSelectionDrag(e, null, overlay, element, container, isText);
+    overlay.onmousedown = (e) => startSelectionDrag(e, null, overlay, element, container);
 
-    // Double Click to Edit (Text)
-    if (isText) {
-        overlay.ondblclick = (e) => {
-            e.stopPropagation();
-            enableTextEditing(element, overlay);
-        };
-    }
-
-    // Add handles (only for shapes for now, text resizing is font-size based usually, or we can enable if complex)
-    // For now, let's enable resize for Rects, maybe block for Text or implement font scaling later?
-    // User asked to move text. Let's just enable move for Text. Handles for Shape.
-    if (!isText) {
-        const directions = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
-        directions.forEach(dir => {
-            const handle = document.createElement('div');
-            handle.className = `selection-handle handle-${dir}`;
-            handle.onmousedown = (e) => startSelectionDrag(e, dir, overlay, element, container, isText);
-            overlay.appendChild(handle);
-        });
-    }
+    // Add handles (only for shapes now)
+    const directions = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+    directions.forEach(dir => {
+        const handle = document.createElement('div');
+        handle.className = `selection-handle handle-${dir}`;
+        handle.onmousedown = (e) => startSelectionDrag(e, dir, overlay, element, container);
+        overlay.appendChild(handle);
+    });
 
     container.appendChild(overlay);
     selectedOverlay = overlay;
 
     if (initialEvent) {
-        startSelectionDrag(initialEvent, null, overlay, element, container, isText);
+        startSelectionDrag(initialEvent, null, overlay, element, container);
     }
 }
 
-function startSelectionDrag(e, dir, overlay, element, container, isText) {
+function startSelectionDrag(e, dir, overlay, element, container) {
     e.stopPropagation();
     e.preventDefault(); // Prevent text selection
 
@@ -1008,20 +1104,13 @@ function startSelectionDrag(e, dir, overlay, element, container, isText) {
         overlay.style.height = `${newH}px`;
 
         // Apply to Target Element
-        if (isText) {
-            element.style.left = `${newLeft}px`;
-            element.style.top = `${newTop}px`;
-            // Text resizing logic if we enabled handles? 
-            // For now, no resize on text.
-        } else {
-            // SVG Rect
-            const rectEl = element.querySelector('rect');
-            if (rectEl) {
-                rectEl.setAttribute('x', newLeft);
-                rectEl.setAttribute('y', newTop);
-                rectEl.setAttribute('width', newW);
-                rectEl.setAttribute('height', newH);
-            }
+        // Only Shapes for now
+        const rectEl = element.querySelector('rect');
+        if (rectEl) {
+            rectEl.setAttribute('x', newLeft);
+            rectEl.setAttribute('y', newTop);
+            rectEl.setAttribute('width', newW);
+            rectEl.setAttribute('height', newH);
         }
     };
 
@@ -1035,26 +1124,34 @@ function startSelectionDrag(e, dir, overlay, element, container, isText) {
     window.addEventListener('mouseup', onUp);
 }
 
-function enableTextEditing(element, overlay) {
-    // Hide overlay so user can interact with text directly
-    overlay.style.display = 'none'; // Temporarily hide
-
-    // Ensure element is editable and focused
-    element.contentEditable = true;
-    element.focus();
-
-    const onBlur = () => {
-        // When done, show overlay again or just exit edit mode?
-        // If we stay in Select mode, we might want to re-select it?
-        // Or just go back to neutral state?
-        // Let's go back to neutral (deselected) or re-show overlay if still selected?
-        // Simplest: Just exit edit mode.
-        // element.contentEditable = false; // Optional, to prevent accidental edits
-        if (selectedOverlay === overlay) {
-            // If we are still the "active" selection, re-show overlay?
-            overlay.style.display = 'block';
-        }
-        element.removeEventListener('blur', onBlur);
-    };
-    element.addEventListener('blur', onBlur);
+export function updateTextBackground() {
+    ensureTextSettings();
+    const { backgroundColor, backgroundAlpha, isTransparent } = state.textSettings;
+    const color = isTransparent ? 'transparent' : hexToRgba(backgroundColor, backgroundAlpha);
+    
+    // Update selected or all active editing?
+    // Usually we update the *selected* annotation (if any) or the *editing* one.
+    // addTextAnnotation handles selection logic now.
+    const selected = document.querySelector('.text-annotation.selected') || document.querySelector('.text-annotation[contenteditable="true"]');
+    if (selected) {
+        selected.style.backgroundColor = color;
+        selected.dataset.bgColor = backgroundColor;
+        selected.dataset.bgAlpha = backgroundAlpha;
+        selected.dataset.isTransparent = isTransparent;
+    }
 }
+
+export function updateTextBackgroundSettings(key, value) {
+    ensureTextSettings();
+    state.textSettings[key] = value;
+    updateTextBackground();
+}
+
+function hexToRgba(hex, alpha) {
+    if (!hex) hex = '#ffffff';
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+window.updateTextBackgroundSettings = updateTextBackgroundSettings;

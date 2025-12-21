@@ -51,12 +51,43 @@ const ribbonConfig = {
                 {
                     type: 'html', html: `
                     <div class="d-flex flex-column gap-1">
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary p-0 px-2" onclick="toggleTextProperty('bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
-                            <button class="btn btn-outline-secondary p-0 px-2" onclick="toggleTextProperty('italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
-                            <input type="color" class="form-control form-control-color form-control-sm p-0 border-0" value="#000000" title="Color" onchange="updateTextSettings('color', this.value)" style="width: 25px;">
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary p-0 px-2" onclick="toggleTextProperty('bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
+                                <button class="btn btn-outline-secondary p-0 px-2" onclick="toggleTextProperty('italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
+                            </div>
+                            <div style="width: 28px; height: 28px; overflow: hidden; border-radius: 6px; border: 1px solid #ced4da;">
+                                <input type="color" class="form-control form-control-color border-0 p-0" value="#000000" title="Text Color" onchange="updateTextSettings('color', this.value)" style="width: 100%; height: 100%;">
+                            </div>
                         </div>
                         <span class="small text-muted">Style</span>
+                    </div>`
+                }
+            ]
+        },
+        {
+            group: 'Background',
+            tools: [
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1 align-items-center justify-content-center" style="height: 100%;">
+                        <div style="width: 28px; height: 28px; overflow: hidden; border-radius: 6px; border: 1px solid #ced4da;" title="Background Color">
+                           <input type="color" class="form-control form-control-color border-0 p-0" value="#ffffff" onchange="updateTextBackgroundSettings('backgroundColor', this.value)" style="width: 100%; height: 100%;">
+                        </div>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1 align-items-center justify-content-center" style="width: 100px; height: 100%;">
+                        <input type="range" class="form-range" min="0" max="1" step="0.1" value="1" id="bg-alpha-slider" onchange="updateTextBackgroundSettings('backgroundAlpha', parseFloat(this.value))" title="Transparency (Alpha)">
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1 align-items-center justify-content-center pt-1" style="height: 100%;">
+                        <div class="form-check form-switch" title="Remove Background (Transparent)">
+                            <input class="form-check-input" type="checkbox" id="bg-transparent-check" onchange="updateTextBackgroundSettings('isTransparent', this.checked)">
+                        </div>
                     </div>`
                 }
             ]
