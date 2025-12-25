@@ -70,23 +70,25 @@ const ribbonConfig = {
             tools: [
                 {
                     type: 'html', html: `
-                    <div class="d-flex flex-column gap-1 align-items-center justify-content-center" style="height: 100%;">
-                        <div style="width: 28px; height: 28px; overflow: hidden; border-radius: 6px; border: 1px solid #ced4da;" title="Background Color">
-                           <input type="color" class="form-control form-control-color border-0 p-0" value="#ffffff" onchange="updateTextBackgroundSettings('backgroundColor', this.value)" style="width: 100%; height: 100%;">
+                    <div class="d-flex align-items-center gap-3 px-1 h-100">
+                        <div class="d-flex flex-column align-items-center justify-content-center">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid white; outline: 1px solid #ced4da;" title="Background Color">
+                               <input type="color" class="form-control form-control-color border-0 p-0" value="#ffffff" onchange="updateTextBackgroundSettings('backgroundColor', this.value)" style="width: 100%; height: 100%; cursor: pointer;">
+                            </div>
+                            <span class="small text-muted mt-1" style="font-size: 10px;">Fill</span>
                         </div>
-                    </div>`
-                },
-                {
-                    type: 'html', html: `
-                    <div class="d-flex flex-column gap-1 align-items-center justify-content-center" style="width: 100px; height: 100%;">
-                        <input type="range" class="form-range" min="0" max="1" step="0.1" value="1" id="bg-alpha-slider" onchange="updateTextBackgroundSettings('backgroundAlpha', parseFloat(this.value))" title="Transparency (Alpha)">
-                    </div>`
-                },
-                {
-                    type: 'html', html: `
-                    <div class="d-flex flex-column gap-1 align-items-center justify-content-center pt-1" style="height: 100%;">
-                        <div class="form-check form-switch" title="Remove Background (Transparent)">
-                            <input class="form-check-input" type="checkbox" id="bg-transparent-check" onchange="updateTextBackgroundSettings('isTransparent', this.checked)">
+                        <div class="vr" style="height: 60%; opacity: 0.2;"></div>
+                        <div class="d-flex flex-column justify-content-center gap-2">
+                            <div class="d-flex align-items-center gap-2" title="Opacity">
+                                <i class="bi bi-circle-half text-muted" style="font-size: 10px;"></i>
+                                <input type="range" class="form-range" min="0" max="1" step="0.1" value="1" id="bg-alpha-slider" onchange="updateTextBackgroundSettings('backgroundAlpha', parseFloat(this.value))" style="width: 80px; height: 4px;">
+                            </div>
+                            <div class="d-flex align-items-center gap-2" title="Transparent Background">
+                                <div class="form-check form-switch m-0 min-h-0 d-flex align-items-center">
+                                    <input class="form-check-input m-0" type="checkbox" role="switch" id="bg-transparent-check" onchange="updateTextBackgroundSettings('isTransparent', this.checked)" style="width: 30px; height: 16px;">
+                                </div>
+                                <label class="small text-muted mb-0" for="bg-transparent-check" style="font-size: 10px; cursor: pointer;">Transparent</label>
+                            </div>
                         </div>
                     </div>`
                 }
