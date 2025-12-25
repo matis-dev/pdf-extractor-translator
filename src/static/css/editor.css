@@ -661,73 +661,152 @@ body {
     font-family: sans-serif;
     font-size: 0.8em;
     line-height: 1.2;
+}
 
-    /* Selection & Resize Handles */
-    .selection-overlay {
-        position: absolute;
-        border: 1px dashed #007bff;
-        background: rgba(0, 123, 255, 0.1);
-        /* Subtle fill */
-        z-index: 1000;
-        pointer-events: none;
-        /* Container doesn't block, handles do */
-    }
+/* Selection & Resize Handles - GLOBAL */
+.selection-overlay,
+.image-selection-overlay {
+    position: absolute;
+    border: 1px dashed #007bff;
+    background: rgba(0, 123, 255, 0.05);
+    /* Very subtle fill */
+    z-index: 1000;
+    pointer-events: none;
+    /* Container doesn't block, handles do */
+    transform-origin: center center;
+    box-sizing: border-box;
+}
 
-    .selection-handle {
-        width: 10px;
-        height: 10px;
-        background: #007bff;
-        border: 1px solid white;
-        border-radius: 50%;
-        position: absolute;
-        pointer-events: auto;
-        z-index: 1001;
-    }
+/* Move Mode: Border only, no resize handles initially */
+.image-selection-overlay.move-mode {
+    border: 1px solid #007bff;
+    /* Solid border for move mode */
+    cursor: move;
+    pointer-events: auto;
+    /* Allow dragging the overlay itself */
+}
 
-    .handle-nw {
-        top: 0;
-        left: 0;
-        cursor: nwse-resize;
-    }
+/* Edit Mode: Dashed border with handles */
+.image-selection-overlay.edit-mode {
+    border: 1px dashed #007bff;
+    pointer-events: none;
+    /* Drag handles, not the overlay body (unless we want move in edit too?) */
+}
 
-    .handle-n {
-        top: 0;
-        left: 50%;
-        cursor: ns-resize;
-    }
+/* Allow moving in edit mode by clicking the body? usually yes. */
+.image-selection-overlay.edit-mode {
+    pointer-events: auto;
+    cursor: move;
+}
 
-    .handle-ne {
-        top: 0;
-        right: 0;
-        cursor: nesw-resize;
-    }
+.selection-handle,
+.resize-handle {
+    width: 10px;
+    height: 10px;
+    background: #007bff;
+    border: 1px solid white;
+    border-radius: 50%;
+    /* Circle handles */
+    position: absolute;
+    pointer-events: auto;
+    z-index: 1002;
+    transform: translate(-50%, -50%);
+    /* Center on anchor point */
+}
 
-    .handle-e {
-        top: 50%;
-        right: 0;
-        cursor: ew-resize;
-    }
+/* Rotation Zones - Invisible interaction areas outside corners */
+.rotation-zone {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    /* Invisible */
+    /* background: rgba(255, 0, 0, 0.2); Debugging */
+    z-index: 1001;
+    pointer-events: auto;
+    transform: translate(-50%, -50%);
+}
 
-    .handle-se {
-        bottom: 0;
-        right: 0;
-        cursor: nwse-resize;
-    }
+.handle-nw {
+    top: 0;
+    left: 0;
+    cursor: nwse-resize;
+}
 
-    .handle-s {
-        bottom: 0;
-        left: 50%;
-        cursor: ns-resize;
-    }
+.handle-n {
+    top: 0;
+    left: 50%;
+    cursor: ns-resize;
+}
 
-    .handle-sw {
-        bottom: 0;
-        left: 0;
-        cursor: nesw-resize;
-    }
+.handle-ne {
+    top: 0;
+    right: 0;
+    cursor: nesw-resize;
+}
 
-    .handle-w {
-        top: 50%;
-        left: 0;
-        cursor: ew-resize;
-    }
+.handle-e {
+    top: 50%;
+    right: 0;
+    cursor: ew-resize;
+}
+
+.handle-se {
+    bottom: 0;
+    right: 0;
+    cursor: nwse-resize;
+}
+
+.handle-s {
+    bottom: 0;
+    left: 50%;
+    cursor: ns-resize;
+}
+
+.handle-sw {
+    bottom: 0;
+    left: 0;
+    cursor: nesw-resize;
+}
+
+.handle-w {
+    top: 50%;
+    left: 0;
+    cursor: ew-resize;
+}
+
+/* Rotation Cursors for Zones */
+.rotate-nw {
+    top: -10px;
+    left: -10px;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>') 12 12, alias;
+}
+
+.rotate-ne {
+    top: -10px;
+    right: -10px;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>') 12 12, alias;
+}
+
+.rotate-se {
+    bottom: -10px;
+    right: -10px;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>') 12 12, alias;
+}
+
+.rotate-sw {
+    bottom: -10px;
+    left: -10px;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>') 12 12, alias;
+}
+
+/* Use standard replace cursors if SVGs fail or for simplicity */
+.rotate-nw,
+.rotate-se {
+    cursor: crosshair;
+}
+
+.rotate-ne,
+.rotate-sw {
+    cursor: crosshair;
+}

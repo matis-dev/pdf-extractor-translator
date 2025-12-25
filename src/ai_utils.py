@@ -25,7 +25,7 @@ try:
     from langchain_core.prompts import PromptTemplate
     
     # Import our custom tools
-    from ai_tools import extract_pdf_tables, translate
+    from ai_tools import extract_pdf_tables, translate, convert_to_word, split_pdf, compress_pdf
     
     LANGCHAIN_AVAILABLE = True
 except ImportError as e:
@@ -59,6 +59,7 @@ class LocalPDFChat:
         self.embedding_model = embedding_model
         self.llm_model = llm_model
         self.persist_directory = os.path.abspath(persist_directory)
+        self.current_pdf_path = None
         
         # Initialize embeddings
         self.embeddings = OllamaEmbeddings(
@@ -147,6 +148,8 @@ Thought:{agent_scratchpad}""")
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF not found: {pdf_path}")
         
+        self.current_pdf_path = pdf_path
+        
         # Use filename as collection name if not provided
         if collection_name is None:
             import re
@@ -205,6 +208,9 @@ Thought:{agent_scratchpad}""")
         # define tools
         self.tools = [
             extract_pdf_tables,
+            convert_to_word,
+            split_pdf,
+            compress_pdf,
             translate,
             self._create_search_tool()
         ]
@@ -241,8 +247,15 @@ Thought:{agent_scratchpad}""")
             raise ValueError("No agent available. Index a PDF first.")
         
         try:
+            # Inject context about current file
+            context_prefix = ""
+            if self.current_pdf_path:
+                context_prefix = f"Background Information: The file currently being viewed is located at: {self.current_pdf_path}. If the user asks to perform an action on 'this file' or 'the pdf', use this path.\n\n"
+            
+            full_input = context_prefix + question
+            
             # Run agent
-            result = self.agent_executor.invoke({"input": question})
+            result = self.agent_executor.invoke({"input": full_input})
             answer = result["output"]
             
             # For backward compatibility, try to fetch source docs if it was a search
