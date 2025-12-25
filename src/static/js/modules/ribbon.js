@@ -304,6 +304,7 @@ function handleAction(tool) {
     } else if (tool.action === 'setShape') {
         window.setShapeMode(tool.value);
     } else if (tool.action === 'triggerUpload') {
+        if (window.resetModes) window.resetModes();
         document.getElementById(tool.inputId).click();
     } else if (tool.action === 'globalAction') {
         if (window[tool.function]) window[tool.function]();

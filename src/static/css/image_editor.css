@@ -1,0 +1,127 @@
+/* Image Wrapper - The container for the image and its controls */
+.image-wrapper {
+    position: absolute;
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+    /* Wrapper handles positioning and rotation */
+    transform-origin: center center;
+    z-index: 20;
+}
+
+.image-wrapper img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks pass to wrapper */
+    border: 1px dashed transparent;
+    /* visual cue */
+}
+
+/* Selected State */
+.image-wrapper.selected {
+    z-index: 30;
+}
+
+.image-wrapper.selected img {
+    border: 1px dashed #007bff;
+    background: rgba(0, 123, 255, 0.05);
+}
+
+/* Resize Handles - Children of Wrapper */
+.image-wrapper .resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #007bff;
+    border: 1px solid white;
+    border-radius: 50%;
+    z-index: 31;
+    display: none;
+    /* Hidden by default */
+}
+
+.image-wrapper.selected .resize-handle {
+    display: block;
+}
+
+/* Handle Positions (Relative to Wrapper) */
+.handle-nw {
+    top: -5px;
+    left: -5px;
+    cursor: nwse-resize;
+}
+
+.handle-n {
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: ns-resize;
+}
+
+.handle-ne {
+    top: -5px;
+    right: -5px;
+    cursor: nesw-resize;
+}
+
+.handle-e {
+    top: 50%;
+    right: -5px;
+    transform: translateY(-50%);
+    cursor: ew-resize;
+}
+
+.handle-se {
+    bottom: -5px;
+    right: -5px;
+    cursor: nwse-resize;
+}
+
+.handle-s {
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: ns-resize;
+}
+
+.handle-sw {
+    bottom: -5px;
+    left: -5px;
+    cursor: nesw-resize;
+}
+
+.handle-w {
+    top: 50%;
+    left: -5px;
+    transform: translateY(-50%);
+    cursor: ew-resize;
+}
+
+/* Rotation Knob (Top) */
+.rotate-handle {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 24px;
+    background: white;
+    border: 1px solid #007bff;
+    border-radius: 50%;
+    display: none;
+    z-index: 31;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>') 10 10, alias;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-wrapper.selected .rotate-handle {
+    display: flex;
+}
+
+.rotate-handle i {
+    font-size: 14px;
+    color: #007bff;
+}

@@ -229,6 +229,26 @@ export function toggleNoteMode() {
     updateButtonStates();
 }
 
+export function resetModes() {
+    state.modes.text = false;
+    state.modes.zoomIn = false;
+    state.modes.zoomOut = false;
+    state.modes.hand = false;
+    state.modes.select = false; // Or default to true? Usually 'select' is the default neutral state.
+    state.modes.redact = false;
+    state.modes.highlight = false;
+    state.modes.extract = false;
+    state.modes.note = false;
+    state.modes.shape = null;
+
+    // Set 'select' to true as default neutral state?
+    // If we are uploading an image, we probably want to be in 'move/select' mode for the image.
+    // The image handler in annotations.js sets 'selectImage(..., move)', so we should probably align with select mode.
+    state.modes.select = true;
+
+    updateButtonStates();
+}
+
 export function closeModal() {
     const el = document.getElementById('extraction-modal');
     const modal = bootstrap.Modal.getInstance(el);

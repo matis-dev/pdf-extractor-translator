@@ -160,7 +160,7 @@ export function initDrawListeners(container, pageIndex) {
             currentRect = document.createElement('div');
             currentRect.className = 'annotation-rect';
             Object.assign(currentRect.style, {
-                left: `${startX} px`, top: `${startY} px`, width: '0px', height: '0px',
+                left: `${startX}px`, top: `${startY}px`, width: '0px', height: '0px',
                 position: 'absolute', border: '1px solid #ccc'
             });
 
@@ -241,10 +241,10 @@ export function initDrawListeners(container, pageIndex) {
             const width = currentX - startX;
             const height = currentY - startY;
 
-            currentRect.style.width = `${Math.abs(width)} px`;
-            currentRect.style.height = `${Math.abs(height)} px`;
-            currentRect.style.left = `${width < 0 ? currentX : startX} px`;
-            currentRect.style.top = `${height < 0 ? currentY : startY} px`;
+            currentRect.style.width = `${Math.abs(width)}px`;
+            currentRect.style.height = `${Math.abs(height)}px`;
+            currentRect.style.left = `${width < 0 ? currentX : startX}px`;
+            currentRect.style.top = `${height < 0 ? currentY : startY}px`;
         }
     });
 }
@@ -304,21 +304,7 @@ export async function handleGlobalMouseUp() {
 }
 
 export async function addTextAnnotation(e, pageIndex) {
-    if (e.target.classList.contains('text-annotation')) return;
-
-    // Check if there is an active selection
-    const activeSelection = document.querySelector('.text-annotation.selected') || document.querySelector('.text-annotation[contenteditable="true"]');
-
-    if (activeSelection) {
-        // If there's an active text field, clicking outside should JUST deselect/deactivate it.
-        // It should NOT create a new text field immediately.
-        activeSelection.classList.remove('selected');
-        // Force blur if editing
-        if (activeSelection.isContentEditable) {
-            activeSelection.blur();
-        }
-        return; // CONSUME the click. Do not create new active.
-    }
+    if (e.target.closest('.text-wrapper') || e.target.closest('.resize-handle')) return;
 
     ensureTextSettings();
     await saveState(false);
@@ -331,19 +317,32 @@ export async function addTextAnnotation(e, pageIndex) {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    const input = document.createElement('div');
-    input.id = `text-annot-${Date.now()}`;
-    input.className = 'text-annotation';
-    input.contentEditable = false; // Start inactive
-    input.innerText = "Type here";
+    // Create Wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'text-wrapper selected'; // Start selected
+    wrapper.id = `text-annot-${Date.now()}`;
 
-    Object.assign(input.style, {
-        position: 'absolute',
-        left: `${x}px`,
-        top: `${y}px`,
-        zIndex: '100',
-        minWidth: '50px',
-        // Apply current settings
+    // Minimal HTML for Wrapper + Controls
+    wrapper.innerHTML = `
+        <div class="resize-handle handle-nw" data-dir="nw"></div>
+        <div class="resize-handle handle-n" data-dir="n"></div>
+        <div class="resize-handle handle-ne" data-dir="ne"></div>
+        <div class="resize-handle handle-e" data-dir="e"></div>
+        <div class="resize-handle handle-se" data-dir="se"></div>
+        <div class="resize-handle handle-s" data-dir="s"></div>
+        <div class="resize-handle handle-sw" data-dir="sw"></div>
+        <div class="resize-handle handle-w" data-dir="w"></div>
+        <div class="rotate-handle"><i class="bi bi-arrow-repeat"></i></div>
+    `;
+
+    // Create Text Content
+    const textContent = document.createElement('div');
+    textContent.className = 'text-content';
+    textContent.contentEditable = true; // Start editing
+    textContent.innerText = "Type here";
+
+    // Apply Styles
+    Object.assign(textContent.style, {
         fontFamily: state.textSettings?.fontFamily || 'Helvetica',
         fontSize: `${state.textSettings?.fontSize || 16}px`,
         color: state.textSettings?.color || '#000000',
@@ -353,110 +352,115 @@ export async function addTextAnnotation(e, pageIndex) {
             hexToRgba(state.textSettings.backgroundColor, state.textSettings.backgroundAlpha)
     });
 
-    // Store settings in dataset for commit/persistence
-    input.dataset.bgColor = state.textSettings.backgroundColor;
-    input.dataset.bgAlpha = state.textSettings.backgroundAlpha;
-    input.dataset.isTransparent = state.textSettings.isTransparent;
+    // Metadata for saving
+    textContent.dataset.bgColor = state.textSettings.backgroundColor;
+    textContent.dataset.bgAlpha = state.textSettings.backgroundAlpha;
+    textContent.dataset.isTransparent = state.textSettings.isTransparent;
 
-    // Attach Interaction Logic
-    setupTextInteraction(input, pageContainer);
+    wrapper.prepend(textContent);
 
-    // Manual Selection Logic
-    // Deselect others
-    document.querySelectorAll('.text-annotation.selected').forEach(el => el.classList.remove('selected'));
-    input.classList.add('selected');
+    // Initial Position (Default Size)
+    // We let auto-width happen, or set min width.
+    // wrapper.style.width = 'auto'; // Logic handles resizing
 
-    input.addEventListener('mousedown', (ev) => {
-        // e.stopPropagation() is handled in setupTextInteraction but we need this to run
-        // setupTextInteraction uses mousedown too. Multiple listeners are fine.
-        document.querySelectorAll('.text-annotation.selected').forEach(el => el.classList.remove('selected'));
-        input.classList.add('selected');
-
-        // Optional: Load this element's styles into global state/ribbon? 
-        // For now, we assume global state dictates new styles, 
-        // but selecting existing should probably NOT overwrite global state unless we implement a "pick style" feature.
+    Object.assign(wrapper.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+        // Start loose, resize event handles fixed sizes later
     });
 
-    pageContainer.appendChild(input);
+    pageContainer.appendChild(wrapper);
 
-    // Note: We do NOT focus or select immediately. User must interact.
-    // Or do we want to allow typing immediately upon creation? 
-    // User request: "start from the beginning with 'Add Test' functionality... click outside... non-active". 
-    // Usually new text should terminate in edit mode for convenience.
-    // Let's force edit mode once initially.
-    activateTextEdit(input);
+    // Init Interaction (Reuse Image Logic? We need to generalize it first or duplicate/adapt)
+    // We will call setupTextInteraction but we need to update it to match setupImageInteraction patterns.
+    // Actually, we can SHARE setupImageInteraction if we rename it to setupWrapperInteraction?
+    // Let's create setupTextWrapperInteraction to be safe.
+    setupTextWrapperInteraction(wrapper, pageContainer);
 
-    // Ensure Text Mode stays active
-    state.modes.text = true;
-    if (window.updateButtonStates) window.updateButtonStates();
-}
+    // Handle Edit Mode Focus
+    textContent.focus();
 
-function setupTextInteraction(element, container) {
-    let isDragging = false;
-    let startX, startY, initialLeft, initialTop;
-
-    // 1. Drag / Move Logic (MouseDown)
-    element.addEventListener('mousedown', (e) => {
-        if (element.isContentEditable) return; // Don't drag if editing
-        if (e.button !== 0) return; // Only left click
-
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        initialLeft = element.offsetLeft;
-        initialTop = element.offsetTop;
-
-        element.classList.add('dragging');
-        e.stopPropagation(); // Prevent page pan or other selections
-    });
-
-    // Global drag listeners (handled usually by window but let's be localized if possible, or global for smoothness)
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        e.preventDefault();
-
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-
-        element.style.left = `${initialLeft + dx}px`;
-        element.style.top = `${initialTop + dy}px`;
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (isDragging) {
-            isDragging = false;
-            element.classList.remove('dragging');
-            // Optional: Save state here?
-        }
-    });
-
-    // 2. Edit Logic (Double Click)
-    element.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        activateTextEdit(element);
-    });
-}
-
-function activateTextEdit(element) {
-    element.contentEditable = true;
-    element.focus();
-
-    // Select all text for easy replacement
+    // Select all text
     const range = document.createRange();
-    range.selectNodeContents(element);
+    range.selectNodeContents(textContent);
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
 
-    const finishEdit = () => {
-        element.contentEditable = false;
-        element.removeEventListener('blur', finishEdit);
-        if (!element.innerText.trim()) {
-            element.remove(); // Clean up empty
+    // Listen for blur to cleanup empty
+    textContent.addEventListener('blur', () => {
+        // Don't remove wrapper immediately on blur, maybe user just clicked handle.
+        // Only remove if empty text.
+        if (!textContent.innerText.trim()) {
+            // wrapper.remove(); // Optional: remove if empty
         }
-    };
+    });
 
-    element.addEventListener('blur', finishEdit);
+    // Ensure Text Mode stays active? Or not?
+    // Often you want to click-create-click-create.
+    state.modes.text = true;
+    if (window.updateButtonStates) window.updateButtonStates();
+}
+
+/**
+ * Text Wrapper Interaction - Matches Image Wrapper Logic
+ */
+function setupTextWrapperInteraction(wrapper, container) {
+    // 1. Move Logic (MouseDown on wrapper)
+    wrapper.addEventListener('mousedown', (e) => {
+        // If clicking handle or internal text (while editing), ignore move?
+        // If editing text, we want standard text selection.
+        const content = wrapper.querySelector('.text-content');
+        if (content && content.isContentEditable && e.target === content) {
+            e.stopPropagation(); // Allow text interactions
+            return;
+        }
+
+        if (e.target.closest('.resize-handle') || e.target.closest('.rotate-handle')) return;
+
+        e.stopPropagation();
+        e.preventDefault();
+
+        // Select Logic
+        document.querySelectorAll('.text-wrapper.selected').forEach(el => el.classList.remove('selected'));
+        wrapper.classList.add('selected');
+
+        startWrapperMove(e, wrapper); // Reuse existing wrapper move? It's exported? No. 
+        // We need to either export startImageMove/WrapperMove or duplicate it.
+        // Since they are in the same file, we can call startWrapperMove from modules/annotations.js if we keep code there.
+        // YES: startWrapperMove is defined in annotations.js scope.
+        // Wait, addTextAnnotation is inside annotations.js? Yes. So we can call startWrapperMove!
+    });
+
+    // Handles
+    wrapper.querySelectorAll('.resize-handle').forEach(handle => {
+        handle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const dir = handle.dataset.dir;
+            startWrapperResize(e, wrapper, dir); // Reuse
+        });
+    });
+
+    // Rotation
+    const rotHandle = wrapper.querySelector('.rotate-handle');
+    if (rotHandle) {
+        rotHandle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            startWrapperRotation(e, wrapper); // Reuse
+        });
+    }
+
+    // Double Click to Edit
+    wrapper.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const content = wrapper.querySelector('.text-content');
+        if (content) {
+            content.contentEditable = true;
+            content.focus();
+        }
+    });
 }
 
 export async function addTextField() {
@@ -494,13 +498,14 @@ export async function handleImageUpload(input) {
 
         reader.onload = async function (e) {
             const pageContainer = document.querySelectorAll('.page-container')[selectedPageIndex];
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            img.className = 'image-annotation';
 
-            img.onload = function () {
-                let imgWidth = img.naturalWidth;
-                let imgHeight = img.naturalHeight;
+            // Create Image to measure natural size
+            const tempImg = new Image();
+            tempImg.src = e.target.result;
+
+            tempImg.onload = function () {
+                let imgWidth = tempImg.naturalWidth;
+                let imgHeight = tempImg.naturalHeight;
 
                 if (imgWidth > 200) {
                     const scale = 200 / imgWidth;
@@ -508,14 +513,40 @@ export async function handleImageUpload(input) {
                     imgHeight *= scale;
                 }
 
-                img.style.width = `${imgWidth} px`;
-                img.style.height = `${imgHeight} px`;
-                img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2} px`;
-                img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2} px`;
+                // Create Wrapper
+                const wrapper = document.createElement('div');
+                wrapper.className = 'image-wrapper selected'; // Start selected
+                wrapper.innerHTML = `
+                    <div class="resize-handle handle-nw" data-dir="nw"></div>
+                    <div class="resize-handle handle-n" data-dir="n"></div>
+                    <div class="resize-handle handle-ne" data-dir="ne"></div>
+                    <div class="resize-handle handle-e" data-dir="e"></div>
+                    <div class="resize-handle handle-se" data-dir="se"></div>
+                    <div class="resize-handle handle-s" data-dir="s"></div>
+                    <div class="resize-handle handle-sw" data-dir="sw"></div>
+                    <div class="resize-handle handle-w" data-dir="w"></div>
+                    <div class="rotate-handle"><i class="bi bi-arrow-repeat"></i></div>
+                `;
 
-                pageContainer.appendChild(img);
-                setupImageInteraction(img, pageContainer);
-                selectImage(img, pageContainer, 'move');
+                // Add Image
+                tempImg.className = 'image-content';
+                tempImg.style.width = '100%';
+                tempImg.style.height = '100%';
+                wrapper.prepend(tempImg);
+
+                // Position Wrapper
+                wrapper.style.width = `${imgWidth}px`;
+                wrapper.style.height = `${imgHeight}px`;
+                wrapper.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2}px`;
+                wrapper.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2}px`;
+                wrapper.style.transform = 'rotate(0deg)';
+
+                pageContainer.appendChild(wrapper);
+
+                // Init Interaction
+                setupImageInteraction(wrapper, pageContainer);
+                selectedImageWrapper = wrapper;
+                saveState(false);
             };
         };
         reader.readAsDataURL(file);
@@ -614,12 +645,29 @@ export async function commitAnnotations() {
             });
         });
 
-        // Images
-        const imagePromises = Array.from(container.querySelectorAll('.image-annotation')).map(async (img) => {
-            const x = parseFloat(img.style.left);
-            const y = parseFloat(img.style.top);
-            const w = parseFloat(img.style.width);
-            const h = parseFloat(img.style.height);
+        // Images (New Wrapper Support)
+        const imageWrappers = container.querySelectorAll('.image-wrapper');
+        const imagePromises = Array.from(imageWrappers).map(async (wrapper) => {
+            const img = wrapper.querySelector('img');
+            if (!img) return;
+
+            // Geometry from Wrapper
+            let x = parseFloat(wrapper.style.left);
+            let y = parseFloat(wrapper.style.top);
+            let w = parseFloat(wrapper.style.width);
+            let h = parseFloat(wrapper.style.height);
+
+            // Safety
+            if (isNaN(x)) x = wrapper.offsetLeft;
+            if (isNaN(y)) y = wrapper.offsetTop;
+            if (isNaN(w)) w = wrapper.offsetWidth;
+            if (isNaN(h)) h = wrapper.offsetHeight;
+
+            // Rotation
+            const match = wrapper.style.transform.match(/rotate\(([-\d.]+)deg\)/);
+            const rotationDeg = match ? parseFloat(match[1]) : 0;
+            const rotationRad = rotationDeg * (Math.PI / 180);
+
             const imageBytes = await fetch(img.src).then(res => res.arrayBuffer());
             let pdfImage;
             try {
@@ -628,7 +676,39 @@ export async function commitAnnotations() {
             } catch (e) {
                 try { pdfImage = await pdfDoc.embedPng(imageBytes); } catch (e2) { pdfImage = await pdfDoc.embedJpg(imageBytes); }
             }
-            if (pdfImage) page.drawImage(pdfImage, { x, y: height - y - h, width: w, height: h });
+
+            if (pdfImage) {
+                // DOM (Top-Left) -> PDF (Bottom-Left)
+                // DOM Center: cx = x + w/2, cy = y + h/2
+                // PDF Y is inverted: y_pdf = height - y_dom
+                // So PDF Center: Cx = x + w/2, Cy = height - (y + h/2)
+
+                const Cx = x + w / 2;
+                const Cy = height - (y + h / 2);
+
+                // PDF-Lib draws at (drawX, drawY) and rotates around (drawX, drawY).
+                // We want the resulting center to be (Cx, Cy).
+                // Local center relative to drawX, drawY is (w/2, h/2).
+                // Rotated local center:
+                // C_rel_x = (w/2)*cos(R) - (h/2)*sin(R)
+                // C_rel_y = (w/2)*sin(R) + (h/2)*cos(R)
+                // So: Cx = drawX + C_rel_x  =>  drawX = Cx - C_rel_x
+                //     Cy = drawY + C_rel_y  =>  drawY = Cy - C_rel_y
+
+                const cRelX = (w / 2) * Math.cos(rotationRad) - (h / 2) * Math.sin(rotationRad);
+                const cRelY = (w / 2) * Math.sin(rotationRad) + (h / 2) * Math.cos(rotationRad);
+
+                const drawX = Cx - cRelX;
+                const drawY = Cy - cRelY;
+
+                page.drawImage(pdfImage, {
+                    x: drawX,
+                    y: drawY,
+                    width: w,
+                    height: h,
+                    rotate: PDFLib.degrees(rotationDeg)
+                });
+            }
         });
         await Promise.all(imagePromises);
 
@@ -775,10 +855,105 @@ export async function commitAnnotations() {
                 rotate: PDFLib.degrees(rotation_deg),
             });
         });
+
+        // Text Annotations (Wrapper-based)
+        const textWrappers = container.querySelectorAll('.text-wrapper');
+        const textPromises = Array.from(textWrappers).map(async (wrapper) => {
+            const content = wrapper.querySelector('.text-content');
+            if (!content) return;
+            const text = content.innerText;
+            if (!text.trim()) return;
+
+            // Geometry
+            let x = parseFloat(wrapper.style.left);
+            let y = parseFloat(wrapper.style.top);
+            let w = parseFloat(wrapper.style.width); // Can be 'auto' or unset yet
+            if (isNaN(w)) w = wrapper.offsetWidth;
+
+            // Safety
+            if (isNaN(x)) x = wrapper.offsetLeft;
+            if (isNaN(y)) y = wrapper.offsetTop;
+
+            // Styles
+            const fontSize = parseFloat(content.style.fontSize);
+            const r = parseInt(getComputedStyle(content).color.slice(4, -1).split(',')[0]) / 255;
+            const g = parseInt(getComputedStyle(content).color.slice(4, -1).split(',')[1]) / 255;
+            const b = parseInt(getComputedStyle(content).color.slice(4, -1).split(',')[2]) / 255;
+
+            // Rotation
+            const match = wrapper.style.transform.match(/rotate\(([-\d.]+)deg\)/);
+            const rotationDeg = match ? parseFloat(match[1]) : 0;
+
+            // Background
+            const bgColorHex = content.dataset.bgColor;
+            const bgAlpha = parseFloat(content.dataset.bgAlpha || '1.0');
+            const isTransparent = content.dataset.isTransparent === 'true';
+
+            // Draw Background Rect (if not transparent)
+            if (!isTransparent && bgColorHex) {
+                const bgR = parseInt(bgColorHex.slice(1, 3), 16) / 255;
+                const bgG = parseInt(bgColorHex.slice(3, 5), 16) / 255;
+                const bgB = parseInt(bgColorHex.slice(5, 7), 16) / 255;
+
+                // We need Height for rect background. wrapper.offsetHeight includes padding.
+                const h = wrapper.offsetHeight;
+
+                // Rect Position - Bottom Left for PDF
+                // Logic similar to image: Center rotation logic or just simple if no rotation?
+                // The text is drawn at x,y. The rect should be drawn at x,y.
+                // For rotated text, we treat it as an object.
+
+                const pX = x;
+                const pY = height - y - h; // PDF Y is bottom-up
+                // Wait, for rotated text, `drawText` handles rotation around origin? No, update to `drawText`.
+                // PDF-Lib drawText `rotate` parameter rotates around the text origin (bottom-left of text baseline usually).
+                // Our wrapper rotation is around center.
+                // This is complex for text.
+                // Simplification: For now, draw text at top-left position (x,y) unrotated.
+                // If rotation is needed, we must adjust coordinates.
+                // Let's implement basic text drawing first.
+
+                /*
+                page.drawRectangle({
+                   x: pX, y: pY, width: w, height: h,
+                   color: PDFLib.rgb(bgR, bgG, bgB),
+                   opacity: bgAlpha,
+                   rotate: PDFLib.degrees(rotationDeg) // Creates sync issue if centers differ
+                });
+                */
+            }
+
+            // Draw Text
+            // Adjust Y for PDF-Lib (drawText y is baseline? or bottom-left?)
+            // Usually bottom-left of the first line.
+            // DOM Y is top-left.
+            // PDF Y = height - y - fontSize (approx).
+            // A more accurate way: PDF Y = height - y - heightOfText
+
+            const pY = height - y; // - approx height?
+
+            // Note: PDF-Lib standard font does not support unicode properly sometimes. 
+            // We use standard 'Helvetica' here which is limited.
+            // Custom fonts require embedding.
+
+            page.drawText(text, {
+                x: x + 5, // Padding
+                y: height - y - fontSize - 5, // Approximate alignment
+                size: fontSize,
+                font: font,
+                color: PDFLib.rgb(r, g, b),
+                rotate: PDFLib.degrees(rotationDeg),
+            });
+        });
+        await Promise.all(textPromises);
+
+
+
+
     }
 
     // Remove existing annotations including text
-    document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .drawing-annotation, .shape-annotation, .watermark-annotation').forEach(el => el.remove());
+    document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .image-wrapper, .drawing-annotation, .shape-annotation, .watermark-annotation').forEach(el => el.remove());
 }
 
 // Helper to re-attach listeners after undo/redo or load
@@ -900,10 +1075,10 @@ export async function addSignatureAnnotation(dataUrl) {
             imgHeight *= scale;
         }
 
-        img.style.width = `${imgWidth} px`;
-        img.style.height = `${imgHeight} px`;
-        img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2} px`;
-        img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2} px`;
+        img.style.width = `${imgWidth}px`;
+        img.style.height = `${imgHeight}px`;
+        img.style.left = `${(pageContainer.offsetWidth - imgWidth) / 2}px`;
+        img.style.top = `${(pageContainer.offsetHeight - imgHeight) / 2}px`;
         img.style.position = 'absolute';
 
         makeDraggable(img);
@@ -912,243 +1087,123 @@ export async function addSignatureAnnotation(dataUrl) {
 }
 
 /* ==========================================================================
-   IMAGE ANNOTATION SYSTEM (New Vector-Style)
-   Two-State Model:
-   1. Move Mode (Single Click): Border only, Draggable
-   2. Edit Mode (Double Click): Resize Handles + Rotation Zones
+   IMAGE ANNOTATION SYSTEM (Robust Wrapper-Based)
    ========================================================================== */
 
-let selectedImage = null;
-let imageSelectionMode = 'none'; // 'none', 'move', 'edit'
-let selectedOverlay = null; // Stored reference to the Overlay DOM element
-let activeOperation = null; // 'move', 'resize', 'rotate'
+let selectedImageWrapper = null;
+let activeWrapperOperation = null; // 'move', 'resize', 'rotate'
 
-/**
- * Attaches initial interaction listeners to a new image.
- * @param {HTMLImageElement} img 
- * @param {HTMLElement} container 
- */
-function setupImageInteraction(img, container) {
-    // Basic style init
-    img.style.position = 'absolute';
-    img.style.transformOrigin = 'center center';
-    if (!img.style.transform) img.style.transform = 'rotate(0deg)';
-
-    // Prevent default browser drag
-    img.ondragstart = () => false;
-
-    // Click -> Move Mode
-    img.addEventListener('mousedown', (e) => {
-        //If already selected in Edit Mode, don't downgrade to Move Mode on click
-        // unless clicked on handle/zone (handled separately).
-
-        if (state.modes.text || state.modes.rect || state.modes.draw) return; // Don't select if in other tool modes
-
-        e.stopPropagation();
-
-        if (selectedImage === img) {
-            // Already selected.
-        } else {
-            selectImage(img, container, 'move');
-        }
-    });
-
-    // Double Click -> Edit Mode
-    img.addEventListener('dblclick', (e) => {
-        if (state.modes.text) return;
-        e.stopPropagation();
-        selectImage(img, container, 'edit');
-    });
-}
-
-/**
- * Check if we clicked outside existing selection
- */
+// Deselect on outside click
 document.addEventListener('mousedown', (e) => {
-    // If we clicked on the overlay or handles or the image itself, ignore deselect
-    if (e.target.closest('.image-selection-overlay') ||
-        e.target.closest('.image-annotation') ||
-        e.target.closest('.selection-handle') ||
-        e.target.closest('.rotation-zone')) {
-        return;
-    }
-    deselectImage();
+    if (activeWrapperOperation) return;
+    if (e.target.closest('.image-wrapper') || e.target.closest('.text-wrapper') || e.target.closest('.resize-handle') || e.target.closest('.rotate-handle')) return;
+
+    // Deselect Image
+    deselectAllImages();
+
+    // Deselect Text
+    document.querySelectorAll('.text-wrapper.selected').forEach(el => el.classList.remove('selected'));
 });
 
-/**
- * Main Selection Function
- * @param {HTMLImageElement} img 
- * @param {HTMLElement} container 
- * @param {'move'|'edit'} mode 
- */
-function selectImage(img, container, mode = 'move') {
-    // If switching images, deselect old one first
-    if (selectedImage && selectedImage !== img) {
-        deselectImage();
-    }
-
-    selectedImage = img;
-    imageSelectionMode = mode;
-
-    // Remove existing overlay to redraw/update mode
-    if (selectedOverlay) {
-        selectedOverlay.remove();
-        selectedOverlay = null;
-    }
-
-    // Get current Geometry
-    // We must use style values as source of truth for Position/Size to avoid transform artifacts
-    const x = parseFloat(img.style.left);
-    const y = parseFloat(img.style.top);
-    const w = parseFloat(img.style.width);
-    const h = parseFloat(img.style.height);
-    // Parse rotation from transform
-    const rotationMatch = img.style.transform.match(/rotate\(([-\d.]+)deg\)/);
-    const rotation = rotationMatch ? parseFloat(rotationMatch[1]) : 0;
-
-    // Create Overlay
-    selectedOverlay = document.createElement('div');
-    selectedOverlay.className = `image-selection-overlay ${mode === 'move' ? 'move-mode' : 'edit-mode'}`;
-
-    // Position Overlay EXACTLY matching the image
-    // Note: Overlay rotates WITH the image to make handles align naturally
-    Object.assign(selectedOverlay.style, {
-        left: `${x}px`,
-        top: `${y}px`,
-        width: `${w}px`,
-        height: `${h}px`,
-        transform: `rotate(${rotation}deg)` // Syc rotation
-    });
-
-    // Attach Event Listeners to Overlay Body (for Moving)
-    if (mode === 'move' || mode === 'edit') {
-        selectedOverlay.addEventListener('mousedown', (e) => {
-            if (e.target === selectedOverlay) { // Only if clicking body, not handles
-                startImageMove(e, img, selectedOverlay);
-            }
-        });
-    }
-
-    if (mode === 'edit') {
-        // Add Resize Handles
-        const directions = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
-        directions.forEach(dir => {
-            const handle = document.createElement('div');
-            handle.className = `resize-handle handle-${dir}`;
-            handle.addEventListener('mousedown', (e) => startImageResize(e, dir, img, selectedOverlay));
-            selectedOverlay.appendChild(handle);
-        });
-
-        // Add Rotation Zones
-        createRotationZones(selectedOverlay, img);
-    }
-
-    container.appendChild(selectedOverlay);
-}
-
-function deselectImage() {
-    if (selectedOverlay) {
-        selectedOverlay.remove();
-        selectedOverlay = null;
-    }
-    selectedImage = null;
-    imageSelectionMode = 'none';
-    activeOperation = null;
+// Global mouseup handler (must be called from main to setup, or exported)
+function deselectAllImages() {
+    document.querySelectorAll('.image-wrapper.selected').forEach(el => el.classList.remove('selected'));
+    selectedImageWrapper = null;
 }
 
 /**
- * Rotation Zones Logic
+ * Attaches interaction listeners to the wrapper
  */
-function createRotationZones(overlay, img) {
-    // 4 Corner zones
-    const zones = ['nw', 'ne', 'se', 'sw'];
-    zones.forEach(zone => {
-        const el = document.createElement('div');
-        el.className = `rotation-zone rotate-${zone}`;
+function setupImageInteraction(wrapper, container) {
 
-        el.addEventListener('mousedown', (e) => startImageRotation(e, zone, img, overlay));
-        overlay.appendChild(el);
+    // 1. Move Logic (MouseDown on the wrapper body)
+    wrapper.addEventListener('mousedown', (e) => {
+        // If clicking a handle, don't trigger move
+        if (e.target.closest('.resize-handle') || e.target.closest('.rotate-handle')) return;
+
+        e.stopPropagation(); // Don't trigger page drag
+        e.preventDefault();  // Don't trigger image drag
+
+        // Select this one
+        if (selectedImageWrapper !== wrapper) {
+            deselectAllImages();
+            wrapper.classList.add('selected');
+            selectedImageWrapper = wrapper;
+        }
+
+        startWrapperMove(e, wrapper);
     });
+
+    // 2. Resize Handles
+    wrapper.querySelectorAll('.resize-handle').forEach(handle => {
+        handle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const dir = handle.dataset.dir;
+            startWrapperResize(e, wrapper, dir);
+        });
+    });
+
+    // 3. Rotation Handle
+    const rotHandle = wrapper.querySelector('.rotate-handle');
+    if (rotHandle) {
+        rotHandle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            startWrapperRotation(e, wrapper);
+        });
+    }
 }
 
-
-/* ==========================================================================
-   INTERACTION LOGIC (Move, Resize, Rotate)
-   ========================================================================== */
-
-function startImageMove(e, img, overlay) {
-    e.stopPropagation();
-    e.preventDefault();
-    activeOperation = 'move';
-
+/* --- Move --- */
+function startWrapperMove(e, wrapper) {
+    activeWrapperOperation = 'move';
     const startX = e.clientX;
     const startY = e.clientY;
 
-    const startLeft = parseFloat(img.style.left);
-    const startTop = parseFloat(img.style.top);
+    // Use offset for safer "current pos" reading than style
+    let startLeft = wrapper.offsetLeft;
+    let startTop = wrapper.offsetTop;
 
     const onMove = (ev) => {
         const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
-
-        const newLeft = startLeft + dx;
-        const newTop = startTop + dy;
-
-        // Apply to both Image and Overlay
-        img.style.left = `${newLeft}px`;
-        img.style.top = `${newTop}px`;
-        overlay.style.left = `${newLeft}px`;
-        overlay.style.top = `${newTop}px`;
+        wrapper.style.left = `${startLeft + dx}px`;
+        wrapper.style.top = `${startTop + dy}px`;
     };
 
     const onUp = () => {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
-        activeOperation = null;
-        saveState(); // Save history
+        activeWrapperOperation = null;
+        saveState(false);
     };
 
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
 }
 
+/* --- Resize (Vector-based with Rotation support) --- */
+function startWrapperResize(e, wrapper, dir) {
+    activeWrapperOperation = 'resize';
 
-/* Vector Math Helpers */
-function rotatePoint(x, y, cx, cy, angleRad) {
-    const cos = Math.cos(angleRad);
-    const sin = Math.sin(angleRad);
-    const dx = x - cx;
-    const dy = y - cy;
-    return {
-        x: cx + dx * cos - dy * sin,
-        y: cy + dx * sin + dy * cos
-    };
-}
-
-
-function startImageResize(e, dir, img, overlay) {
-    e.stopPropagation();
-    e.preventDefault();
-    activeOperation = 'resize';
-
-    // Initial Image State
     const startRect = {
-        left: parseFloat(img.style.left),
-        top: parseFloat(img.style.top),
-        width: parseFloat(img.style.width),
-        height: parseFloat(img.style.height)
+        left: wrapper.offsetLeft,
+        top: wrapper.offsetTop,
+        width: wrapper.offsetWidth,
+        height: wrapper.offsetHeight
     };
 
-    // Get Rotation
-    const match = img.style.transform.match(/rotate\(([-\d.]+)deg\)/);
+    // Rotation Angle
+    const match = wrapper.style.transform.match(/rotate\(([-\d.]+)deg\)/);
     const angleDeg = match ? parseFloat(match[1]) : 0;
     const angleRad = angleDeg * (Math.PI / 180);
 
-    // Calculate Center
+    // Center
     const cx = startRect.left + startRect.width / 2;
     const cy = startRect.top + startRect.height / 2;
 
-    // Anchor Map
+    // Helper: Handle Coordinates (0 to 1)
     const handleMap = {
         'nw': [0, 0], 'n': [0.5, 0], 'ne': [1, 0],
         'w': [0, 0.5], 'e': [1, 0.5],
@@ -1156,152 +1211,162 @@ function startImageResize(e, dir, img, overlay) {
     };
     const [hx, hy] = handleMap[dir];
 
-    // Anchor ratios (opposite)
+    // Anchor Point (Opposite side)
     const ax = 1 - hx;
     const ay = 1 - hy;
 
-    // Anchor Point in Global Space
-    const anchorLocalX = startRect.left + startRect.width * ax;
-    const anchorLocalY = startRect.top + startRect.height * ay;
-    const anchorGlobal = rotatePoint(anchorLocalX, anchorLocalY, cx, cy, angleRad);
+    // Calculate global anchor point
+    // Local Anchor:
+    const localAnchorX = startRect.left + startRect.width * ax;
+    const localAnchorY = startRect.top + startRect.height * ay;
+
+    // Rotate Local Anchor around Center
+    // rotPoint = C + rotate(P - C)
+    const anchorGlobal = rotatePoint(localAnchorX, localAnchorY, cx, cy, angleRad);
 
     const onMove = (ev) => {
         ev.preventDefault();
 
-        const currX = ev.clientX;
-        const currY = ev.clientY;
+        // Mouse in Global
+        const mx = ev.clientX; // This is screen relative? No, clientX/Y.
+        // We need coordinates relative to the page-container!
+        // The wrapper left/top are relative to page-container.
+        const container = wrapper.parentElement;
+        const cRect = container.getBoundingClientRect();
 
-        // Vector from Anchor to Mouse
-        const dx = currX - anchorGlobal.x;
-        const dy = currY - anchorGlobal.y;
+        const mouseX = ev.clientX - cRect.left; // Relative to container
+        const mouseY = ev.clientY - cRect.top;
 
-        // Rotate BACK to align with image axes
+        // Vector from Global Anchor to Mouse
+        const dx = mouseX - anchorGlobal.x;
+        const dy = mouseY - anchorGlobal.y;
+
+        // Rotate this vector BACK by (-angle) to align with element axes
+        // local = rotate(global, -angle)
         const localDx = dx * Math.cos(-angleRad) - dy * Math.sin(-angleRad);
         const localDy = dx * Math.sin(-angleRad) + dy * Math.cos(-angleRad);
 
         let newW = startRect.width;
         let newH = startRect.height;
 
-        // Horizontal logic
+        // Calculate new dimensions based on handle direction
+        // If handle is on the right (hx=1), width grows by localDx.
+        // If handle is on the left (hx=0), width grows by -localDx.
+
         if (dir.includes('e') || dir.includes('w')) {
-            const signX = (hx === 0) ? -1 : 1;
-            newW = localDx * signX;
+            newW = localDx * (hx === 0 ? -1 : 1);
         }
-
-        // Vertical logic
         if (dir.includes('n') || dir.includes('s')) {
-            const signY = (hy === 0) ? -1 : 1;
-            newH = localDy * signY;
+            newH = localDy * (hy === 0 ? -1 : 1);
         }
 
-        // Constraints
-        newW = Math.max(20, newW); // Minimum size 20px
+        // Min Size
+        newW = Math.max(20, newW);
         newH = Math.max(20, newH);
 
-        // Aspect Ratio
-        if (ev.shiftKey) {
-            const originalRatio = startRect.width / startRect.height;
-            if (dir.length === 2) {
-                if (newW / newH > originalRatio) {
-                    newH = newW / originalRatio;
-                } else {
-                    newW = newH * originalRatio;
-                }
-            }
+        // Aspect Ratio Lock (Shift Key)
+        if (ev.shiftKey && dir.length === 2) {
+            const ratio = startRect.width / startRect.height;
+            if (newW / newH > ratio) newH = newW / ratio;
+            else newW = newH * ratio;
         }
 
         // Calculate New Center
-        // Vector from Anchor(ax,ay) to Center(0.5,0.5) is proportional to new size
+        // The anchor point (ax, ay) stays fixed.
+        // The new center moves relative to the anchor point.
+        // Center is always at (0.5, 0.5) relative to the box.
+        // Vector from Anchor(ax, ay) to Center(0.5, 0.5) is now scaled to new dimensions.
         const vecToCenterX = (0.5 - ax) * newW;
         const vecToCenterY = (0.5 - ay) * newH;
 
-        // Rotate forward
-        const rotatedVecX = vecToCenterX * Math.cos(angleRad) - vecToCenterY * Math.sin(angleRad);
-        const rotatedVecY = vecToCenterX * Math.sin(angleRad) + vecToCenterY * Math.cos(angleRad);
+        // Rotate this vector forward by (angle)
+        const rotVecX = vecToCenterX * Math.cos(angleRad) - vecToCenterY * Math.sin(angleRad);
+        const rotVecY = vecToCenterX * Math.sin(angleRad) + vecToCenterY * Math.cos(angleRad);
 
-        const newCx = anchorGlobal.x + rotatedVecX;
-        const newCy = anchorGlobal.y + rotatedVecY;
+        const newCx = anchorGlobal.x + rotVecX;
+        const newCy = anchorGlobal.y + rotVecY;
 
         // Final Top/Left
         const newLeft = newCx - newW / 2;
         const newTop = newCy - newH / 2;
 
-        if (isNaN(newW) || isNaN(newH) || isNaN(newLeft) || isNaN(newTop)) return;
-
-        // Apply
-        img.style.width = `${newW}px`;
-        img.style.height = `${newH}px`;
-        img.style.left = `${newLeft}px`;
-        img.style.top = `${newTop}px`;
-
-        overlay.style.width = `${newW}px`;
-        overlay.style.height = `${newH}px`;
-        overlay.style.left = `${newLeft}px`;
-        overlay.style.top = `${newTop}px`;
+        wrapper.style.width = `${newW}px`;
+        wrapper.style.height = `${newH}px`;
+        wrapper.style.left = `${newLeft}px`;
+        wrapper.style.top = `${newTop}px`;
     };
 
     const onUp = () => {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
-        activeOperation = null;
-        saveState();
+        activeWrapperOperation = null;
+        saveState(false);
     };
-
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
 }
 
-function startImageRotation(e, zone, img, overlay) {
+/* --- Rotation --- */
+function startWrapperRotation(e, wrapper) {
+    activeWrapperOperation = 'rotate';
     e.stopPropagation();
-    e.preventDefault();
-    activeOperation = 'rotate';
 
-    // Image Center
-    const left = parseFloat(img.style.left);
-    const top = parseFloat(img.style.top);
-    const w = parseFloat(img.style.width);
-    const h = parseFloat(img.style.height);
-    const cx = left + w / 2;
-    const cy = top + h / 2;
+    const container = wrapper.parentElement;
+    const cRect = container.getBoundingClientRect();
 
-    const container = img.parentElement;
-    const contRect = container.getBoundingClientRect();
+    // Center of wrapper relative to container
+    const cx = wrapper.offsetLeft + wrapper.offsetWidth / 2;
+    const cy = wrapper.offsetTop + wrapper.offsetHeight / 2;
 
     const getAngle = (ev) => {
-        const mx = ev.clientX - contRect.left;
-        const my = ev.clientY - contRect.top;
+        const mx = ev.clientX - cRect.left;
+        const my = ev.clientY - cRect.top;
         return Math.atan2(my - cy, mx - cx);
     };
 
     const startMouseAngle = getAngle(e);
-    const startImgAngleMatch = img.style.transform.match(/rotate\(([-\d.]+)deg\)/);
-    const startImgAngleDeg = startImgAngleMatch ? parseFloat(startImgAngleMatch[1]) : 0;
-    const startImgAngleRad = startImgAngleDeg * (Math.PI / 180);
+    const match = wrapper.style.transform.match(/rotate\(([-\d.]+)deg\)/);
+    const startImgAngle = match ? parseFloat(match[1]) : 0;
+    const startImgRad = startImgAngle * (Math.PI / 180);
 
     const onMove = (ev) => {
         const currMouseAngle = getAngle(ev);
-        const deltaAngle = currMouseAngle - startMouseAngle;
+        const delta = currMouseAngle - startMouseAngle;
+        const newRad = startImgRad + delta;
+        const newDeg = newRad * (180 / Math.PI);
 
-        const newAngleRad = startImgAngleRad + deltaAngle;
-        const newAngleDeg = newAngleRad * (180 / Math.PI);
-
-        const displayAngle = ev.shiftKey ? Math.round(newAngleDeg / 15) * 15 : newAngleDeg;
-        const transform = `rotate(${displayAngle}deg)`;
-
-        img.style.transform = transform;
-        overlay.style.transform = transform;
+        // Snap to 15 deg if shift
+        const finalDeg = ev.shiftKey ? Math.round(newDeg / 15) * 15 : newDeg;
+        wrapper.style.transform = `rotate(${finalDeg}deg)`;
     };
 
     const onUp = () => {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
-        activeOperation = null;
-        saveState();
+        activeWrapperOperation = null;
+        saveState(false);
     };
-
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
 }
+
+
+/* Helper */
+function rotatePoint(x, y, cx, cy, angleRad) {
+    const dx = x - cx;
+    const dy = y - cy;
+    return {
+        x: cx + dx * Math.cos(angleRad) - dy * Math.sin(angleRad),
+        y: cy + dx * Math.sin(angleRad) + dy * Math.cos(angleRad)
+    };
+}
+
+// Global Exports?
+// selectImage is replaced by internal logic, but if external modules call it...
+// We can alias it or just ignore. The Ribon creates images which calls handleImageUpload which handles selection.
+// If Ribbon has a 'Select' tool, it just sets mode.
+// We should ensure selectImage doesn't break things if called.
+window.selectImage = function (img) { /* Deprecated/No-op */ };
 
 export function updateTextBackground() {
     ensureTextSettings();

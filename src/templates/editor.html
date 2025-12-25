@@ -10,6 +10,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ai_chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/image_editor.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/text_editor.css') }}">
 </head>
 
 <body>
@@ -114,6 +116,11 @@
             <input type="hidden" name="target_lang" value="">
             <!-- Other fields if needed -->
         </form>
+
+        <!-- Hidden inputs for Ribbon actions -->
+        <input type="file" id="image-upload" accept="image/*" style="display:none;"
+            onchange="window.handleImageUpload(this)">
+        <input type="file" id="pdf-append" accept=".pdf" style="display:none;">
 
         <div class="alert alert-info small mt-auto mb-0 p-2">
             <i class="bi bi-info-circle"></i> Click on a page to select it.
