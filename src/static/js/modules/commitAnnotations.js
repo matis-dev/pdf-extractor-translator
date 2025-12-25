@@ -391,8 +391,98 @@ export async function commitAnnotations() {
         });
         await Promise.all(textPromises);
 
+        // Form Fields (New)
+        const formWrappers = container.querySelectorAll('.form-field-wrapper');
+        if (formWrappers.length > 0) {
+            const form = pdfDoc.getForm();
+            for (const wrapper of formWrappers) {
+                const type = wrapper.dataset.type;
+
+                // Geometry
+                let x = parseFloat(wrapper.style.left);
+                let y = parseFloat(wrapper.style.top);
+                let w = parseFloat(wrapper.style.width);
+                let h = parseFloat(wrapper.style.height);
+
+                if (isNaN(x)) x = wrapper.offsetLeft;
+                if (isNaN(y)) y = wrapper.offsetTop;
+                if (isNaN(w)) w = wrapper.offsetWidth;
+                if (isNaN(h)) h = wrapper.offsetHeight;
+
+                // PDF Coordinates
+                const pdfX = x;
+                const pdfY = height - y - h;
+
+                // Styles
+                const fontSize = parseInt(wrapper.dataset.fontSize || '12');
+                const textColorHex = wrapper.dataset.textColor || '#000000';
+                const bgColorHex = wrapper.dataset.bgColor || '#ffffff';
+                const borderColorHex = wrapper.dataset.borderColor || '#000000';
+
+                // Construct styles
+                const r = parseInt(textColorHex.substr(1, 2), 16) / 255;
+                const g = parseInt(textColorHex.substr(3, 2), 16) / 255;
+                const b = parseInt(textColorHex.substr(5, 2), 16) / 255;
+                const textColor = PDFLib.rgb(r, g, b);
+
+                const bgR = parseInt(bgColorHex.substr(1, 2), 16) / 255;
+                const bgG = parseInt(bgColorHex.substr(3, 2), 16) / 255;
+                const bgB = parseInt(bgColorHex.substr(5, 2), 16) / 255;
+                const backgroundColor = PDFLib.rgb(bgR, bgG, bgB);
+
+                const borderR = parseInt(borderColorHex.substr(1, 2), 16) / 255;
+                const borderG = parseInt(borderColorHex.substr(3, 2), 16) / 255;
+                const borderB = parseInt(borderColorHex.substr(5, 2), 16) / 255;
+                const borderColor = PDFLib.rgb(borderR, borderG, borderB);
+
+                try {
+                    if (type === 'textfield') {
+                        const field = form.createTextField(`textfield_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+                        field.addToPage(page, {
+                            x: pdfX, y: pdfY, width: w, height: h,
+                            textColor, backgroundColor, borderColor, borderWidth: 1
+                        });
+                        field.setFontSize(fontSize);
+                    }
+                    else if (type === 'checkbox') {
+                        const field = form.createCheckBox(`checkbox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+                        field.addToPage(page, {
+                            x: pdfX, y: pdfY, width: w, height: h,
+                            textColor, backgroundColor, borderColor, borderWidth: 1
+                        });
+                    }
+                    else if (type === 'radio') {
+                        const groupName = `radio_group_${Date.now()}`;
+                        const field = form.createRadioGroup(groupName);
+                        field.addOptionToPage(`option_${Math.random().toString(36).substr(2, 5)}`, page, {
+                            x: pdfX, y: pdfY, width: w, height: h,
+                            textColor, backgroundColor, borderColor, borderWidth: 1
+                        });
+                    }
+                    else if (type === 'dropdown') {
+                        const field = form.createDropdown(`dropdown_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+                        field.addToPage(page, {
+                            x: pdfX, y: pdfY, width: w, height: h,
+                            textColor, backgroundColor, borderColor, borderWidth: 1
+                        });
+                        field.setOptions(['Option 1', 'Option 2', 'Option 3']);
+                        field.setFontSize(fontSize);
+                    }
+                    else if (type === 'signature') {
+                        const field = form.createTextField(`sig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+                        field.addToPage(page, {
+                            x: pdfX, y: pdfY, width: w, height: h,
+                            textColor, backgroundColor: PDFLib.rgb(0.9, 0.9, 0.9), borderColor, borderWidth: 1
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error creating form field", e);
+                }
+            }
+        }
+
     }
 
     // Remove existing annotations including text
-    document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .image-wrapper, .drawing-annotation, .shape-annotation, .watermark-annotation').forEach(el => el.remove());
+    document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .image-wrapper, .drawing-annotation, .shape-annotation, .watermark-annotation, .text-wrapper, .form-field-wrapper').forEach(el => el.remove());
 }

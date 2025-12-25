@@ -168,6 +168,27 @@ body {
     border: 2px solid #28a745;
 }
 
+/* Form Fields */
+.form-field-wrapper {
+    position: absolute;
+    border: 1px dashed #fd7e14;
+    /* Orange for forms */
+    z-index: 50;
+    cursor: move;
+}
+
+.form-field-wrapper.selected {
+    border: 2px solid #fd7e14;
+    z-index: 100;
+}
+
+.form-field-content {
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks go to wrapper unless editing */
+}
+
 /* Loading Overlay */
 .loading-overlay {
     position: fixed;

@@ -167,32 +167,9 @@ export function setupTextWrapperInteraction(wrapper, container) {
     });
 }
 
-export async function addTextField() {
-    const { pdfDoc, selectedPageIndex } = state;
-    const form = pdfDoc.getForm();
-    const page = pdfDoc.getPage(selectedPageIndex);
-    const { width, height } = page.getSize();
 
-    await saveState();
-    const textField = form.createTextField(`text_field_${Date.now()} `);
-    textField.setText('Enter text');
-    textField.addToPage(page, { x: 50, y: height - 100, width: 200, height: 50 });
 
-    await refreshView();
-}
 
-export async function addCheckbox() {
-    const { pdfDoc, selectedPageIndex } = state;
-    const form = pdfDoc.getForm();
-    const page = pdfDoc.getPage(selectedPageIndex);
-    const { width, height } = page.getSize();
-
-    await saveState();
-    const checkBox = form.createCheckBox(`checkbox_${Date.now()} `);
-    checkBox.addToPage(page, { x: 50, y: height - 150, width: 20, height: 20 });
-
-    await refreshView();
-}
 
 // Global Text Settings Handlers (exposed for Ribbon)
 export function updateTextSettings(key, value) {

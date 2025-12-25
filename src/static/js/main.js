@@ -131,6 +131,7 @@ function setupContextMenu() {
 
     if (container) {
         container.addEventListener('click', (e) => {
+            console.log("Main container clicked target:", e.target);
             const i = state.selectedPageIndex || 0;
 
             if (state.modes.text) {
@@ -244,8 +245,15 @@ function registerCommands() {
     registerCommand('split-pdf', 'Split / Burst PDF', () => splitPdf(), 'bi-grid-3x3');
     registerCommand('compare', 'Compare PDFs', () => compare.openCompareModal(), 'bi-columns');
     registerCommand('security', 'Security Settings', () => ui.openSecurityModal(), 'bi-shield-lock');
+
+    // Forms
+    registerCommand('field-text', 'Add Form Text Field', () => annotations.toggleFormMode('textfield'), 'bi-input-cursor-text');
+    registerCommand('field-check', 'Add Form Checkbox', () => annotations.toggleFormMode('checkbox'), 'bi-check-square');
 }
 
 // Start
 window.initMain = init;
+// Expose Form Logic
+window.toggleFormMode = annotations.toggleFormMode;
+window.updateFormSettings = annotations.updateFormSettings;
 init();

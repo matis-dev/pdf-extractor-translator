@@ -9,6 +9,7 @@ export * from './textAnnotations.js';
 export * from './imageAnnotations.js';
 export * from './watermark.js';
 export * from './commitAnnotations.js';
+export * from './formFields.js';
 
 // Backward compatibility or legacy functions if any were left that didn't fit.
 // Specifically `handleSelectionClick` was referenced in `drawing.js`.

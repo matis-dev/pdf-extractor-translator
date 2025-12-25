@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { requestPassword } from './ui.js';
-import { initDrawListeners, addTextAnnotation } from './annotations.js';
+import { initDrawListeners, addTextAnnotation, addFormField } from './annotations.js';
 import { rotatePage, movePage, deletePage, extractSinglePage } from './pages.js';
 import { updateActiveThumbnail } from './ui.js';
 
@@ -333,6 +333,9 @@ export function handlePageClick(e, index) {
 
     if (state.modes.text) {
         addTextAnnotation(e, index);
+    }
+    if (state.modes.formField) {
+        addFormField(e, index, state.formFieldType);
     }
 }
 

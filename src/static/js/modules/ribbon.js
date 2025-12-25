@@ -94,13 +94,7 @@ const ribbonConfig = {
                 }
             ]
         },
-        {
-            group: 'Forms',
-            tools: [
-                { id: 'add-field', icon: 'bi-input-cursor-text', label: 'Text Field', action: 'globalAction', function: 'addTextField' },
-                { id: 'add-checkbox', icon: 'bi-check-square', label: 'Checkbox', action: 'globalAction', function: 'addCheckbox' }
-            ]
-        }
+
     ],
     'comment': [
         {
@@ -124,6 +118,51 @@ const ribbonConfig = {
             tools: [
                 { type: 'html', html: `<div class="d-flex flex-column gap-1"><input type="color" class="form-control form-control-color form-control-sm" value="#ff0000" title="Color" onchange="updateShapeSettings('strokeColor', this.value)"><span class="small">Color</span></div>` },
                 { type: 'html', html: `<div class="d-flex flex-column gap-1"><input type="number" class="form-control form-control-sm" value="2" min="1" max="20" title="Width" style="width: 50px" onchange="updateShapeSettings('strokeWidth', parseInt(this.value))"><span class="small">Width</span></div>` }
+            ]
+        }
+    ],
+    'forms': [
+        {
+            group: 'Fields',
+            tools: [
+                { id: 'field-text', icon: 'bi-input-cursor-text', label: 'Text Field', action: 'custom', function: () => window.toggleFormMode('textfield') },
+                { id: 'field-check', icon: 'bi-check-square', label: 'Checkbox', action: 'custom', function: () => window.toggleFormMode('checkbox') },
+                { id: 'field-radio', icon: 'bi-ui-radios', label: 'Radio', action: 'custom', function: () => window.toggleFormMode('radio') },
+                { id: 'field-dropdown', icon: 'bi-menu-button-wide', label: 'Dropdown', action: 'custom', function: () => window.toggleFormMode('dropdown') },
+                { id: 'field-signature', icon: 'bi-pen', label: 'Signature', action: 'custom', function: () => window.toggleFormMode('signature') }
+            ]
+        },
+        {
+            group: 'Appearance',
+            tools: [
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <select class="form-select form-select-sm" style="width:110px; font-size: 0.8rem;" onchange="updateFormSettings('fontFamily', this.value)">
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Times Roman">Times Roman</option>
+                            <option value="Courier">Courier</option>
+                        </select>
+                        <span class="small text-muted">Font</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <input type="number" class="form-control form-control-sm" value="12" min="6" max="72" style="width: 60px" onchange="updateFormSettings('fontSize', parseInt(this.value))">
+                        <span class="small text-muted">Size</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex gap-1 align-items-center">
+                            <input type="color" class="form-control form-control-color form-control-sm" value="#000000" title="Text Color" onchange="updateFormSettings('textColor', this.value)">
+                            <input type="color" class="form-control form-control-color form-control-sm" value="#ffffff" title="Background Color" onchange="updateFormSettings('backgroundColor', this.value)">
+                        </div>
+                        <span class="small text-muted">Colors</span>
+                    </div>`
+                }
             ]
         }
     ],

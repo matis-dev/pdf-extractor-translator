@@ -41,6 +41,7 @@ export function setShapeMode(mode) {
         state.modes.redact = false;
         state.modes.highlight = false;
         state.modes.extract = false;
+        state.modes.formField = false;
     }
     updateButtonStates();
 }
@@ -75,10 +76,17 @@ export function updateButtonStates() {
     updateBtn('shape-arrow', state.modes.shape === 'arrow');
     updateBtn('note', state.modes.note);
 
+    // Form buttons
+    updateBtn('field-text', state.modes.formField && state.formFieldType === 'textfield');
+    updateBtn('field-check', state.modes.formField && state.formFieldType === 'checkbox');
+    updateBtn('field-radio', state.modes.formField && state.formFieldType === 'radio');
+    updateBtn('field-dropdown', state.modes.formField && state.formFieldType === 'dropdown');
+    updateBtn('field-signature', state.modes.formField && state.formFieldType === 'signature');
+
     const container = document.getElementById('main-preview');
     if (container) container.style.cursor = ''; // Reset container cursor
 
-    const anyMode = state.modes.redact || state.modes.highlight || state.modes.text || state.modes.shape || state.modes.note;
+    const anyMode = state.modes.redact || state.modes.highlight || state.modes.text || state.modes.shape || state.modes.note || state.modes.formField;
     document.body.style.cursor = anyMode ? 'crosshair' : 'default';
     if (state.modes.text) document.body.style.cursor = 'text';
     if (state.modes.note) document.body.style.cursor = 'copy';
@@ -103,6 +111,7 @@ export function toggleZoomInMode() {
         state.modes.extract = false;
         state.modes.note = false;
         state.modes.shape = null;
+        state.modes.formField = false;
     }
     updateButtonStates();
 }
@@ -119,6 +128,7 @@ export function toggleZoomOutMode() {
         state.modes.extract = false;
         state.modes.note = false;
         state.modes.shape = null;
+        state.modes.formField = false;
     }
     updateButtonStates();
 }
@@ -135,6 +145,7 @@ export function toggleHandMode() {
         state.modes.extract = false;
         state.modes.note = false;
         state.modes.shape = null;
+        state.modes.formField = false;
     }
     updateButtonStates();
 }
@@ -151,6 +162,7 @@ export function toggleSelectMode() {
         state.modes.extract = false;
         state.modes.note = false;
         state.modes.shape = null;
+        state.modes.formField = false;
     }
     updateButtonStates();
 }
@@ -166,6 +178,7 @@ export function toggleRedactMode() {
     state.modes.extract = false;
     state.modes.note = false;
     state.modes.shape = null;
+    state.modes.formField = false;
     updateButtonStates();
 }
 
@@ -180,6 +193,7 @@ export function toggleHighlightMode() {
     state.modes.extract = false;
     state.modes.note = false;
     state.modes.shape = null;
+    state.modes.formField = false;
     updateButtonStates();
 }
 
@@ -194,6 +208,7 @@ export function toggleExtractMode() {
     state.modes.highlight = false;
     state.modes.note = false;
     state.modes.shape = null;
+    state.modes.formField = false;
     updateButtonStates();
 }
 
@@ -209,6 +224,7 @@ export function toggleTextMode() {
         state.modes.extract = false;
         state.modes.note = false;
         state.modes.shape = null;
+        state.modes.formField = false;
     }
     updateButtonStates();
 }
@@ -225,6 +241,7 @@ export function toggleNoteMode() {
         state.modes.highlight = false;
         state.modes.extract = false;
         state.modes.shape = null;
+        state.modes.formField = false;
     }
     updateButtonStates();
 }
@@ -240,6 +257,7 @@ export function resetModes() {
     state.modes.extract = false;
     state.modes.note = false;
     state.modes.shape = null;
+    state.modes.formField = false;
 
     // Set 'select' to true as default neutral state?
     // If we are uploading an image, we probably want to be in 'move/select' mode for the image.

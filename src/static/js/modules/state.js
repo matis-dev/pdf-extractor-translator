@@ -16,7 +16,19 @@ export const state = {
         hand: false,
         zoomIn: false,
         zoomOut: false,
-        shape: null // 'rect', 'ellipse', 'line', 'arrow'
+        shape: null, // 'rect', 'ellipse', 'line', 'arrow'
+        formField: false
+    },
+    formFieldType: null, // 'textfield', 'checkbox', 'radio', 'dropdown', 'signature'
+    formSettings: {
+        fontFamily: 'Helvetica',
+        fontSize: 12,
+        textColor: '#000000',
+        backgroundColor: '#ffffff',
+        backgroundAlpha: 1.0,
+        borderColor: '#000000',
+        borderWidth: 1,
+        textAlign: 'left'
     },
     shapeSettings: {
         strokeColor: '#ff0000',
