@@ -148,3 +148,13 @@
 [2025-12-25 23:34:07] INFO     root         Logging initialized. Writing to logs/app.log
 [2025-12-25 23:36:48] INFO     root         Logging initialized. Writing to logs/app.log
 [2025-12-25 23:36:48] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-27 12:29:02] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-27 12:29:03] WARNING  werkzeug      * Debugger is active!
+[2025-12-27 12:33:45] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-27 12:38:41] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-27 12:38:41] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-27 12:38:51] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-27 12:38:51] WARNING  werkzeug      * Debugger is active!
+[2025-12-27 12:42:31] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-27 12:42:31] WARNING  werkzeug      * Debugger is active!
+[2025-12-27 12:43:05] INFO     root         Logging initialized. Writing to logs/app.log

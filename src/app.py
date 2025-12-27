@@ -26,6 +26,7 @@ from tasks import process_pdf_task, run_pdf_extraction
 from translation_utils import translate_text
 from ai_utils import get_pdf_chat_instance, LANGCHAIN_AVAILABLE
 from logging_config import setup_logging, get_logger
+from language_manager import get_available_languages, get_installed_languages, install_language, uninstall_language
 
 # Initialize logging
 setup_logging()
@@ -876,6 +877,69 @@ def generate_bug_report():
         
     except Exception as e:
         logger.error(f"Failed to generate bug report: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+
+# --- Language Management Routes ---
+
+@app.route('/languages', methods=['GET'])
+def list_languages():
+    """Returns list of available and installed languages."""
+    try:
+        available = get_available_languages()
+        installed = get_installed_languages()
+        
+        # Mark installed status in available list
+        # Create a set of installed pairs for easy lookup
+        installed_set = {(p['from_code'], p['to_code']) for p in installed}
+        
+        for lang in available:
+            lang['installed'] = (lang['from_code'], lang['to_code']) in installed_set
+            
+        return jsonify({
+            'languages': available,
+            'installed_count': len(installed)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/languages/install', methods=['POST'])
+def install_lang_package():
+    """Installs a specific language package."""
+    data = request.json
+    from_code = data.get('from_code')
+    to_code = data.get('to_code')
+    
+    if not from_code or not to_code:
+        return jsonify({'error': 'Source and target language codes required'}), 400
+        
+    try:
+        success, message = install_language(from_code, to_code)
+        if success:
+            return jsonify({'message': message})
+        else:
+            return jsonify({'error': message}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/languages/uninstall', methods=['POST'])
+def uninstall_lang_package():
+    """Uninstalls a specific language package."""
+    data = request.json
+    from_code = data.get('from_code')
+    to_code = data.get('to_code')
+    
+    if not from_code or not to_code:
+        return jsonify({'error': 'Source and target language codes required'}), 400
+        
+    try:
+        success, message = uninstall_language(from_code, to_code)
+        if success:
+            return jsonify({'message': message})
+        else:
+            return jsonify({'error': message}), 500
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

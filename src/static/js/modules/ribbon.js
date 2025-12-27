@@ -1,4 +1,6 @@
 
+import { renderLanguageDropdown } from './language_manager.js';
+
 const ribbonConfig = {
     'home': [
         {
@@ -208,8 +210,8 @@ const ribbonConfig = {
                     <div class="d-flex flex-column gap-1">
                         <select id="ribbon-extract-type" class="form-select form-select-sm" style="width:180px; font-size: 0.8rem;">
                             <option value="word">Word (.docx)</option>
-                            <option value="odt">ODT</option>
-                            <option value="csv">Tables (CSV)</option>
+                            <option value="odt">OpenDocument (.odt)</option>
+                            <option value="csv">Tables (.csv)</option>
                         </select>
                         <span class="small text-muted">Format</span>
                     </div>`
@@ -324,9 +326,19 @@ function switchTab(tabName) {
         labelDiv.textContent = group.group;
         groupDiv.appendChild(labelDiv);
 
+
         container.appendChild(groupDiv);
     });
+
+    // Language Dropdown Hook
+    if (tabName === 'process') {
+        setTimeout(() => {
+            renderLanguageDropdown('ribbon-target-lang', 'es', false);
+            // We could also add a source lang dropdown here if we want to modify the ribbonConfig to include it
+        }, 0);
+    }
 }
+
 
 function handleAction(tool) {
     if (tool.action === 'setMode') {

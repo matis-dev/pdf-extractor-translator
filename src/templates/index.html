@@ -154,11 +154,7 @@
                                         </div>
                                         <div class="col-6">
                                             <select id="batch-target-lang" class="form-select form-select-sm">
-                                                <option value="none">No Translation</option>
-                                                <option value="en">English</option>
-                                                <option value="es">Spanish</option>
-                                                <option value="fr">French</option>
-                                                <option value="de">German</option>
+                                                <!-- Populated dynamically -->
                                             </select>
                                         </div>
                                         <!-- Hidden/Implicit source lang for simplicity or full optionality -->
@@ -236,10 +232,58 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/batch.js') }}"></script>
+    <script type="module">
+        import { renderLanguageDropdown, ensureLanguageInstalled } from "{{ url_for('static', filename='js/modules/language_manager.js') }}";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const batchTarget = document.getElementById('batch-target-lang');
+            // We can also utilize batch-source-lang if we unhide it
+
+            if (batchTarget) {
+                // Initial render
+                renderLanguageDropdown('batch-target-lang', 'none'); // 'none' might not be in our list, handle that?
+                // Actually my render function lists languages. I should manually add "No Translation" option if needed, 
+                // or update renderLanguageDropdown to support an extra "None" option.
+                // For now, let's just append "No Translation" manually or let render handle it if I modify it.
+                // I'll modify renderLanguageDropdown to accept an 'includeNone' param or just add it manually here.
+
+                // Let's just prepend "No Translation" after render?
+                // renderLanguageDropdown is async.
+
+                renderLanguageDropdown('batch-target-lang').then(() => {
+                    const bucket = document.getElementById('batch-target-lang');
+                    const noneOpt = document.createElement('option');
+                    noneOpt.value = 'none';
+                    noneOpt.text = 'No Translation';
+                    noneOpt.selected = true;
+                    bucket.insertBefore(noneOpt, bucket.firstChild);
+                });
+
+                // Add change listener to check for download
+                batchTarget.addEventListener('change', async (e) => {
+                    const opt = e.target.selectedOptions[0];
+                    const toCode = opt.value;
+
+                    if (toCode !== 'none' && toCode !== 'multilingual') {
+                        // Source assumed 'en' for batch for now unless we enable source selector
+                        const fromCode = 'en';
+                        if (opt.parentElement.label.includes('Available') || !opt.getAttribute('data-installed')) {
+                            // Check install
+                            await ensureLanguageInstalled(fromCode, toCode);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/language_manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/bug_reporter.js') }}"></script>
+
+    {% include 'partials/language_settings_modal.html' %}
 
     <!-- Bug Report Modal -->
     <div class="modal fade" id="bugReportModal" tabindex="-1">
+
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">

@@ -1,36 +1,17 @@
 import argostranslate.package
 import argostranslate.translate
 
-def install_languages():
-    """Updates the package index and installs translation models for supported languages.
 
-    Supported pairs include English and: Spanish, French, German, Polish, 
-    Portuguese, Italian, Dutch, and Russian.
+from language_manager import get_installed_languages, install_language
+
+def install_languages():
     """
-    argostranslate.package.update_package_index()
-    available_packages = argostranslate.package.get_available_packages()
-    
-    # Pairs to install: en <-> es, fr, de, pl, pt, it, nl, ru
-    pairs = [
-        ('en', 'es'), ('es', 'en'),
-        ('en', 'fr'), ('fr', 'en'),
-        ('en', 'de'), ('de', 'en'),
-        ('en', 'pl'), ('pl', 'en'),
-        ('en', 'pt'), ('pt', 'en'),
-        ('en', 'it'), ('it', 'en'),
-        ('en', 'nl'), ('nl', 'en'),
-        ('en', 'ru'), ('ru', 'en')
-    ]
-    
-    for from_code, to_code in pairs:
-        package_to_install = next(
-            filter(
-                lambda x: x.from_code == from_code and x.to_code == to_code, available_packages
-            ), None
-        )
-        if package_to_install:
-            print(f"Installing {from_code}->{to_code}...")
-            argostranslate.package.install_from_path(package_to_install.download())
+    Deprecated: Use language_manager.install_language instead.
+    This function is kept for backward compatibility but does nothing by default now
+    to avoid blocking startup with downloads.
+    """
+    pass
+
 
 def translate_text(text, target_lang, source_lang='en'):
     """Translates text between two ISO language codes using Argos Translate.
@@ -46,12 +27,20 @@ def translate_text(text, target_lang, source_lang='en'):
     try:
         if source_lang == target_lang:
             return text
+            
+        if source_lang in ['multilingual', 'auto', 'none']:
+            # TODO: Implement language detection. For now, default to English or fail gracefully.
+            # Returning original text might be safer if we can't detect, but user expects translation.
+            # Let's try English default since most users might be translating FROM English.
+            print(f"Warning: Source language '{source_lang}' not supported by manual translation. Defaulting to 'en'.")
+            source_lang = 'en'
+            
         return argostranslate.translate.translate(text, source_lang, target_lang)
     except Exception as e:
         print(f"Translation error: {e}")
         return text
 
+
 if __name__ == "__main__":
-    print("Installing translation models...")
-    install_languages()
-    print("Translation models installed.")
+    pass
+

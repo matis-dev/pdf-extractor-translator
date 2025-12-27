@@ -28,34 +28,6 @@ def test_translate_error(mock_translate):
     result = translate_text("Hello", "es", "en")
     assert result == "Hello"
 
-@patch('argostranslate.package.get_available_packages')
-@patch('argostranslate.package.install_from_path')
-@patch('argostranslate.package.update_package_index')
-def test_install_languages(mock_update, mock_install, mock_get_packages):
-    """Test language installation logic."""
-    # Create mock packages for all expected pairs
-    expected_pairs = [
-        ('en', 'es'), ('es', 'en'),
-        ('en', 'fr'), ('fr', 'en'),
-        ('en', 'de'), ('de', 'en'),
-        ('en', 'pl'), ('pl', 'en'),
-        ('en', 'pt'), ('pt', 'en'),
-        ('en', 'it'), ('it', 'en'),
-        ('en', 'nl'), ('nl', 'en'),
-        ('en', 'ru'), ('ru', 'en')
-    ]
-    
-    mock_pkgs = []
-    for f, t in expected_pairs:
-        p = MagicMock()
-        p.from_code = f
-        p.to_code = t
-        p.download.return_value = f'/tmp/{f}_{t}'
-        mock_pkgs.append(p)
-        
-    mock_get_packages.return_value = mock_pkgs
-    
-    install_languages()
-    
-    mock_update.assert_called_once()
-    assert mock_install.call_count == len(expected_pairs)
+
+# test_install_languages removed as function is deprecated
+
