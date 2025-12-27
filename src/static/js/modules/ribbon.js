@@ -79,14 +79,14 @@ const ribbonConfig = {
                             </div>
                             <span class="small text-muted mt-1" style="font-size: 10px;">Fill</span>
                         </div>
-                        <div class="vr" style="height: 60%; opacity: 0.2;"></div>
+                        <div class="vr" style="height: 100%; opacity: 0.2;"></div>
                         <div class="d-flex flex-column justify-content-center gap-2">
                             <div class="d-flex align-items-center gap-2" title="Opacity">
                                 <i class="bi bi-circle-half text-muted" style="font-size: 10px;"></i>
                                 <input type="range" class="form-range" min="0" max="1" step="0.1" value="1" id="bg-alpha-slider" onchange="updateTextBackgroundSettings('backgroundAlpha', parseFloat(this.value))" style="width: 80px; height: 4px;">
                             </div>
                             <div class="d-flex align-items-center gap-2" title="Transparent Background">
-                                <div class="form-check form-switch m-0 min-h-0 d-flex align-items-center">
+                                <div class="form-check form-switch m-0 min-h-0 d-flex align-items-center ps-0">
                                     <input class="form-check-input m-0" type="checkbox" role="switch" id="bg-transparent-check" onchange="updateTextBackgroundSettings('isTransparent', this.checked)" style="width: 30px; height: 16px;">
                                 </div>
                                 <label class="small text-muted mb-0" for="bg-transparent-check" style="font-size: 10px; cursor: pointer;">Transparent</label>
@@ -302,7 +302,7 @@ function switchTab(tabName) {
         group.tools.forEach(tool => {
             if (tool.type === 'html') {
                 const wrapper = document.createElement('div');
-                wrapper.className = 'ribbon-custom';
+                wrapper.className = 'ribbon-custom h-100';
                 wrapper.innerHTML = tool.html;
                 toolsDiv.appendChild(wrapper);
             } else {
