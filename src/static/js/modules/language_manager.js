@@ -35,7 +35,7 @@ export async function fetchLanguages(forceRefresh = false) {
  * @param {boolean} includeMultilingual - Add "Multilingual" option
  * @param {boolean} filterSource - If provided, only show targets for this source code
  */
-export async function renderLanguageDropdown(selectId, selectedValue = null, includeMultilingual = false, filterSource = null) {
+export async function renderLanguageDropdown(selectId, selectedValue = null, includeMultilingual = false, filterSource = null, includeNone = false) {
     const select = document.getElementById(selectId);
     if (!select) return;
 
@@ -52,6 +52,13 @@ export async function renderLanguageDropdown(selectId, selectedValue = null, inc
 
     select.innerHTML = '';
 
+    if (includeNone) {
+        const opt = document.createElement('option');
+        opt.value = 'none';
+        opt.textContent = 'No Translation';
+        select.appendChild(opt);
+    }
+
     if (includeMultilingual) {
         const opt = document.createElement('option');
         opt.value = 'multilingual';
@@ -59,8 +66,6 @@ export async function renderLanguageDropdown(selectId, selectedValue = null, inc
         select.appendChild(opt);
     }
 
-    // Add "No Translation" or default if needed, dependent on context
-    // E.g. for target language, "None" might be valid
 
     const installedGroup = document.createElement('optgroup');
     installedGroup.label = "⚡ Downloaded (Ready)";

@@ -518,7 +518,7 @@
                 // Typically source can be any language we support.
                 // Let's populate with all, but prioritize english
                 renderLanguageDropdown('source-lang', 'en', true);
-                renderLanguageDropdown('target-lang', 'es');
+                renderLanguageDropdown('target-lang', 'none', false, null, true);
 
                 // Add change listener to check for download
                 targetSelect.addEventListener('change', async (e) => {

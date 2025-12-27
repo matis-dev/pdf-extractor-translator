@@ -241,7 +241,7 @@
 
             if (batchTarget) {
                 // Initial render
-                renderLanguageDropdown('batch-target-lang', 'none'); // 'none' might not be in our list, handle that?
+                renderLanguageDropdown('batch-target-lang', 'none', false, null, true);
                 // Actually my render function lists languages. I should manually add "No Translation" option if needed, 
                 // or update renderLanguageDropdown to support an extra "None" option.
                 // For now, let's just append "No Translation" manually or let render handle it if I modify it.

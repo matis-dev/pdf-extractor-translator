@@ -333,7 +333,7 @@ function switchTab(tabName) {
     // Language Dropdown Hook
     if (tabName === 'process') {
         setTimeout(() => {
-            renderLanguageDropdown('ribbon-target-lang', 'es', false);
+            renderLanguageDropdown('ribbon-target-lang', 'none', false, null, true);
             // We could also add a source lang dropdown here if we want to modify the ribbonConfig to include it
         }, 0);
     }
