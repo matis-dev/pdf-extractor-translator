@@ -827,7 +827,29 @@ body {
     cursor: crosshair;
 }
 
-.rotate-ne,
-.rotate-sw {
     cursor: crosshair;
+}
+
+/* Highlight Annotations */
+.highlight-annotation {
+    cursor: pointer;
+}
+
+.highlight-annotation.selected {
+    /* Visual indicator for selection */
+    filter: drop-shadow(0 0 2px #007bff);
+}
+
+.highlight-annotation path {
+    transition: stroke-opacity 0.15s ease;
+    pointer-events: auto; /* Ensure path captures events */
+}
+
+.highlight-annotation:hover path {
+    stroke-opacity: 0.8 !important;
+}
+
+.highlight-annotation.selected path {
+    stroke-opacity: 0.8 !important;
+    /* stroke: #007bff !important; */
 }

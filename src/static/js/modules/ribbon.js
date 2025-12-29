@@ -107,6 +107,30 @@ const ribbonConfig = {
             ]
         },
         {
+            group: 'Highlight Style',
+            tools: [
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <input type="color" class="form-control form-control-color form-control-sm"
+                               id="highlight-color" value="#ffeb3b" title="Highlight Color"
+                               onchange="updateHighlightSettings('strokeColor', this.value)">
+                        <span class="small">Color</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <input type="number" class="form-control form-control-sm"
+                               id="highlight-width" value="20" min="5" max="50"
+                               style="width: 50px" title="Thickness"
+                               onchange="updateHighlightSettings('strokeWidth', parseInt(this.value))">
+                        <span class="small">Width</span>
+                    </div>`
+                }
+            ]
+        },
+        {
             group: 'Shapes',
             tools: [
                 { id: 'shape-rect', icon: 'bi-square', label: 'Rectangle', action: 'setShape', value: 'rect' },

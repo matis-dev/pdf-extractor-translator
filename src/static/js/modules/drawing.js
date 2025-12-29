@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { saveState } from './history.js';
 import { refreshView } from './viewer.js';
 import { commitAnnotations } from './commitAnnotations.js';
+import { initHighlightInteraction } from './highlightAnnotations.js';
 
 // Drag-to-Draw State
 let isDrawing = false;
@@ -15,6 +16,7 @@ let currentShapeElement = null;
 let pathPoints = [];
 
 export function initDrawListeners(container, pageIndex) {
+    initHighlightInteraction(container);
     container.addEventListener('mousedown', (e) => {
         if (state.modes.select) {
             // handleSelectionClick(e, container); // Defined elsewhere or missing
@@ -52,13 +54,14 @@ export function initDrawListeners(container, pageIndex) {
                 position: 'absolute', left: '0', top: '0', width: '100%', height: '100%',
                 pointerEvents: 'none', zIndex: '5'
             });
-            currentSvg.classList.add('drawing-annotation');
+            currentSvg.classList.add('highlight-annotation');
+            currentSvg.dataset.id = `highlight-${Date.now()}`;
 
             currentPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
             currentPath.setAttribute("d", `M ${x} ${y} `);
-            currentPath.setAttribute("stroke", "yellow");
-            currentPath.setAttribute("stroke-width", "20");
-            currentPath.setAttribute("stroke-opacity", "0.4");
+            currentPath.setAttribute("stroke", state.highlightSettings.strokeColor);
+            currentPath.setAttribute("stroke-width", state.highlightSettings.strokeWidth);
+            currentPath.setAttribute("stroke-opacity", state.highlightSettings.opacity);
             currentPath.setAttribute("fill", "none");
             currentPath.setAttribute("stroke-linecap", "round");
             currentPath.setAttribute("stroke-linejoin", "round");
@@ -262,6 +265,19 @@ export async function handleGlobalMouseUp() {
 
         const { performExtraction } = await import('./extraction.js');
         await performExtraction(pageIndex, x, y, w, h, pageWidth, pageHeight);
+        return;
+    }
+
+    // For highlight mode, keep the overlay - don't commit immediately
+    if (modes.highlight) {
+        currentPath = null;
+        currentSvg = null;
+        isDrawing = false;
+        // Save state logic if we want to support undo for highlights immediately? 
+        // For now, let's just leave it in DOM. Undo stack might desync if we don't push something?
+        // Ideally we push a "created highlight" action.
+        // But for this refactor, just keeping it alive is step 1.
+        saveState(false);
         return;
     }
 

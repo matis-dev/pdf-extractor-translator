@@ -50,6 +50,10 @@ export function updateShapeSettings(key, value) {
     state.shapeSettings[key] = value;
 }
 
+export function updateHighlightSettings(key, value) {
+    state.highlightSettings[key] = value;
+}
+
 export function updateButtonStates() {
     const updateBtn = (id, isActive) => {
         const btn = document.getElementById(id);

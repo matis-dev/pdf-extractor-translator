@@ -35,6 +35,11 @@ export const state = {
         strokeWidth: 2,
         fillColor: 'transparent'
     },
+    highlightSettings: {
+        strokeColor: '#ffeb3b', // Yellow default
+        strokeWidth: 20,
+        opacity: 0.4
+    },
     pageToExtractIndex: -1,
     // Constants
     MAX_HISTORY: 50,

@@ -156,11 +156,32 @@ export async function commitAnnotations() {
         });
         await Promise.all(imagePromises);
 
-        // SVG
-        container.querySelectorAll('.drawing-annotation').forEach(svg => {
+        // Highlights (Refactored)
+        container.querySelectorAll('.highlight-annotation').forEach(svg => {
             const path = svg.querySelector('path');
             if (!path) return;
+
             const d = path.getAttribute('d');
+            const strokeColor = path.getAttribute('stroke') || '#ffeb3b';
+            const strokeWidth = parseFloat(path.getAttribute('stroke-width')) || 20;
+            const strokeOpacity = parseFloat(path.getAttribute('stroke-opacity')) || 0.4;
+
+            // Parse color
+            let r = 1, g = 0.92, b = 0.23; // Yellow default
+            if (strokeColor.startsWith('#')) {
+                r = parseInt(strokeColor.substr(1, 2), 16) / 255;
+                g = parseInt(strokeColor.substr(3, 2), 16) / 255;
+                b = parseInt(strokeColor.substr(5, 2), 16) / 255;
+            } else if (strokeColor.startsWith('rgb')) {
+                const parts = strokeColor.match(/\d+/g);
+                if (parts) {
+                    r = parseInt(parts[0]) / 255;
+                    g = parseInt(parts[1]) / 255;
+                    b = parseInt(parts[2]) / 255;
+                }
+            }
+
+            // Convert path coordinates
             const commands = d.split(' ');
             let newD = [];
             for (let i = 0; i < commands.length; i++) {
@@ -172,8 +193,12 @@ export async function commitAnnotations() {
                     i += 2;
                 }
             }
+
             page.drawSvgPath(newD.join(' '), {
-                borderColor: PDFLib.rgb(1, 1, 0), borderWidth: 20, borderOpacity: 0.4, borderLineCap: PDFLib.LineCapStyle.Round
+                borderColor: PDFLib.rgb(r, g, b),
+                borderWidth: strokeWidth,
+                borderOpacity: strokeOpacity,
+                borderLineCap: PDFLib.LineCapStyle.Round
             });
         });
 
@@ -484,5 +509,5 @@ export async function commitAnnotations() {
     }
 
     // Remove existing annotations including text
-    document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .image-wrapper, .drawing-annotation, .shape-annotation, .watermark-annotation, .text-wrapper, .form-field-wrapper').forEach(el => el.remove());
+    document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .image-wrapper, .drawing-annotation, .highlight-annotation, .shape-annotation, .watermark-annotation, .text-wrapper, .form-field-wrapper').forEach(el => el.remove());
 }
