@@ -34,7 +34,7 @@ Object.assign(window, {
     splitPdf,
     openWatermarkModal,
     applyWatermark,
-    applyNote: notes.applyNote,
+    updateNoteSettings: notes.updateNoteSettings, // Expose for ribbon
     loadPdf,
     openPageNumbersModal,
     applyPageNumbers,
@@ -137,11 +137,6 @@ function setupContextMenu() {
             if (state.modes.text) {
                 const rect = container.getBoundingClientRect();
                 // Reusing logic from modules/annotations.js which attaches listeners to page containers
-            } else if (state.modes.note) {
-                const rect = container.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width;
-                const y = (e.clientY - rect.top) / rect.height;
-                notes.handleNoteClick(e, i, x, y);
             }
         });
     }

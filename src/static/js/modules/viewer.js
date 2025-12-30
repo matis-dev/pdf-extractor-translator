@@ -3,6 +3,7 @@ import { requestPassword } from './ui.js';
 import { initDrawListeners, addTextAnnotation, addFormField } from './annotations.js';
 import { rotatePage, movePage, deletePage, extractSinglePage } from './pages.js';
 import { updateActiveThumbnail } from './ui.js';
+import { handleNoteClick, getSelectedNote, deselectAllNotes } from './notes.js';
 
 // const PDFLib = window.PDFLib;
 // const pdfjsLib = window.pdfjsLib;
@@ -94,7 +95,33 @@ export async function renderPdf(bytes, password = null) {
         pageContainer.dataset.pageIndex = i - 1;
         pageContainer.dataset.loaded = 'false';
 
+
+        // Generic Click (Text, Form, Selection Clear)
         pageContainer.onclick = (e) => handlePageClick(e, i - 1);
+
+        // Dedicated Note Handler (Mousedown for immediate response)
+        pageContainer.addEventListener('mousedown', (e) => {
+            if (state.modes.note) {
+                // Ignore if clicking on an existing note
+                if (e.target.closest('.note-annotation')) return;
+
+                // Two-phase logic:
+                // 1. If a note is selected, deselect it and DO NOT create a new one.
+                // 2. If NO note is selected, create a new one.
+                if (getSelectedNote()) {
+                    deselectAllNotes();
+                    return;
+                }
+
+                const container = e.currentTarget;
+                const rect = container.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = (e.clientY - rect.top) / rect.height;
+
+
+                handleNoteClick(e, i - 1, x, y, container);
+            }
+        });
 
         const loadingIndicator = document.createElement('div');
         loadingIndicator.className = 'd-flex justify-content-center align-items-center h-100 text-muted';

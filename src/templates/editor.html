@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ai_chat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/image_editor.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/text_editor.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/note_annotations.css') }}">
 </head>
 
 <body>
@@ -225,30 +226,7 @@
 
     <!-- ... existing ... -->
 
-    <!-- Note Modal -->
-    <div class="modal fade" id="noteModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Note</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="note-modal-page-index">
-                    <input type="hidden" id="note-modal-x">
-                    <input type="hidden" id="note-modal-y">
-                    <div class="mb-3">
-                        <label class="form-label">Note Text</label>
-                        <textarea class="form-control" id="note-text" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="applyNote()">Add Note</button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- ... existing ... -->
 

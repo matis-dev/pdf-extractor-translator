@@ -100,15 +100,10 @@ const ribbonConfig = {
     ],
     'comment': [
         {
-            group: 'Annotations',
+            group: 'Highlighter',
             tools: [
                 { id: 'highlight', icon: 'bi-pencil-fill', label: 'Highlight', action: 'setMode', value: 'highlight' },
-                { id: 'note', icon: 'bi-sticky', label: 'Note', action: 'setMode', value: 'note' }
-            ]
-        },
-        {
-            group: 'Highlight Style',
-            tools: [
+                { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
                 {
                     type: 'html', html: `
                     <div class="d-flex flex-column gap-1">
@@ -131,6 +126,37 @@ const ribbonConfig = {
             ]
         },
         {
+            group: 'Notes',
+            tools: [
+                { id: 'note', icon: 'bi-sticky', label: 'Add Note', action: 'setMode', value: 'note' },
+                { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex gap-1">
+                            <input type="color" class="form-control form-control-color form-control-sm" 
+                                   value="#fff9c4" title="Note Background" 
+                                   onchange="updateNoteSettings('color', this.value)">
+                            <input type="color" class="form-control form-control-color form-control-sm" 
+                                   value="#333333" title="Text Color" 
+                                   onchange="updateNoteSettings('textColor', this.value)">
+                        </div>
+                        <span class="small">Colors</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <input type="number" class="form-control form-control-sm" 
+                               value="12" min="8" max="24" style="width: 50px" 
+                               title="Font Size" 
+                               onchange="updateNoteSettings('fontSize', parseInt(this.value))">
+                        <span class="small">Size</span>
+                    </div>`
+                }
+            ]
+        },
+        {
             group: 'Shapes',
             tools: [
                 { id: 'shape-rect', icon: 'bi-square', label: 'Rectangle', action: 'setShape', value: 'rect' },
@@ -140,10 +166,10 @@ const ribbonConfig = {
             ]
         },
         {
-            group: 'Style',
+            group: 'Shape Style',
             tools: [
-                { type: 'html', html: `<div class="d-flex flex-column gap-1"><input type="color" class="form-control form-control-color form-control-sm" value="#ff0000" title="Color" onchange="updateShapeSettings('strokeColor', this.value)"><span class="small">Color</span></div>` },
-                { type: 'html', html: `<div class="d-flex flex-column gap-1"><input type="number" class="form-control form-control-sm" value="2" min="1" max="20" title="Width" style="width: 50px" onchange="updateShapeSettings('strokeWidth', parseInt(this.value))"><span class="small">Width</span></div>` }
+                { type: 'html', html: `<div class="d-flex flex-column gap-1"><input type="color" class="form-control form-control-color form-control-sm" value="#ff0000" title="Shape Color" onchange="updateShapeSettings('strokeColor', this.value)"><span class="small">Color</span></div>` },
+                { type: 'html', html: `<div class="d-flex flex-column gap-1"><input type="number" class="form-control form-control-sm" value="2" min="1" max="20" title="Stroke Width" style="width: 50px" onchange="updateShapeSettings('strokeWidth', parseInt(this.value))"><span class="small">Width</span></div>` }
             ]
         }
     ],

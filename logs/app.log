@@ -168,3 +168,19 @@
 [2025-12-27 19:41:56] WARNING  werkzeug      * Debugger is active!
 [2025-12-29 08:48:06] ERROR    argostranslate.utils (URLError(gaierror(-3, 'Temporary failure in name resolution')),)
 [2025-12-29 08:48:06] ERROR    argostranslate.utils (URLError(gaierror(-3, 'Temporary failure in name resolution')),)
+[2025-12-29 19:58:07] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 19:58:16] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 20:15:24] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 20:15:24] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 20:15:33] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 20:15:33] WARNING  werkzeug      * Debugger is active!
+[2025-12-29 20:31:35] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 20:31:36] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 20:31:46] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 20:31:46] WARNING  werkzeug      * Debugger is active!
+[2025-12-29 21:30:36] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 21:30:45] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 21:33:21] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 21:33:21] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 21:33:29] INFO     root         Logging initialized. Writing to logs/app.log
+[2025-12-29 21:33:29] WARNING  werkzeug      * Debugger is active!

@@ -20,6 +20,12 @@ export const state = {
         formField: false
     },
     formFieldType: null, // 'textfield', 'checkbox', 'radio', 'dropdown', 'signature'
+    noteSettings: {
+        color: '#fff9c4',        // Default light yellow
+        textColor: '#333333',
+        fontSize: 12,
+        defaultCollapsed: false
+    },
     formSettings: {
         fontFamily: 'Helvetica',
         fontSize: 12,

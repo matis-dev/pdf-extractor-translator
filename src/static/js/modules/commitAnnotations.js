@@ -371,39 +371,11 @@ export async function commitAnnotations() {
                 // Logic similar to image: Center rotation logic or just simple if no rotation?
                 // The text is drawn at x,y. The rect should be drawn at x,y.
                 // For rotated text, we treat it as an object.
-
-                const pX = x;
-                const pY = height - y - h; // PDF Y is bottom-up
-                // Wait, for rotated text, `drawText` handles rotation around origin? No, update to `drawText`.
-                // PDF-Lib drawText `rotate` parameter rotates around the text origin (bottom-left of text baseline usually).
-                // Our wrapper rotation is around center.
-                // This is complex for text.
-                // Simplification: For now, draw text at top-left position (x,y) unrotated.
-                // If rotation is needed, we must adjust coordinates.
-                // Let's implement basic text drawing first.
-
-                /*
-                page.drawRectangle({
-                   x: pX, y: pY, width: w, height: h,
-                   color: PDFLib.rgb(bgR, bgG, bgB),
-                   opacity: bgAlpha,
-                   rotate: PDFLib.degrees(rotationDeg) // Creates sync issue if centers differ
-                });
-                */
             }
 
             // Draw Text
-            // Adjust Y for PDF-Lib (drawText y is baseline? or bottom-left?)
-            // Usually bottom-left of the first line.
-            // DOM Y is top-left.
-            // PDF Y = height - y - fontSize (approx).
-            // A more accurate way: PDF Y = height - y - heightOfText
-
-            const pY = height - y; // - approx height?
-
-            // Note: PDF-Lib standard font does not support unicode properly sometimes. 
-            // We use standard 'Helvetica' here which is limited.
-            // Custom fonts require embedding.
+            // Adjust Y for PDF-Lib
+            const pY = height - y;
 
             page.drawText(text, {
                 x: x + 5, // Padding
@@ -415,6 +387,7 @@ export async function commitAnnotations() {
             });
         });
         await Promise.all(textPromises);
+
 
         // Form Fields (New)
         const formWrappers = container.querySelectorAll('.form-field-wrapper');
@@ -508,6 +481,6 @@ export async function commitAnnotations() {
 
     }
 
-    // Remove existing annotations including text
+    // Remove existing annotations including text (EXCLUDING note-annotation)
     document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .image-wrapper, .drawing-annotation, .highlight-annotation, .shape-annotation, .watermark-annotation, .text-wrapper, .form-field-wrapper').forEach(el => el.remove());
 }
