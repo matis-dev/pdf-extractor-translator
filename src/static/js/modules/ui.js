@@ -27,21 +27,28 @@ export function initTheme() {
 }
 
 
+export function disableAllModes() {
+    state.modes.hand = false;
+    state.modes.select = false;
+    state.modes.zoomIn = false;
+    state.modes.zoomOut = false;
+    state.modes.text = false;
+    state.modes.redact = false;
+    state.modes.highlight = false;
+    state.modes.extract = false;
+    state.modes.formField = false;
+    state.modes.note = false; // Ensure note is cleared
+    state.modes.shape = null; // Ensure shape is cleared
+}
+
 export function setShapeMode(mode) {
     if (state.modes.shape === mode) {
-        state.modes.shape = null;
+        // Toggle off
+        disableAllModes();
+        state.modes.select = true; // Revert to select
     } else {
+        disableAllModes();
         state.modes.shape = mode;
-        // Turn off others
-        state.modes.hand = false;
-        state.modes.select = false;
-        state.modes.zoomIn = false;
-        state.modes.zoomOut = false;
-        state.modes.text = false;
-        state.modes.redact = false;
-        state.modes.highlight = false;
-        state.modes.extract = false;
-        state.modes.formField = false;
     }
     updateButtonStates();
 }
@@ -67,11 +74,9 @@ export function updateButtonStates() {
     updateBtn('highlight', state.modes.highlight);
     updateBtn('add-text', state.modes.text);
     updateBtn('tool-select', state.modes.select);
-    updateBtn('tool-select', state.modes.select);
     updateBtn('tool-hand', state.modes.hand);
     updateBtn('zoom-in', state.modes.zoomIn);
     updateBtn('zoom-out', state.modes.zoomOut);
-    // extract mode might not have a ribbon button yet, skipping
 
     // Shape buttons
     updateBtn('shape-rect', state.modes.shape === 'rect');
@@ -90,184 +95,110 @@ export function updateButtonStates() {
     const container = document.getElementById('main-preview');
     if (container) container.style.cursor = ''; // Reset container cursor
 
-    const anyMode = state.modes.redact || state.modes.highlight || state.modes.text || state.modes.shape || state.modes.note || state.modes.formField;
-    document.body.style.cursor = anyMode ? 'crosshair' : 'default';
+    // Prioritize cursors based on active mode
     if (state.modes.text) document.body.style.cursor = 'text';
-    if (state.modes.note) document.body.style.cursor = 'copy';
-    if (state.modes.select) document.body.style.cursor = 'default';
-    if (state.modes.hand) {
+    else if (state.modes.note) document.body.style.cursor = 'copy';
+    else if (state.modes.hand) {
         document.body.style.cursor = 'grab';
         if (container) container.style.cursor = 'grab';
     }
-    if (state.modes.zoomIn) document.body.style.cursor = 'zoom-in';
-    if (state.modes.zoomOut) document.body.style.cursor = 'zoom-out';
+    else if (state.modes.zoomIn) document.body.style.cursor = 'zoom-in';
+    else if (state.modes.zoomOut) document.body.style.cursor = 'zoom-out';
+    else if (state.modes.select) document.body.style.cursor = 'default';
+    else {
+        // Default cursor for drawing/creation tools
+        const anyMode = state.modes.redact || state.modes.highlight || state.modes.shape || state.modes.formField;
+        document.body.style.cursor = anyMode ? 'crosshair' : 'default';
+    }
 }
 
 export function toggleZoomInMode() {
-    state.modes.zoomIn = !state.modes.zoomIn;
-    if (state.modes.zoomIn) {
-        state.modes.zoomOut = false;
-        state.modes.hand = false;
-        state.modes.select = false;
-        state.modes.redact = false;
-        state.modes.highlight = false;
-        state.modes.text = false;
-        state.modes.extract = false;
-        state.modes.note = false;
-        state.modes.shape = null;
-        state.modes.formField = false;
-    }
+    const wasActive = state.modes.zoomIn;
+    disableAllModes();
+    if (!wasActive) state.modes.zoomIn = true;
+    else state.modes.select = true;
     updateButtonStates();
 }
 
 export function toggleZoomOutMode() {
-    state.modes.zoomOut = !state.modes.zoomOut;
-    if (state.modes.zoomOut) {
-        state.modes.zoomIn = false;
-        state.modes.hand = false;
-        state.modes.select = false;
-        state.modes.redact = false;
-        state.modes.highlight = false;
-        state.modes.text = false;
-        state.modes.extract = false;
-        state.modes.note = false;
-        state.modes.shape = null;
-        state.modes.formField = false;
-    }
+    const wasActive = state.modes.zoomOut;
+    disableAllModes();
+    if (!wasActive) state.modes.zoomOut = true;
+    else state.modes.select = true;
     updateButtonStates();
 }
 
 export function toggleHandMode() {
-    state.modes.hand = !state.modes.hand;
-    if (state.modes.hand) {
-        state.modes.zoomIn = false;
-        state.modes.zoomOut = false;
-        state.modes.select = false;
-        state.modes.redact = false;
-        state.modes.highlight = false;
-        state.modes.text = false;
-        state.modes.extract = false;
-        state.modes.note = false;
-        state.modes.shape = null;
-        state.modes.formField = false;
-    }
+    const wasActive = state.modes.hand;
+    disableAllModes();
+    if (!wasActive) state.modes.hand = true;
+    // If turning off hand, default to select? Or just nothing? 
+    // Usually toggleSelectMode is the alternative.
+    // Let's default to select if Hand is turned off.
+    else state.modes.select = true;
     updateButtonStates();
 }
 
 export function toggleSelectMode() {
-    state.modes.select = !state.modes.select;
-    if (state.modes.select) {
-        state.modes.zoomIn = false;
-        state.modes.zoomOut = false;
-        state.modes.hand = false;
-        state.modes.redact = false;
-        state.modes.highlight = false;
-        state.modes.text = false;
-        state.modes.extract = false;
-        state.modes.note = false;
-        state.modes.shape = null;
-        state.modes.formField = false;
-    }
+    const wasActive = state.modes.select;
+    disableAllModes();
+    // If it was active, maybe we toggle it off? But Select is often default.
+    // Let's say if we toggle Select, we ensure it's on. 
+    // If it was already on, do we turn it off? Usually buttons in ribbon act as radio for tools.
+    // But 'toggle' implies on/off.
+    // However, if we click 'Select' tool, we want to BE in select mode.
+    // If we click it again, staying in select mode is fine.
+    // But typically tool buttons are radio buttons.
+    // Let's enforce ON if called.
+    if (!wasActive) state.modes.select = true;
+    else state.modes.select = true; // Keep it on? Or toggle? 
+    // If I click Select while in Select, nothing changes.
     updateButtonStates();
 }
 
 export function toggleRedactMode() {
-    state.modes.redact = !state.modes.redact;
-    state.modes.zoomIn = false;
-    state.modes.zoomOut = false;
-    state.modes.hand = false;
-    state.modes.select = false;
-    state.modes.text = false;
-    state.modes.highlight = false;
-    state.modes.extract = false;
-    state.modes.note = false;
-    state.modes.shape = null;
-    state.modes.formField = false;
+    const wasActive = state.modes.redact;
+    disableAllModes();
+    if (!wasActive) state.modes.redact = true;
+    else state.modes.select = true;
     updateButtonStates();
 }
 
 export function toggleHighlightMode() {
-    state.modes.highlight = !state.modes.highlight;
-    state.modes.zoomIn = false;
-    state.modes.zoomOut = false;
-    state.modes.hand = false;
-    state.modes.select = false;
-    state.modes.text = false;
-    state.modes.redact = false;
-    state.modes.extract = false;
-    state.modes.note = false;
-    state.modes.shape = null;
-    state.modes.formField = false;
+    const wasActive = state.modes.highlight;
+    disableAllModes();
+    if (!wasActive) state.modes.highlight = true;
+    else state.modes.select = true;
     updateButtonStates();
 }
 
 export function toggleExtractMode() {
-    state.modes.extract = !state.modes.extract;
-    state.modes.zoomIn = false;
-    state.modes.zoomOut = false;
-    state.modes.hand = false;
-    state.modes.select = false;
-    state.modes.text = false;
-    state.modes.redact = false;
-    state.modes.highlight = false;
-    state.modes.note = false;
-    state.modes.shape = null;
-    state.modes.formField = false;
+    const wasActive = state.modes.extract;
+    disableAllModes();
+    if (!wasActive) state.modes.extract = true;
+    else state.modes.select = true;
     updateButtonStates();
 }
 
 export function toggleTextMode() {
-    state.modes.text = !state.modes.text;
-    if (state.modes.text) {
-        state.modes.zoomIn = false;
-        state.modes.zoomOut = false;
-        state.modes.hand = false;
-        state.modes.select = false;
-        state.modes.redact = false;
-        state.modes.highlight = false;
-        state.modes.extract = false;
-        state.modes.note = false;
-        state.modes.shape = null;
-        state.modes.formField = false;
-    }
+    const wasActive = state.modes.text;
+    disableAllModes();
+    if (!wasActive) state.modes.text = true;
+    else state.modes.select = true;
     updateButtonStates();
 }
 
 export function toggleNoteMode() {
-    state.modes.note = !state.modes.note;
-    if (state.modes.note) {
-        state.modes.zoomIn = false;
-        state.modes.zoomOut = false;
-        state.modes.hand = false;
-        state.modes.select = false;
-        state.modes.text = false;
-        state.modes.redact = false;
-        state.modes.highlight = false;
-        state.modes.extract = false;
-        state.modes.shape = null;
-        state.modes.formField = false;
-    }
+    const wasActive = state.modes.note;
+    disableAllModes();
+    if (!wasActive) state.modes.note = true;
+    else state.modes.select = true;
     updateButtonStates();
 }
 
 export function resetModes() {
-    state.modes.text = false;
-    state.modes.zoomIn = false;
-    state.modes.zoomOut = false;
-    state.modes.hand = false;
-    state.modes.select = false; // Or default to true? Usually 'select' is the default neutral state.
-    state.modes.redact = false;
-    state.modes.highlight = false;
-    state.modes.extract = false;
-    state.modes.note = false;
-    state.modes.shape = null;
-    state.modes.formField = false;
-
-    // Set 'select' to true as default neutral state?
-    // If we are uploading an image, we probably want to be in 'move/select' mode for the image.
-    // The image handler in annotations.js sets 'selectImage(..., move)', so we should probably align with select mode.
+    disableAllModes();
     state.modes.select = true;
-
     updateButtonStates();
 }
 

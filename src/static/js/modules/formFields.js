@@ -230,12 +230,14 @@ export function updateFormSettings(key, value) {
 
 export function toggleFormMode(type) {
     // Reset other modes
-    if (window.resetModes) window.resetModes();
+    if (window.disableAllModes) window.disableAllModes();
+    else if (window.resetModes) window.resetModes(); // Fallback
 
     state.modes.formField = true;
     state.formFieldType = type;
 
     // Visual feedback handled by updateButtonStates in ui.js usually
     // We might need to ensure ui.js knows about this mode.
+    if (window.updateButtonStates) window.updateButtonStates();
     document.body.style.cursor = 'crosshair';
 }

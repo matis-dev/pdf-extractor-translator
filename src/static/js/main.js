@@ -251,4 +251,7 @@ window.initMain = init;
 // Expose Form Logic
 window.toggleFormMode = annotations.toggleFormMode;
 window.updateFormSettings = annotations.updateFormSettings;
+window.disableAllModes = ui.disableAllModes;
+window.resetModes = ui.resetModes;
+window.updateButtonStates = ui.updateButtonStates;
 init();
