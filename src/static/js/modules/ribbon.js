@@ -133,16 +133,20 @@ const ribbonConfig = {
                 { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
                 {
                     type: 'html', html: `
-                    <div class="d-flex flex-column gap-2">
-                        <div class="d-flex gap-1">
-                            <input type="color" class="form-control form-control-color form-control-sm" 
-                                   value="#fff9c4" title="Note Background" 
-                                   onchange="updateNoteSettings('color', this.value)">
-                            <input type="color" class="form-control form-control-color form-control-sm" 
-                                   value="#333333" title="Text Color" 
-                                   onchange="updateNoteSettings('textColor', this.value)">
-                        </div>
-                        <span class="small">Colors</span>
+                    <div class="d-flex flex-column gap-1">
+                        <input type="color" class="form-control form-control-color form-control-sm" 
+                               value="#fff9c4" title="Note Background" 
+                               onchange="updateNoteSettings('color', this.value)">
+                        <span class="small">Fill</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <input type="color" class="form-control form-control-color form-control-sm" 
+                               value="#333333" title="Text Color" 
+                               onchange="updateNoteSettings('textColor', this.value)">
+                        <span class="small">Text</span>
                     </div>`
                 },
                 {
@@ -155,25 +159,7 @@ const ribbonConfig = {
                         <span class="small">Size</span>
                     </div>`
                 },
-                { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
-                {
-                    type: 'html', html: `
-                    <div class="d-flex flex-column gap-1">
-                        <div class="d-flex gap-2">
-                             <input type="color" class="form-control form-control-sm form-control-color" 
-                                   value="#ff0000" 
-                                   id="shape-stroke-color"
-                                   title="Stroke Color"
-                                   onchange="window.updateShapeSettings('strokeColor', this.value)">
-                             <input type="number" class="form-control form-control-sm" 
-                                   value="2" min="1" max="20" style="width: 50px;" 
-                                   id="shape-stroke-width"
-                                   title="Stroke Width"
-                                   onchange="window.updateShapeSettings('strokeWidth', parseInt(this.value))">
-                        </div>
-                        <span class="small text-muted">Shape Style</span>
-                    </div>`
-                }
+
             ]
         },
         {
@@ -182,7 +168,30 @@ const ribbonConfig = {
                 { id: 'shape-rect', icon: 'bi-square', label: 'Rectangle', action: 'setShape', value: 'rect' },
                 { id: 'shape-ellipse', icon: 'bi-circle', label: 'Ellipse', action: 'setShape', value: 'ellipse' },
                 { id: 'shape-line', icon: 'bi-slash-lg', label: 'Line', action: 'setShape', value: 'line' },
-                { id: 'shape-arrow', icon: 'bi-arrow-right', label: 'Arrow', action: 'setShape', value: 'arrow' }
+                { id: 'shape-arrow', icon: 'bi-arrow-right', label: 'Arrow', action: 'setShape', value: 'arrow' },
+                { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <input type="color" class="form-control form-control-sm form-control-color" 
+                               value="#ff0000" 
+                               id="shape-stroke-color"
+                               title="Stroke Color"
+                               onchange="window.updateShapeSettings('strokeColor', this.value)">
+                        <span class="small">Color</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <input type="number" class="form-control form-control-sm" 
+                               value="2" min="1" max="20" style="width: 50px;" 
+                               id="shape-stroke-width"
+                               title="Stroke Width"
+                               onchange="window.updateShapeSettings('strokeWidth', parseInt(this.value))">
+                        <span class="small">Width</span>
+                    </div>`
+                }
             ]
         }
     ],
