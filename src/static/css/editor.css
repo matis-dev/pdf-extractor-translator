@@ -182,6 +182,72 @@ body {
     z-index: 100;
 }
 
+/* Shape Wrappers */
+.shape-wrapper {
+    position: absolute;
+    /* border: 1px dashed #6c757d;  Optional helper border? */
+    cursor: move;
+}
+
+.shape-wrapper:hover {
+    outline: 1px dashed #0d6efd;
+}
+
+.shape-wrapper.selected {
+    outline: 2px solid #0d6efd;
+    z-index: 100;
+}
+
+/* Shape Handles Visibility & Styling */
+.shape-wrapper .resize-handle {
+    display: none;
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #0d6efd;
+    border: 1px solid white;
+    border-radius: 50%;
+    z-index: 101;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.shape-wrapper.selected .resize-handle {
+    display: block;
+}
+
+.shape-wrapper .rotate-handle {
+    display: none;
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 24px;
+    background: white;
+    border: 1px solid #0d6efd;
+    border-radius: 50%;
+    z-index: 101;
+    align-items: center;
+    justify-content: center;
+    cursor: alias;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.shape-wrapper .rotate-handle i {
+    font-size: 14px;
+    color: #0d6efd;
+}
+
+.shape-wrapper.selected .rotate-handle {
+    display: flex;
+}
+
+.shape-content {
+    pointer-events: none;
+    /* Let clicks pass to wrapper */
+    display: block;
+}
+
 .form-field-content {
     width: 100%;
     height: 100%;
@@ -796,6 +862,34 @@ body {
     cursor: ew-resize;
 }
 
+/* Delete Handle (for shapes/images if updated) */
+.delete-handle {
+    width: 18px;
+    height: 18px;
+    background: #dc3545;
+    border: 1px solid white;
+    border-radius: 50%;
+    position: absolute;
+    top: -10px;
+    right: -25px;
+    /* Offset from corner */
+    pointer-events: auto;
+    z-index: 1003;
+    display: none;
+    /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.shape-wrapper.selected .delete-handle,
+.shape-wrapper:hover .delete-handle {
+    display: flex;
+}
+
 /* Rotation Cursors for Zones */
 .rotate-nw {
     top: -10px;
@@ -827,7 +921,7 @@ body {
     cursor: crosshair;
 }
 
-    cursor: crosshair;
+cursor: crosshair;
 }
 
 /* Highlight Annotations */
@@ -842,7 +936,8 @@ body {
 
 .highlight-annotation path {
     transition: stroke-opacity 0.15s ease;
-    pointer-events: auto; /* Ensure path captures events */
+    pointer-events: auto;
+    /* Ensure path captures events */
 }
 
 .highlight-annotation:hover path {

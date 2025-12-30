@@ -38,7 +38,14 @@ export function initDrawListeners(container, pageIndex) {
         if (e.target.classList.contains('image-annotation') ||
             e.target.classList.contains('selection-handle') || // Don't draw over handles
             e.target.classList.contains('annotation-rect') ||
+            e.target.closest('.shape-wrapper') ||
             e.target.closest('svg')) return;
+
+        // User Rule: If a shape is selected, the first click outside should only deselect it.
+        // The second click starts drawing.
+        if (modes.shape && document.querySelector('.shape-wrapper.selected')) {
+            return;
+        }
 
         isDrawing = true;
         const rect = container.getBoundingClientRect();
@@ -208,7 +215,8 @@ export function initDrawListeners(container, pageIndex) {
                 // Calculate arrowhead
                 // Angle of line
                 const angle = Math.atan2(currentY - startY, currentX - startX);
-                const headLen = 15; // length of head in px
+                const strokeWidth = state.shapeSettings.strokeWidth || 2;
+                const headLen = 10 + (strokeWidth * 3); // Dynamic head size
                 const headAngle = Math.PI / 6; // 30 degrees
 
                 const x2 = currentX;
@@ -273,11 +281,19 @@ export async function handleGlobalMouseUp() {
         currentPath = null;
         currentSvg = null;
         isDrawing = false;
-        // Save state logic if we want to support undo for highlights immediately? 
-        // For now, let's just leave it in DOM. Undo stack might desync if we don't push something?
-        // Ideally we push a "created highlight" action.
-        // But for this refactor, just keeping it alive is step 1.
         saveState(false);
+        return;
+    }
+
+    // For Shapes: create interactive wrapper instead of committing
+    if (modes.shape && currentSvg) {
+        const { createShapeWrapper } = await import('./shapeAnnotations.js');
+        createShapeWrapper(currentSvg, container);
+
+        currentRect = null; currentPath = null; currentSvg = null; currentShapeElement = null;
+        isDrawing = false;
+
+        await saveState(false);
         return;
     }
 

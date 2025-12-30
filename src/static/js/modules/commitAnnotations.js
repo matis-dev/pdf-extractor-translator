@@ -202,93 +202,181 @@ export async function commitAnnotations() {
             });
         });
 
-        // Shapes (New)
-        container.querySelectorAll('.shape-annotation').forEach(svg => {
-            const type = svg.dataset.type;
-            const hexColor = svg.dataset.stroke || '#ff0000';
-            const r = parseInt(hexColor.substr(1, 2), 16) / 255;
-            const g = parseInt(hexColor.substr(3, 2), 16) / 255;
-            const b = parseInt(hexColor.substr(5, 2), 16) / 255;
-            const color = PDFLib.rgb(r, g, b);
-            const thickness = parseInt(svg.dataset.strokeWidth || '2');
+        // Shapes (Wrapper-based)
+        const shapeWrappers = container.querySelectorAll('.shape-wrapper');
+        shapeWrappers.forEach(wrapper => {
+            const type = wrapper.dataset.type;
+            const svgElement = wrapper.querySelector('.shape-content rect, .shape-content ellipse, .shape-content line, .shape-content g');
 
+            // Geometry from Wrapper
+            let x = parseFloat(wrapper.style.left);
+            let y = parseFloat(wrapper.style.top);
+            let w = parseFloat(wrapper.style.width);
+            let h = parseFloat(wrapper.style.height);
+
+            // Rotation
+            const match = wrapper.style.transform.match(/rotate\(([-\d.]+)deg\)/);
+            const rotationDeg = match ? parseFloat(match[1]) : 0;
+            // PDF-Lib rotation logic?
+            // If shape is rotated, we must draw it rotated around its center.
+            // Center in PDF coords:
+            const cx = x + w / 2;
+            const cy = height - (y + h / 2);
+
+            // Styles from SVG element
+            // Note: We used to store stroke in dataset, but wrapper.dataset.strokeColor is also valid
+            // Let's rely on wrapper dataset which we update on change
+            let strokeColor = wrapper.dataset.strokeColor || '#ff0000';
+            const strokeWidth = parseInt(wrapper.dataset.strokeWidth || '2');
+
+            // Parse color
+            const r = parseInt(strokeColor.substr(1, 2), 16) / 255;
+            const g = parseInt(strokeColor.substr(3, 2), 16) / 255;
+            const b = parseInt(strokeColor.substr(5, 2), 16) / 255;
+            const color = PDFLib.rgb(r, g, b);
+
+            // Shape Specifics
             if (type === 'rect') {
-                const rect = svg.querySelector('rect');
-                const x = parseFloat(rect.getAttribute('x'));
-                const y = parseFloat(rect.getAttribute('y'));
-                const w = parseFloat(rect.getAttribute('width'));
-                const h = parseFloat(rect.getAttribute('height'));
                 page.drawRectangle({
                     x, y: height - y - h, width: w, height: h,
-                    borderColor: color, borderWidth: thickness, color: undefined, // undefined for no fill
+                    borderColor: color, borderWidth: strokeWidth, color: undefined,
+                    rotate: PDFLib.degrees(rotationDeg),
+                    xSkew: PDFLib.degrees(0), ySkew: PDFLib.degrees(0) // No skew
+                    // Note: drawRectangle rotation is around center by default? No, around anchor (bottom-left).
+                    // PDF-Lib docs say: 'rotate' option rotates around the center of the rectangle?
+                    // "The rotation is performed around the center of the rectangle." -> YES
+                    // So we just pass x,y (bottom-left) and rotate.
                 });
             } else if (type === 'ellipse') {
-                const ellipse = svg.querySelector('ellipse');
-                const cx = parseFloat(ellipse.getAttribute('cx'));
-                const cy = parseFloat(ellipse.getAttribute('cy'));
-                const rx = parseFloat(ellipse.getAttribute('rx'));
-                const ry = parseFloat(ellipse.getAttribute('ry'));
                 page.drawEllipse({
-                    x: cx, y: height - cy,
-                    xScale: rx, yScale: ry,
-                    borderColor: color, borderWidth: thickness, color: undefined
+                    x: cx, y: height - (y + h / 2), // Center
+                    xScale: w / 2, yScale: h / 2,
+                    borderColor: color, borderWidth: strokeWidth, color: undefined,
+                    rotate: PDFLib.degrees(rotationDeg)
                 });
             } else if (type === 'line') {
-                const line = svg.querySelector('line');
-                const x1 = parseFloat(line.getAttribute('x1'));
-                const y1 = parseFloat(line.getAttribute('y1'));
-                const x2 = parseFloat(line.getAttribute('x2'));
-                const y2 = parseFloat(line.getAttribute('y2'));
+                // Line cannot be easily rotated with a param in drawLine?
+                // drawLine does NOT support 'rotate'.
+                // We must calculate endpoints manually if rotated.
+
+                // wrapper x,y is bounding box.
+                // internal line coords: x1, y1, x2, y2 relative to wrapper?
+                // we stored normalized 0->100% or similar in wrapper.
+                // Let's re-calculate logic.
+
+                const lineEl = wrapper.querySelector('line');
+                // Read current attributes (they might be % or px)
+                // If they are % we need to convert to px relative to w,h
+
+                let lx1 = lineEl.getAttribute('x1');
+                let ly1 = lineEl.getAttribute('y1');
+                let lx2 = lineEl.getAttribute('x2');
+                let ly2 = lineEl.getAttribute('y2');
+
+                // Convert % to px
+                const parseCoord = (val, max) => val.endsWith('%') ? (parseFloat(val) / 100) * max : parseFloat(val);
+
+                let px1 = parseCoord(lx1, w);
+                let py1 = parseCoord(ly1, h);
+                let px2 = parseCoord(lx2, w);
+                let py2 = parseCoord(ly2, h);
+
+                // Rotated Points
+                // Center of wrapper (0,0 relative) is w/2, h/2
+                // Rotate (px, py) around (w/2, h/2) by rotationDeg
+                const rad = rotationDeg * (Math.PI / 180);
+                const rot = (x_loc, y_loc) => {
+                    const cx_loc = w / 2;
+                    const cy_loc = h / 2;
+                    // Translate to center
+                    const tx = x_loc - cx_loc;
+                    const ty = y_loc - cy_loc;
+                    // Rotate
+                    const rx = tx * Math.cos(rad) - ty * Math.sin(rad);
+                    const ry = tx * Math.sin(rad) + ty * Math.cos(rad);
+                    // Translate back + global offset
+                    return {
+                        x: x + cx_loc + rx,
+                        y: y + cy_loc + ry
+                    };
+                };
+
+                const p1 = rot(px1, py1);
+                const p2 = rot(px2, py2);
+
                 page.drawLine({
-                    start: { x: x1, y: height - y1 },
-                    end: { x: x2, y: height - y2 },
-                    thickness, color
+                    start: { x: p1.x, y: height - p1.y },
+                    end: { x: p2.x, y: height - p2.y },
+                    thickness: strokeWidth, color
                 });
+
             } else if (type === 'arrow') {
-                // Draw line and head
-                const line = svg.querySelector('line');
-                const x1 = parseFloat(line.getAttribute('x1'));
-                const y1 = parseFloat(line.getAttribute('y1'));
-                const x2 = parseFloat(line.getAttribute('x2'));
-                const y2 = parseFloat(line.getAttribute('y2'));
+                // Arrow logic similar to line - need to rotate 2 lines + head
+                // We don't have easy access to the internal arrow HEAD geometry since we might have just scaled it.
+                // But wait, our Arrow SVG has: Line + Path (Head)
+                // We can traverse them and rotate points.
+                // OR simplify: Just draw a line and re-calculate head like before?
+                // Since we support rotation now, the head orientation matters.
 
+                // Same logic as line for the main shaft:
+                const lineEl = wrapper.querySelector('line');
+                let lx1 = lineEl.getAttribute('x1');
+                let ly1 = lineEl.getAttribute('y1');
+                let lx2 = lineEl.getAttribute('x2');
+                let ly2 = lineEl.getAttribute('y2');
+
+                const parseCoord = (val, max) => val.endsWith('%') ? (parseFloat(val) / 100) * max : parseFloat(val);
+                let px1 = parseCoord(lx1, w);
+                let py1 = parseCoord(ly1, h);
+                let px2 = parseCoord(lx2, w);
+                let py2 = parseCoord(ly2, h);
+
+                const rad = rotationDeg * (Math.PI / 180);
+                const rot = (x_loc, y_loc) => {
+                    const cx_loc = w / 2;
+                    const cy_loc = h / 2;
+                    const tx = x_loc - cx_loc;
+                    const ty = y_loc - cy_loc;
+                    const rx = tx * Math.cos(rad) - ty * Math.sin(rad);
+                    const ry = tx * Math.sin(rad) + ty * Math.cos(rad);
+                    return { x: x + cx_loc + rx, y: y + cy_loc + ry };
+                };
+
+                const start = rot(px1, py1);
+                const end = rot(px2, py2);
+
+                // Draw Shaft
                 page.drawLine({
-                    start: { x: x1, y: height - y1 },
-                    end: { x: x2, y: height - y2 },
-                    thickness, color
+                    start: { x: start.x, y: height - start.y },
+                    end: { x: end.x, y: height - end.y },
+                    thickness: strokeWidth, color
                 });
 
-                // Re-calculate head for PDF
-                // PDF-lib works in PDF coords (y inverted)
-                // Angle needs to be calculated in PDF coords?
-                // y1_pdf = height - y1
-                // y2_pdf = height - y2
-                const startX = x1;
-                const startY = height - y1;
-                const endX = x2;
-                const endY = height - y2;
+                // Draw Head
+                // Calculate angle of the *rotated* line
+                const dx = end.x - start.x;
+                const dy = end.y - start.y; // Screen coords (y down)
+                const angle = Math.atan2(dy, dx);
+                // Note: PDF y is up, but our math for head points is in screen coords then converted
 
-                const angle = Math.atan2(endY - startY, endX - startX);
                 const headLen = 15;
                 const headAngle = Math.PI / 6;
 
-                const p1x = endX - headLen * Math.cos(angle - headAngle);
-                const p1y = endY - headLen * Math.sin(angle - headAngle);
-                const p2x = endX - headLen * Math.cos(angle + headAngle);
-                const p2y = endY - headLen * Math.sin(angle + headAngle);
+                const h1x = end.x - headLen * Math.cos(angle - headAngle);
+                const h1y = end.y - headLen * Math.sin(angle - headAngle);
+                const h2x = end.x - headLen * Math.cos(angle + headAngle);
+                const h2y = end.y - headLen * Math.sin(angle + headAngle);
 
-                // Draw arrow head lines or polygon
-                // Line 1
                 page.drawLine({
-                    start: { x: endX, y: endY },
-                    end: { x: p1x, y: p1y },
-                    thickness, color
+                    start: { x: end.x, y: height - end.y },
+                    end: { x: h1x, y: height - h1y },
+                    thickness: strokeWidth, color
                 });
-                // Line 2
+
                 page.drawLine({
-                    start: { x: endX, y: endY },
-                    end: { x: p2x, y: p2y },
-                    thickness, color
+                    start: { x: end.x, y: height - end.y },
+                    end: { x: h2x, y: height - h2y },
+                    thickness: strokeWidth, color
                 });
             }
         });
@@ -482,5 +570,5 @@ export async function commitAnnotations() {
     }
 
     // Remove existing annotations including text (EXCLUDING note-annotation)
-    document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .image-wrapper, .drawing-annotation, .highlight-annotation, .shape-annotation, .watermark-annotation, .text-wrapper, .form-field-wrapper').forEach(el => el.remove());
+    document.querySelectorAll('.text-annotation, .annotation-rect, .image-annotation, .image-wrapper, .drawing-annotation, .highlight-annotation, .shape-annotation, .shape-wrapper, .watermark-annotation, .text-wrapper, .form-field-wrapper').forEach(el => el.remove());
 }

@@ -388,38 +388,60 @@ def test_shapes_annotation(page: Page, live_server_url):
         expect(page.locator("#sidebar")).to_be_visible()
         
         # Activate Shape mode (Rectangle) - Comment Tab
-        # Activate Shape mode (Rectangle) - Comment Tab
         page.locator(".tab-btn").filter(has_text="Comment").click()
         page.locator("#shape-rect").click()
         
         # Draw a rectangle on the first page
-        # We need to target .page-container
+        # Get location of first page
         page_container = page.locator(".page-container").first
-        
-        # Simulate drag
-        # Use page coordinates relative to viewport
         box = page_container.bounding_box()
-        if box:
-            # Start position
-            start_x = box["x"] + 50
-            start_y = box["y"] + 50
-            # End position
-            end_x = box["x"] + 150
-            end_y = box["y"] + 150
-            
-            page.mouse.move(start_x, start_y)
-            page.mouse.down()
-            page.mouse.move(end_x, end_y, steps=5) # Steps help triggering move events
-            page.mouse.up()
+        
+        start_x = box["x"] + 100
+        start_y = box["y"] + 100
+        end_x = start_x + 200
+        end_y = start_y + 100
+        
+        page.mouse.move(start_x, start_y)
+        page.mouse.down()
+        page.mouse.move(end_x, end_y, steps=5)
+        page.mouse.up()
         
         # Verify shape exists in DOM (wait for it)
-        # Note: Shape is committed immediately on mouseup, so DOM element is removed.
-        # We rely on previous functionality or visual tests.
-        # expect(page.locator(".shape-annotation")).to_have_count(1, timeout=10000)
-        # expect(page.locator(".shape-annotation[data-type='rect']")).to_be_visible()
+        # Shape should persist as a wrapper now
+        expect(page.locator(".shape-wrapper")).to_have_count(1, timeout=10000)
+        
+        # Test Interaction: Click-to-deselect
+        # 1. Select the shape (if not already)
+        page.locator(".shape-wrapper").click()
+        expect(page.locator(".shape-wrapper.selected")).to_be_visible()
+        
+        # 2. Click background (should deselect, NOT draw new)
+        # Move to empty space
+        page.mouse.click(start_x + 300, start_y + 300)
+        
+        # Verify deselected
+        expect(page.locator(".shape-wrapper.selected")).to_have_count(0)
+        # Verify NO new shape (count still 1)
+        expect(page.locator(".shape-wrapper")).to_have_count(1)
+        
+        # 3. Click drag again to draw new shape
+        page.mouse.move(start_x + 300, start_y + 300)
+        page.mouse.down()
+        page.mouse.move(start_x + 350, start_y + 350, steps=5)
+        page.mouse.up()
+        
+        # Verify new shape exists (count 2)
+        expect(page.locator(".shape-wrapper")).to_have_count(2)
+
+        expect(page.locator(".shape-wrapper[data-type='rect']").first).to_be_visible()
+        
+        # Switch to Home tab to access Save button
+        page.locator(".tab-btn").filter(has_text="Home").click()
         
         # Save changes (activates commitAnnotations)
-        page.get_by_test_id("save-btn").click()
+        save_btn = page.get_by_test_id("save-btn")
+        expect(save_btn).to_be_visible()
+        save_btn.click()
         
         # Wait for success toast
         expect(page.locator(".toast-body")).to_contain_text("Changes saved successfully!")

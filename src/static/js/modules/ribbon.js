@@ -1,12 +1,13 @@
 
 import { renderLanguageDropdown } from './language_manager.js';
+import { updateShapeSettings } from './shapeAnnotations.js';
 
 const ribbonConfig = {
     'home': [
         {
             group: 'File',
             tools: [
-                { id: 'save-btn', icon: 'bi-floppy', label: 'Save', action: 'globalAction', function: 'saveChanges' },
+                { id: 'save-btn', icon: 'bi-floppy', label: 'Save', action: 'globalAction', function: 'saveChanges', testId: 'save-btn' },
                 { id: 'undo-btn', icon: 'bi-arrow-counterclockwise', label: 'Undo', action: 'globalAction', function: 'undoAction' },
                 { id: 'redo-btn', icon: 'bi-arrow-clockwise', label: 'Redo', action: 'globalAction', function: 'redoAction' }
             ]
@@ -132,7 +133,7 @@ const ribbonConfig = {
                 { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
                 {
                     type: 'html', html: `
-                    <div class="d-flex flex-column gap-1">
+                    <div class="d-flex flex-column gap-2">
                         <div class="d-flex gap-1">
                             <input type="color" class="form-control form-control-color form-control-sm" 
                                    value="#fff9c4" title="Note Background" 
@@ -153,6 +154,25 @@ const ribbonConfig = {
                                onchange="updateNoteSettings('fontSize', parseInt(this.value))">
                         <span class="small">Size</span>
                     </div>`
+                },
+                { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex gap-2">
+                             <input type="color" class="form-control form-control-sm form-control-color" 
+                                   value="#ff0000" 
+                                   id="shape-stroke-color"
+                                   title="Stroke Color"
+                                   onchange="window.updateShapeSettings('strokeColor', this.value)">
+                             <input type="number" class="form-control form-control-sm" 
+                                   value="2" min="1" max="20" style="width: 50px;" 
+                                   id="shape-stroke-width"
+                                   title="Stroke Width"
+                                   onchange="window.updateShapeSettings('strokeWidth', parseInt(this.value))">
+                        </div>
+                        <span class="small text-muted">Shape Style</span>
+                    </div>`
                 }
             ]
         },
@@ -163,13 +183,6 @@ const ribbonConfig = {
                 { id: 'shape-ellipse', icon: 'bi-circle', label: 'Ellipse', action: 'setShape', value: 'ellipse' },
                 { id: 'shape-line', icon: 'bi-slash-lg', label: 'Line', action: 'setShape', value: 'line' },
                 { id: 'shape-arrow', icon: 'bi-arrow-right', label: 'Arrow', action: 'setShape', value: 'arrow' }
-            ]
-        },
-        {
-            group: 'Shape Style',
-            tools: [
-                { type: 'html', html: `<div class="d-flex flex-column gap-1"><input type="color" class="form-control form-control-color form-control-sm" value="#ff0000" title="Shape Color" onchange="updateShapeSettings('strokeColor', this.value)"><span class="small">Color</span></div>` },
-                { type: 'html', html: `<div class="d-flex flex-column gap-1"><input type="number" class="form-control form-control-sm" value="2" min="1" max="20" title="Stroke Width" style="width: 50px" onchange="updateShapeSettings('strokeWidth', parseInt(this.value))"><span class="small">Width</span></div>` }
             ]
         }
     ],
@@ -360,6 +373,7 @@ function switchTab(tabName) {
                 btn.className = 'ribbon-btn';
                 btn.innerHTML = `<i class="bi ${tool.icon}"></i><span>${tool.label}</span>`;
                 btn.id = tool.id;
+                if (tool.testId) btn.setAttribute('data-testid', tool.testId);
 
                 if (tool.action) {
                     btn.onclick = () => handleAction(tool);
@@ -432,7 +446,8 @@ window.submitRibbonProcessing = function () {
     // Direct call to endpoint? Or leverage existing form submission function?
     // Let's try to reuse submitProcessing if we can map values.
 
-    // For now, let's just log or alert
+    // Export for window access (so inline HTML onchange works)
+    window.updateShapeSettings = updateShapeSettings;
     // Actually, we can just set the values in the hidden form if it exists, or create a formData object.
 
     const form = document.getElementById('process-form');

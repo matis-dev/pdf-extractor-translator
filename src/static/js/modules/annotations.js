@@ -7,6 +7,7 @@
 export * from './drawing.js';
 export * from './textAnnotations.js';
 export * from './imageAnnotations.js';
+export * from './shapeAnnotations.js';
 export * from './watermark.js';
 export * from './commitAnnotations.js';
 export * from './formFields.js';

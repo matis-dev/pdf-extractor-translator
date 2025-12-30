@@ -93,6 +93,7 @@ async function init() {
         ui.updateHistoryButtons(historyState.undoStack, historyState.redoStack);
 
         setupContextMenu();
+        if (annotations.initShapeGlobalListeners) annotations.initShapeGlobalListeners();
         console.log("setupContextMenu done");
         document.body.setAttribute('data-main-initialized', 'true');
     } catch (e) {
