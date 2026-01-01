@@ -17,8 +17,10 @@ document.addEventListener('mousedown', (e) => {
     // Deselect Image
     deselectAllImages();
 
-    // Deselect Text
-    document.querySelectorAll('.text-wrapper.selected').forEach(el => el.classList.remove('selected'));
+    // Deselect Text - ONLY if not in text mode (Text Mode handles its own deselect-on-click logic)
+    if (!state.modes.text) {
+        document.querySelectorAll('.text-wrapper.selected').forEach(el => el.classList.remove('selected'));
+    }
 });
 
 // Global mouseup handler (must be called from main to setup, or exported)
@@ -34,7 +36,9 @@ export function setupImageInteraction(wrapper, container) {
     // 1. Move Logic (MouseDown on the wrapper body)
     wrapper.addEventListener('mousedown', (e) => {
         // If clicking a handle, don't trigger move
-        if (e.target.closest('.resize-handle') || e.target.closest('.rotate-handle')) return;
+        if (e.target.closest('.resize-handle') ||
+            e.target.closest('.rotate-handle') ||
+            e.target.closest('.delete-handle')) return;
 
         e.stopPropagation(); // Don't trigger page drag
         e.preventDefault();  // Don't trigger image drag
@@ -67,6 +71,20 @@ export function setupImageInteraction(wrapper, container) {
             e.preventDefault();
             startWrapperRotation(e, wrapper);
         });
+    }
+
+    // 4. Delete Handle
+    const delHandle = wrapper.querySelector('.delete-handle');
+    if (delHandle) {
+        delHandle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm("Delete this image?")) {
+                wrapper.remove();
+                selectedImageWrapper = null;
+                saveState(false);
+            }
+        });
+        delHandle.addEventListener('mousedown', (e) => e.stopPropagation());
     }
 }
 
@@ -106,6 +124,7 @@ export async function handleImageUpload(input) {
                     <div class="resize-handle handle-sw" data-dir="sw"></div>
                     <div class="resize-handle handle-w" data-dir="w"></div>
                     <div class="rotate-handle"><i class="bi bi-arrow-repeat"></i></div>
+                    <div class="delete-handle" title="Delete Image"><i class="bi bi-x-lg"></i></div>
                 `;
 
                 // Add Image
@@ -192,6 +211,7 @@ export async function addSignatureAnnotation(dataUrl) {
             <div class="resize-handle handle-sw" data-dir="sw"></div>
             <div class="resize-handle handle-w" data-dir="w"></div>
             <div class="rotate-handle"><i class="bi bi-arrow-repeat"></i></div>
+            <div class="delete-handle" title="Delete Image"><i class="bi bi-x-lg"></i></div>
         `;
 
         img.className = 'image-content signature';

@@ -24,14 +24,13 @@ const ribbonConfig = {
     ],
     'edit': [
         {
-            group: 'Content',
+            group: 'Text',
             tools: [
-                { id: 'add-text', icon: 'bi-type', label: 'Add Text', action: 'setMode', value: 'text' },
-                { id: 'add-image', icon: 'bi-image', label: 'Add Image', action: 'triggerUpload', inputId: 'image-upload' }
+                { id: 'add-text', icon: 'bi-type', label: 'Add Text', action: 'setMode', value: 'text' }
             ]
         },
         {
-            group: 'Font',
+            group: 'Text Style',
             tools: [
                 {
                     type: 'html', html: `
@@ -65,12 +64,8 @@ const ribbonConfig = {
                         </div>
                         <span class="small text-muted">Style</span>
                     </div>`
-                }
-            ]
-        },
-        {
-            group: 'Background',
-            tools: [
+                },
+                { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
                 {
                     type: 'html', html: `
                     <div class="d-flex align-items-center gap-3 px-1 h-100">
@@ -80,7 +75,6 @@ const ribbonConfig = {
                             </div>
                             <span class="small text-muted mt-1" style="font-size: 10px;">Fill</span>
                         </div>
-                        <div class="vr" style="height: 100%; opacity: 0.2;"></div>
                         <div class="d-flex flex-column justify-content-center gap-2">
                             <div class="d-flex align-items-center gap-2" title="Opacity">
                                 <i class="bi bi-circle-half text-muted" style="font-size: 10px;"></i>
@@ -95,6 +89,12 @@ const ribbonConfig = {
                         </div>
                     </div>`
                 }
+            ]
+        },
+        {
+            group: 'Image',
+            tools: [
+                { id: 'add-image', icon: 'bi-image', label: 'Add Image', action: 'triggerUpload', inputId: 'image-upload' }
             ]
         },
 

@@ -886,7 +886,11 @@ body {
 }
 
 .shape-wrapper.selected .delete-handle,
-.shape-wrapper:hover .delete-handle {
+.shape-wrapper:hover .delete-handle,
+.text-wrapper.selected .delete-handle,
+.text-wrapper:hover .delete-handle,
+.image-wrapper.selected .delete-handle,
+.image-wrapper:hover .delete-handle {
     display: flex;
 }
 

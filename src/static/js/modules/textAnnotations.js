@@ -22,7 +22,18 @@ export function ensureTextSettings() {
 }
 
 export async function addTextAnnotation(e, pageIndex) {
-    if (e.target.closest('.text-wrapper') || e.target.closest('.resize-handle')) return;
+    // 1. Check for Active Selection First
+    const existingSelected = document.querySelectorAll('.text-wrapper.selected');
+    if (existingSelected.length > 0) {
+        // If clicking outside the selected wrapper (handled by e.target check below),
+        // we just deselect and return.
+        if (!e.target.closest('.text-wrapper.selected')) {
+            existingSelected.forEach(el => el.classList.remove('selected'));
+            return; // STOP creation
+        }
+    }
+
+    if (e.target.closest('.text-wrapper') || e.target.closest('.resize-handle') || e.target.closest('.delete-handle')) return;
 
     ensureTextSettings();
     await saveState(false);
@@ -51,6 +62,7 @@ export async function addTextAnnotation(e, pageIndex) {
         <div class="resize-handle handle-sw" data-dir="sw"></div>
         <div class="resize-handle handle-w" data-dir="w"></div>
         <div class="rotate-handle"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="delete-handle" title="Delete Text"><i class="bi bi-x-lg"></i></div>
     `;
 
     // Create Text Content
@@ -124,7 +136,9 @@ export function setupTextWrapperInteraction(wrapper, container) {
             return;
         }
 
-        if (e.target.closest('.resize-handle') || e.target.closest('.rotate-handle')) return;
+        if (e.target.closest('.resize-handle') ||
+            e.target.closest('.rotate-handle') ||
+            e.target.closest('.delete-handle')) return;
 
         e.stopPropagation();
         e.preventDefault();
@@ -133,7 +147,11 @@ export function setupTextWrapperInteraction(wrapper, container) {
         document.querySelectorAll('.text-wrapper.selected').forEach(el => el.classList.remove('selected'));
         wrapper.classList.add('selected');
 
-        startWrapperMove(e, wrapper);
+        // Move only on Double Click Hold (e.detail >= 2)
+        // User requested: "click double on the text field and hold ... move"
+        if (e.detail >= 2) {
+            startWrapperMove(e, wrapper);
+        }
     });
 
     // Handles
@@ -156,11 +174,28 @@ export function setupTextWrapperInteraction(wrapper, container) {
         });
     }
 
+    // Delete
+    const delHandle = wrapper.querySelector('.delete-handle');
+    if (delHandle) {
+        delHandle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm("Delete this text field?")) {
+                wrapper.remove();
+                saveState(false);
+            }
+        });
+        delHandle.addEventListener('mousedown', (e) => e.stopPropagation());
+    }
+
     // Double Click to Edit
     wrapper.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         const content = wrapper.querySelector('.text-content');
         if (content) {
+            // If we were moving, we might prevent edit? 
+            // Usually dblclick fires after mouseup of 2nd click.
+            // If movement happened, maybe we don't want to edit?
+            // But let's allow it for now or check if moved.
             content.contentEditable = true;
             content.focus();
         }
@@ -177,7 +212,8 @@ export function updateTextSettings(key, value) {
     state.textSettings[key] = value;
 
     // Apply to selected element if any
-    const selected = document.querySelector('.text-annotation.selected');
+    // Fix: Selector must target content inside wrapper
+    const selected = document.querySelector('.text-wrapper.selected .text-content');
     if (selected) {
         if (key === 'fontFamily') selected.style.fontFamily = value;
         else if (key === 'fontSize') selected.style.fontSize = `${value}px`;
@@ -189,11 +225,11 @@ export function toggleTextProperty(prop) {
     ensureTextSettings();
     if (prop === 'bold') {
         state.textSettings.isBold = !state.textSettings.isBold;
-        const selected = document.querySelector('.text-annotation.selected');
+        const selected = document.querySelector('.text-wrapper.selected .text-content');
         if (selected) selected.style.fontWeight = state.textSettings.isBold ? 'bold' : 'normal';
     } else if (prop === 'italic') {
         state.textSettings.isItalic = !state.textSettings.isItalic;
-        const selected = document.querySelector('.text-annotation.selected');
+        const selected = document.querySelector('.text-wrapper.selected .text-content');
         if (selected) selected.style.fontStyle = state.textSettings.isItalic ? 'italic' : 'normal';
     }
 }
@@ -204,9 +240,8 @@ export function updateTextBackground() {
     const color = isTransparent ? 'transparent' : hexToRgba(backgroundColor, backgroundAlpha);
 
     // Update selected or all active editing?
-    // Usually we update the *selected* annotation (if any) or the *editing* one.
     // addTextAnnotation handles selection logic now.
-    const selected = document.querySelector('.text-annotation.selected') || document.querySelector('.text-annotation[contenteditable="true"]');
+    const selected = document.querySelector('.text-wrapper.selected .text-content') || document.querySelector('.text-content[contenteditable="true"]');
     if (selected) {
         selected.style.backgroundColor = color;
         selected.dataset.bgColor = backgroundColor;
