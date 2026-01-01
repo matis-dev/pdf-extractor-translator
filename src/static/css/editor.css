@@ -565,13 +565,37 @@ body {
 .ribbon-group {
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--border-color);
+    /* border-right: 1px solid var(--border-color); Removed in favor of pseudo-element */
     padding-right: 15px;
     justify-content: space-between;
+    position: relative;
+    /* For pseudo-element positioning */
+}
+
+/* Custom separator using pseudo-element to control height */
+.ribbon-group::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 10px;
+    /* Shorten from top */
+    bottom: 25px;
+    /* Shorten from bottom (above label area) */
+    width: 1px;
+    background-color: var(--border-color);
+}
+
+.ribbon-group.separator-full::after {
+    top: 0;
+    bottom: 0;
 }
 
 .ribbon-group:last-child {
-    border-right: none;
+    padding-right: 0;
+}
+
+.ribbon-group:last-child::after {
+    display: none;
 }
 
 .ribbon-tools {

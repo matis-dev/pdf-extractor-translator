@@ -227,10 +227,19 @@ export function toggleTextProperty(prop) {
         state.textSettings.isBold = !state.textSettings.isBold;
         const selected = document.querySelector('.text-wrapper.selected .text-content');
         if (selected) selected.style.fontWeight = state.textSettings.isBold ? 'bold' : 'normal';
+
+        // Toggle UI Button State
+        const btn = document.getElementById('btn-text-bold');
+        if (btn) btn.classList.toggle('active');
+
     } else if (prop === 'italic') {
         state.textSettings.isItalic = !state.textSettings.isItalic;
         const selected = document.querySelector('.text-wrapper.selected .text-content');
         if (selected) selected.style.fontStyle = state.textSettings.isItalic ? 'italic' : 'normal';
+
+        // Toggle UI Button State
+        const btn = document.getElementById('btn-text-italic');
+        if (btn) btn.classList.toggle('active');
     }
 }
 
@@ -252,8 +261,119 @@ export function updateTextBackground() {
 
 export function updateTextBackgroundSettings(key, value) {
     ensureTextSettings();
+
+    // Wake up action (clicking color picker)
+    if (key === 'wakeUp') {
+        if (state.textSettings.isTransparent) {
+            state.textSettings.isTransparent = false;
+            // Also ensure visible opacity if it was 0
+            if (state.textSettings.backgroundAlpha === 0) {
+                state.textSettings.backgroundAlpha = 1;
+            }
+            updateBackgroundUIState();
+            updateTextBackground();
+        }
+        return;
+    }
+
     state.textSettings[key] = value;
+
+    // Logic: Opacity 0 -> Active No Fill
+    if (key === 'backgroundAlpha') {
+        if (value === 0) {
+            state.textSettings.isTransparent = true;
+        } else {
+            // If we are moving slider > 0, deactivate No Fill
+            if (state.textSettings.isTransparent) {
+                state.textSettings.isTransparent = false;
+            }
+        }
+    }
+
+    // Logic: Color Change -> Deactivate No Fill (Wake up)
+    if (key === 'backgroundColor') {
+        if (state.textSettings.isTransparent) {
+            state.textSettings.isTransparent = false;
+            // Ensure visible opacity
+            if (state.textSettings.backgroundAlpha === 0) {
+                state.textSettings.backgroundAlpha = 1;
+            }
+        }
+    }
+
+    updateBackgroundUIState();
     updateTextBackground();
+}
+
+export function toggleTextBackgroundTransparency() {
+    ensureTextSettings();
+    const current = state.textSettings.isTransparent;
+
+    // Toggle state
+    state.textSettings.isTransparent = !current;
+
+    // If turning ON transparency (isTransparent = true)
+    // We don't necessarily force alpha to 0, just the flag.
+    // If turning OFF transparency
+    // We ensure alpha is visible (e.g. 1) if it was 0
+    if (!current === false) { // becoming visible
+        if (state.textSettings.backgroundAlpha === 0) {
+            state.textSettings.backgroundAlpha = 1;
+        }
+    }
+
+    updateBackgroundUIState();
+    updateTextBackground();
+}
+
+function updateBackgroundUIState() {
+    const isTransparent = state.textSettings.isTransparent;
+    const alpha = state.textSettings.backgroundAlpha;
+
+    const btn = document.getElementById('bg-transparent-btn');
+    const slider = document.getElementById('bg-opacity-slider');
+    const colorPicker = document.getElementById('bg-color-picker');
+
+    if (btn) {
+        if (isTransparent) {
+            btn.classList.add('active', 'btn-secondary');
+            btn.classList.remove('btn-outline-secondary');
+        } else {
+            btn.classList.remove('active', 'btn-secondary');
+            btn.classList.add('btn-outline-secondary');
+        }
+    }
+
+    // Sync slider value if not transparent (or even if transparent, to show 0?)
+    // If transparent, usually implies 0 opacity visually, but state might be preserved.
+    // User said: "if opacity zero ... no fill active".
+    // If No Fill active -> "slider disabled styling".
+
+    if (slider) {
+        if (isTransparent) {
+            slider.style.opacity = '0.5';
+            // Optional: slider.value = 0; // Visual sync
+            // But if we want to preserve previous alpha when toggling back?
+            // User: "if opacity zero ... no fill active".
+            // If I click No Fill, maybe slider should stay where it is but look disabled?
+            // Or snap to 0? "opacity to zero suit as a transparency indicator".
+            // Let's snap visual value to 0 if purely transparent via opacity logic.
+            // But if toggled via button, maybe keep value?
+            // Let's keep it simple: Just visual dimming.
+        } else {
+            slider.style.opacity = '1';
+            slider.value = alpha;
+        }
+    }
+
+    if (colorPicker) {
+        if (isTransparent) {
+            colorPicker.style.opacity = '0.5';
+            // colorPicker.disabled = true; // User said: "able to use them", so NO disabled attribute.
+        } else {
+            colorPicker.style.opacity = '1';
+        }
+    }
 }
 
 export function hexToRgba(hex, alpha) {

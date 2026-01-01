@@ -35,58 +35,74 @@ const ribbonConfig = {
                 {
                     type: 'html', html: `
                     <div class="d-flex flex-column gap-1">
-                        <select id="font-family-select" class="form-select form-select-sm" style="width:110px; font-size: 0.8rem;" onchange="updateTextSettings('fontFamily', this.value)">
+                        <select id="font-family-select" class="form-select form-select-sm p-0 ps-2" style="width:110px; height: 30px; font-size: 0.8rem;" onchange="updateTextSettings('fontFamily', this.value)">
                             <option value="Helvetica">Helvetica</option>
                             <option value="Times Roman">Times Roman</option>
                             <option value="Courier">Courier</option>
                         </select>
-                        <span class="small text-muted">Font</span>
+                        <span class="small">Font</span>
                     </div>`
                 },
                 {
                     type: 'html', html: `
                     <div class="d-flex flex-column gap-1">
-                        <input id="font-size-input" type="number" class="form-control form-control-sm" value="16" min="8" max="72" style="width: 60px" onchange="updateTextSettings('fontSize', parseInt(this.value))">
-                        <span class="small text-muted">Size</span>
+                        <input id="font-size-input" type="number" class="form-control form-control-sm p-1" value="16" min="8" max="72" style="width: 50px; height: 30px;" onchange="updateTextSettings('fontSize', parseInt(this.value))">
+                        <span class="small">Size</span>
                     </div>`
                 },
                 {
                     type: 'html', html: `
                     <div class="d-flex flex-column gap-1">
-                        <div class="d-flex gap-2 align-items-center">
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary p-0 px-2" onclick="toggleTextProperty('bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
-                                <button class="btn btn-outline-secondary p-0 px-2" onclick="toggleTextProperty('italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
-                            </div>
-                            <div style="width: 28px; height: 28px; overflow: hidden; border-radius: 6px; border: 1px solid #ced4da;">
-                                <input type="color" class="form-control form-control-color border-0 p-0" value="#000000" title="Text Color" onchange="updateTextSettings('color', this.value)" style="width: 100%; height: 100%;">
-                            </div>
+                        <div class="d-flex gap-1">
+                            <button id="btn-text-bold" class="btn btn-outline-secondary btn-sm p-0 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" onclick="toggleTextProperty('bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
+                            <button id="btn-text-italic" class="btn btn-outline-secondary btn-sm p-0 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" onclick="toggleTextProperty('italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
                         </div>
-                        <span class="small text-muted">Style</span>
+                        <span class="small">Style</span>
                     </div>`
                 },
-                { type: 'html', html: '<div class="vr mx-2" style="height: 24px;"></div>' },
                 {
                     type: 'html', html: `
-                    <div class="d-flex align-items-center gap-3 px-1 h-100">
-                        <div class="d-flex flex-column align-items-center justify-content-center">
-                            <div style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid white; outline: 1px solid #ced4da;" title="Background Color">
-                               <input type="color" class="form-control form-control-color border-0 p-0" value="#ffffff" onchange="updateTextBackgroundSettings('backgroundColor', this.value)" style="width: 100%; height: 100%; cursor: pointer;">
-                            </div>
-                            <span class="small text-muted mt-1" style="font-size: 10px;">Fill</span>
-                        </div>
-                        <div class="d-flex flex-column justify-content-center gap-2">
-                            <div class="d-flex align-items-center gap-2" title="Opacity">
-                                <i class="bi bi-circle-half text-muted" style="font-size: 10px;"></i>
-                                <input type="range" class="form-range" min="0" max="1" step="0.1" value="1" id="bg-alpha-slider" onchange="updateTextBackgroundSettings('backgroundAlpha', parseFloat(this.value))" style="width: 80px; height: 4px;">
-                            </div>
-                            <div class="d-flex align-items-center gap-2" title="Transparent Background">
-                                <div class="form-check form-switch m-0 min-h-0 d-flex align-items-center ps-0">
-                                    <input class="form-check-input m-0" type="checkbox" role="switch" id="bg-transparent-check" onchange="updateTextBackgroundSettings('isTransparent', this.checked)" style="width: 30px; height: 16px;">
-                                </div>
-                                <label class="small text-muted mb-0" for="bg-transparent-check" style="font-size: 10px; cursor: pointer;">Transparent</label>
-                            </div>
-                        </div>
+                    <div class="d-flex flex-column gap-1">
+                        <input type="color" class="form-control form-control-color form-control-sm p-1" value="#000000" title="Text Color" onchange="updateTextSettings('color', this.value)" style="width: 38px; height: 30px;">
+                        <span class="small">Color</span>
+                    </div>`
+                }
+            ]
+        },
+        {
+            group: 'Background',
+            className: 'separator-full',
+            tools: [
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1 align-items-center">
+                        <input id="bg-color-picker" type="color" class="form-control form-control-color form-control-sm p-1"
+                               value="#ffffff" title="Background Color"
+                               onchange="updateTextBackgroundSettings('backgroundColor', this.value)"
+                               onclick="updateTextBackgroundSettings('wakeUp', null)"
+                               style="width: 38px; height: 30px;">
+                        <span class="small">Fill</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1 align-items-center">
+                        <button id="bg-transparent-btn" class="btn btn-outline-secondary btn-sm p-0 d-flex align-items-center justify-content-center" 
+                                style="width: 30px; height: 30px;" 
+                                onclick="toggleTextBackgroundTransparency()" 
+                                title="No Fill">
+                           <i class="bi bi-slash-circle"></i>
+                        </button>
+                        <span class="small">No Fill</span>
+                    </div>`
+                },
+                {
+                    type: 'html', html: `
+                    <div class="d-flex flex-column gap-1 align-items-center">
+                        <input id="bg-opacity-slider" type="range" class="form-range m-0" min="0" max="1" step="0.1" value="1" 
+                               style="width: 60px; height: 30px;" title="Opacity"
+                               oninput="updateTextBackgroundSettings('backgroundAlpha', parseFloat(this.value))">
+                        <span class="small">Opacity</span>
                     </div>`
                 }
             ]
@@ -366,6 +382,9 @@ function switchTab(tabName) {
     groups.forEach(group => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'ribbon-group';
+        if (group.className) {
+            groupDiv.classList.add(group.className);
+        }
 
         // Group Content
         const toolsDiv = document.createElement('div');

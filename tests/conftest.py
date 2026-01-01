@@ -4,8 +4,9 @@ import sys
 import tempfile
 import shutil
 
-# Add project root to path
+# Add project root and src to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 # Mock translation_utils.install_languages to prevent large downloads during import
 import unittest.mock

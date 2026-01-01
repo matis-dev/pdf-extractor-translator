@@ -3,8 +3,9 @@ import sys
 import os
 from unittest.mock import MagicMock
 
-# Add project root to path
+# Add project root and src to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 # Mock translation_utils before importing app/tasks
 # We need to preserve the module object but replace functions
