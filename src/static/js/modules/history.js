@@ -1,6 +1,7 @@
 import { state, history } from './state.js';
 import { commitAnnotations } from './commitAnnotations.js';
 import { updateHistoryButtons, updateUnsavedIndicator } from './ui.js';
+import { scheduleAutosave } from './autosave.js';
 
 let pdfLoader = null;
 let annotationCapturer = null;
@@ -55,6 +56,8 @@ export async function saveState(shouldCommit = true) {
 
     history.redoStack.length = 0;
     updateHistoryButtons(history.undoStack, history.redoStack);
+
+    scheduleAutosave();
 }
 
 /**
@@ -76,6 +79,8 @@ export function recordAction(type, data, restoreFunc) {
     state.hasUnsavedChanges = true;
     updateUnsavedIndicator(true);
     updateHistoryButtons(history.undoStack, history.redoStack);
+
+    scheduleAutosave();
 }
 
 export async function undo() {
@@ -107,6 +112,7 @@ export async function undo() {
     }
 
     updateHistoryButtons(history.undoStack, history.redoStack);
+    scheduleAutosave();
 }
 
 export async function redo() {
@@ -137,6 +143,7 @@ export async function redo() {
     }
 
     updateHistoryButtons(history.undoStack, history.redoStack);
+    scheduleAutosave();
 }
 
 function revertAction(action) {

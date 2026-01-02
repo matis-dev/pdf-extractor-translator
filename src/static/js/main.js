@@ -26,6 +26,7 @@ import { openOCRModal, runOCR } from './modules/ocr.js';
 import { summarizeDocument } from './modules/summarize.js';
 import { initCommandPalette, registerCommand } from './modules/command_palette.js';
 import * as redaction from './modules/redaction.js';
+import { checkForDraft, saveDraft, clearDraft } from './modules/autosave.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -75,7 +76,11 @@ Object.assign(window, {
     // Summarize
     summarizeDocument,
     // Redaction
-    applyRedactions: redaction.applyRedactions
+    applyRedactions: redaction.applyRedactions,
+    // Autosave
+    saveDraft,
+    clearDraft,
+    addTextAnnotation: annotations.addTextAnnotation // Expose for testing
 });
 
 // Initialize
@@ -117,6 +122,10 @@ async function init() {
         setupKeyboardShortcuts();
 
         if (annotations.initShapeGlobalListeners) annotations.initShapeGlobalListeners();
+
+        // Check for Drafts
+        checkForDraft().catch(err => console.error("Draft check failed", err));
+
         console.log("setupContextMenu done");
         document.body.setAttribute('data-main-initialized', 'true');
     } catch (e) {
@@ -171,7 +180,13 @@ function setupContextMenu() {
 
     if (container) {
         container.addEventListener('click', (e) => {
-            // Main container logic if needed
+            if (state.modes.text) {
+                const pageContainer = e.target.closest('.page-container');
+                if (pageContainer) {
+                    const pageIndex = parseInt(pageContainer.dataset.pageIndex);
+                    annotations.addTextAnnotation(e, pageIndex);
+                }
+            }
         });
     }
 

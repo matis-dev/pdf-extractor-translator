@@ -2,6 +2,7 @@
 import { state } from './state.js';
 import { commitAnnotations } from './annotations.js';
 import { closePageExtractionModal, updateUnsavedIndicator } from './ui.js';
+import { clearDraft } from './autosave.js';
 
 export async function performExtraction(pageIndex, x, y, w, h, pageWidth, pageHeight) {
     document.getElementById('processing-overlay').style.display = 'flex';
@@ -178,6 +179,8 @@ export async function saveChanges() {
         if (!response.ok) {
             throw new Error(`Server returned ${response.status} ${response.statusText}`);
         }
+
+        await clearDraft();
 
         state.hasUnsavedChanges = false;
         updateUnsavedIndicator(false);
