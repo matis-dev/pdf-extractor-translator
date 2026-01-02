@@ -25,6 +25,7 @@ import { openTranslateModal, submitTranslation } from './modules/translateDocume
 import { openOCRModal, runOCR } from './modules/ocr.js';
 import { summarizeDocument } from './modules/summarize.js';
 import { initCommandPalette, registerCommand } from './modules/command_palette.js';
+import * as redaction from './modules/redaction.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -72,7 +73,9 @@ Object.assign(window, {
     openOCRModal,
     runOCR,
     // Summarize
-    summarizeDocument
+    summarizeDocument,
+    // Redaction
+    applyRedactions: redaction.applyRedactions
 });
 
 // Initialize
@@ -87,6 +90,7 @@ async function init() {
         initHandPan();
         initCommandPalette();
         registerCommands();
+        if (redaction.initRedactionListeners) redaction.initRedactionListeners();
         document.body.setAttribute('data-ribbon-called', 'true');
 
         state.filename = window.filename;

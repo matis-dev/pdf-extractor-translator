@@ -618,6 +618,7 @@ def compare_pdfs():
     if not os.path.exists(path2):
         return jsonify({'error': f'File not found: {filename2}'}), 404
     
+    
     try:
         # Convert PDFs to images
         images1 = convert_from_path(path1, dpi=150)
@@ -689,6 +690,8 @@ def compare_pdfs():
                     diff_pixels = diff_gray.load()
                     overlay_pixels = diff_overlay.load()
                     
+                    # Performance op: Only iterate bbox? 
+                    # For now keep naive
                     for x in range(diff_gray.width):
                         for y in range(diff_gray.height):
                             if diff_pixels[x, y] > 20:  # Threshold for noise
@@ -723,6 +726,108 @@ def compare_pdfs():
         })
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/apply_redactions', methods=['POST'])
+def apply_redactions():
+    """Apply redactions to a PDF.
+    
+    This function draws black rectangles over the specified areas.
+    """
+    data = request.json
+    filename = data.get('filename')
+    redactions = data.get('redactions', [])
+    
+    if not filename or not redactions:
+        return jsonify({'error': 'Filename and redactions required'}), 400
+        
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(input_path):
+        return jsonify({'error': 'File not found'}), 404
+        
+    try:
+        from pypdf.generic import RectangleObject
+        from pypdf.annotations import FreeText
+        
+        reader = PdfReader(input_path)
+        writer = PdfWriter()
+        
+        # Copy pages and apply redactions
+        for i, page in enumerate(reader.pages):
+            writer.add_page(page)
+            
+            # Get redactions for this page
+            page_redactions = [r for r in redactions if r['pageIndex'] == i]
+            
+            for r in page_redactions:
+                # Convert coordinates
+                # Logic similar to extract_text_region but reverse (Frontend to Backend)
+                # Frontend uses same scale as extract?
+                # Usually Frontend (PDF.js) renders at user scale. 
+                # But our redaction.js sends: x, y, w, h in DOM pixels (divided by scale).
+                # So these are PDF point coordinates (roughly 72 DPI base).
+                # NOTE: PDF.js usually assumes 72 DPI = 1 scale.
+                # However, pypdf coordinates are also points.
+                # Only check coordinate system Y-axis.
+                # PDF origin is bottom-left. DOM is top-left.
+                
+                page_width = float(page.mediabox.width)
+                page_height = float(page.mediabox.height)
+                
+                # Inputs from redaction.js: x, y, width, height (PDF Point units, from top-left)
+                x = float(r['x'])
+                y = float(r['y'])
+                w = float(r['width'])
+                h = float(r['height'])
+                
+                # Convert Y to bottom-up
+                # pdf_y = page_height - y - height
+                pdf_y = page_height - y - h
+                
+                # Add Redaction Annotation (Black Rectangle)
+                # Accessing the page object on the writer side
+                writer_page = writer.pages[i]
+                
+                # Draw a black rectangle using annotation
+                # Annotation dictionary
+                rect = RectangleObject([x, pdf_y, x + w, pdf_y + h])
+                
+                # Create a Square annotation with black fill
+                annotation = {
+                    '/Type': '/Annot',
+                    '/Subtype': '/Square',
+                    '/Rect': rect,
+                    '/BS': {'/W': 0}, # Border width 0
+                    '/IC': [0, 0, 0], # Inner Color (Black)
+                    '/C': [0, 0, 0],  # Border Color (Black)
+                    '/F': 4,          # Flags (Print, NoZoom, NoRotate)
+                    '/T': 'Redaction' # Title
+                }
+                
+                # Add to page
+                if '/Annots' not in writer_page:
+                    writer_page['/Annots'] = []
+                writer_page['/Annots'].append(annotation)
+
+        # Write output
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"redacted_{timestamp}_{secure_filename(filename)}"
+        # We save to upload folder so it can be loaded by editor again as "current file"
+        # Or output folder. Editor usually loads from upload folder.
+        # Let's save to UPLOAD_FOLDER to mimic "saving" the file.
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        
+        with open(output_path, "wb") as f:
+            writer.write(f)
+            
+        return jsonify({
+            'filename': output_filename,
+            'download_url': url_for('uploaded_file', filename=output_filename) # Reuse upload route
+        })
+
+    except Exception as e:
+        logger.error(f"Redaction failed: {e}")
         return jsonify({'error': str(e)}), 500
 
 

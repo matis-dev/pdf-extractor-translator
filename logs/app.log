@@ -319,3 +319,64 @@
 [2026-01-02 18:19:49] INFO     root         Logging initialized. Writing to logs/app.log
 [2026-01-02 18:20:05] INFO     root         Logging initialized. Writing to logs/app.log
 [2026-01-02 18:20:05] WARNING  werkzeug      * Debugger is active!
+[2026-01-02 20:29:57] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:29:57] WARNING  werkzeug      * Debugger is active!
+[2026-01-02 20:31:54] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:31:54] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:32:10] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:32:10] WARNING  werkzeug      * Debugger is active!
+[2026-01-02 20:32:33] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:32:38] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-02 20:34:07] INFO     httpx        HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2026-01-02 20:34:17] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-02 20:34:23] INFO     httpx        HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2026-01-02 20:34:44] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-02 20:34:57] INFO     httpx        HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2026-01-02 20:35:18] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-02 20:35:31] INFO     httpx        HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2026-01-02 20:35:52] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-02 20:36:06] INFO     httpx        HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2026-01-02 20:36:23] INFO     httpx        HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2026-01-02 20:36:27] WARNING  ai_utils     Agent failed: 1 validation error for translate
+target_lang
+  Field required [type=missing, input_value={'text': "'Hello World', target_lang='es'"}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing. Falling back to simple RAG.
+[2026-01-02 20:36:27] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-02 20:36:30] INFO     httpx        HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2026-01-02 20:36:30] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-02 20:36:30] INFO     argostranslate.utils ('get_installed_languages',)
+[2026-01-02 20:36:43] INFO     argostranslate.utils ('paragraphs:', ['Hello'])
+[2026-01-02 20:36:43] INFO     argostranslate.utils ('apply_packaged_translation', 'Hello')
+[2026-01-02 20:36:43] INFO     argostranslate.utils ('Splitting sentences using SBD Model: (en) StanzaSentencizer',)
+[2026-01-02 20:36:43] INFO     argostranslate.utils ('sentences', ['Hello'])
+[2026-01-02 20:36:43] INFO     argostranslate.utils ('tokenized', [['▁Hello']])
+[2026-01-02 20:36:44] INFO     argostranslate.utils ('translated_batches', [TranslationResult(hypotheses=[['▁Hola', '.']], scores=[-0.6366576552391052], attention=[], logits=[])])
+[2026-01-02 20:36:44] INFO     argostranslate.utils ('value_hypotheses:', [('Hola.', -0.6366576552391052)])
+[2026-01-02 20:36:44] INFO     argostranslate.utils ('translated_paragraphs:', [[('Hola.', -0.6366576552391052)]])
+[2026-01-02 20:36:44] INFO     argostranslate.utils ('hypotheses_to_return:', [('Hola.', -0.6366576552391052)])
+[2026-01-02 20:36:44] INFO     extract_tables_to_csv Processing PDF: /home/matis/Desktop/projects/pdf/test_agent.pdf
+[2026-01-02 20:36:44] INFO     extract_tables_to_csv Output directory: test_agent_tables
+[2026-01-02 20:36:44] INFO     docling.datamodel.document detected formats: [<InputFormat.PDF: 'pdf'>]
+[2026-01-02 20:36:44] INFO     docling.document_converter Going to convert document batch...
+[2026-01-02 20:36:44] INFO     docling.document_converter Initializing pipeline for StandardPdfPipeline with options hash 44ae89a68fc272bc7889292e9b5a1bad
+[2026-01-02 20:36:44] INFO     docling.models.factories.base_factory Loading plugin 'docling_defaults'
+[2026-01-02 20:36:44] INFO     docling.models.factories Registered picture descriptions: ['vlm', 'api']
+[2026-01-02 20:36:44] INFO     docling.models.factories.base_factory Loading plugin 'docling_defaults'
+[2026-01-02 20:36:44] INFO     docling.models.factories Registered ocr engines: ['auto', 'easyocr', 'ocrmac', 'rapidocr', 'tesserocr', 'tesseract']
+[2026-01-02 20:36:45] INFO     docling.utils.accelerator_utils Accelerator device: 'cpu'
+[2026-01-02 20:36:46] INFO     docling.models.auto_ocr_model Auto OCR model selected rapidocr with onnxruntime.
+[2026-01-02 20:36:46] INFO     docling.utils.accelerator_utils Accelerator device: 'cpu'
+[2026-01-02 20:36:47] INFO     docling.utils.accelerator_utils Accelerator device: 'cpu'
+[2026-01-02 20:36:49] INFO     docling.pipeline.base_pipeline Processing document test_agent.pdf
+[2026-01-02 20:36:53] INFO     docling.document_converter Finished converting document test_agent.pdf in 9.62 sec.
+[2026-01-02 20:36:53] INFO     extract_tables_to_csv No tables found in the document.
+[2026-01-02 20:37:13] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:39:18] INFO     chromadb.telemetry.product.posthog Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[2026-01-02 20:39:18] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-02 20:39:33] ERROR    translation_utils Translation error: Translation failed
+[2026-01-02 20:40:24] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:41:09] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:41:41] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:41:42] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:41:51] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 20:42:28] INFO     root         Logging initialized. Writing to logs/app.log

@@ -269,6 +269,7 @@ const ribbonConfig = {
             group: 'Security',
             tools: [
                 { id: 'redact', icon: 'bi-eraser-fill', label: 'Redact', action: 'setMode', value: 'redact' },
+                { id: 'apply-redactions-btn', icon: 'bi-check-circle-fill', label: 'Apply Redactions', action: 'globalAction', function: 'applyRedactions' },
                 { id: 'watermark', icon: 'bi-water', label: 'Watermark', action: 'globalAction', function: 'openWatermarkModal' },
                 { id: 'manage-security', icon: 'bi-shield-lock', label: 'Security', action: 'globalAction', function: 'manageSecurity' },
                 { id: 'sign', icon: 'bi-pen', label: 'Sign', action: 'globalAction', function: 'openSignatureModal' }
