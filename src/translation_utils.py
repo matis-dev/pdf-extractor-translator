@@ -1,6 +1,8 @@
 import argostranslate.package
 import argostranslate.translate
+import logging
 
+logger = logging.getLogger(__name__)
 
 from language_manager import get_installed_languages, install_language
 
@@ -32,12 +34,12 @@ def translate_text(text, target_lang, source_lang='en'):
             # TODO: Implement language detection. For now, default to English or fail gracefully.
             # Returning original text might be safer if we can't detect, but user expects translation.
             # Let's try English default since most users might be translating FROM English.
-            print(f"Warning: Source language '{source_lang}' not supported by manual translation. Defaulting to 'en'.")
+            logger.warning(f"Source language '{source_lang}' not supported by manual translation. Defaulting to 'en'.")
             source_lang = 'en'
             
         return argostranslate.translate.translate(text, source_lang, target_lang)
     except Exception as e:
-        print(f"Translation error: {e}")
+        logger.error(f"Translation error: {e}")
         return text
 
 

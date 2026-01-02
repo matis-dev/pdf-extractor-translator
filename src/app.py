@@ -109,9 +109,7 @@ def create_zip():
     if not filenames:
         return {'error': 'No filenames provided'}, 400
 
-    filenames = request.json.get('filenames', [])
-    if not filenames:
-        return {'error': 'No filenames provided'}, 400
+
 
     memory_file = io.BytesIO()
 
@@ -320,6 +318,8 @@ def extract_text_region():
     
     if not filename:
          return {'error': 'Filename required'}, 400
+         
+    filename = secure_filename(filename)
          
     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     
@@ -687,7 +687,7 @@ def compare_pdfs():
                 'pages_with_differences': differences_found,
                 'total_differences': len(differences_found)
             }
-            import json
+
             zf.writestr('summary.json', json.dumps(summary, indent=2))
         
         return jsonify({
