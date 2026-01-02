@@ -35,18 +35,31 @@ export async function fetchLanguages(forceRefresh = false) {
  * @param {boolean} includeMultilingual - Add "Multilingual" option
  * @param {boolean} filterSource - If provided, only show targets for this source code
  */
-export async function renderLanguageDropdown(selectId, selectedValue = null, includeMultilingual = false, filterSource = null, includeNone = false) {
+/**
+ * Renders language options into a select element.
+ * Groups by "Downloaded" and "Available".
+ * @param {string} selectId - ID of the <select> element
+ * @param {string|null} selectedValue - Value to select (optional)
+ * @param {boolean} includeMultilingual - Add "Multilingual" option
+ * @param {string|null} filterSource - If provided, only show targets for this source code (used in 'target' or 'pair' mode)
+ * @param {boolean} includeNone - Add "No Translation" option
+ * @param {string} mode - 'pair' (default), 'source', 'target'
+ */
+export async function renderLanguageDropdown(selectId, selectedValue = null, includeMultilingual = false, filterSource = null, includeNone = false, mode = 'pair') {
     const select = document.getElementById(selectId);
     if (!select) return;
 
     // Show loading state
-    const originalText = select.options.length > 0 ? select.options[0].text : 'Loading...';
-    // select.innerHTML = `<option disabled selected>Loading...</option>`;
+    if (select.options.length === 0) {
+        const loadingOpt = document.createElement('option');
+        loadingOpt.text = 'Loading...';
+        select.add(loadingOpt);
+    }
 
     let langs = await fetchLanguages();
 
     // If source is specified, filter targets that have package from_code == filterSource
-    if (filterSource) {
+    if (filterSource && (mode === 'target' || mode === 'pair')) {
         langs = langs.filter(l => l.from_code === filterSource);
     }
 
@@ -66,7 +79,6 @@ export async function renderLanguageDropdown(selectId, selectedValue = null, inc
         select.appendChild(opt);
     }
 
-
     const installedGroup = document.createElement('optgroup');
     installedGroup.label = "⚡ Downloaded (Ready)";
 
@@ -76,31 +88,75 @@ export async function renderLanguageDropdown(selectId, selectedValue = null, inc
     let hasInstalled = false;
     let hasAvailable = false;
 
-    langs.forEach(lang => {
-        const option = document.createElement('option');
-        option.value = lang.to_code; // Usually we select target lang
+    // Process items based on mode
+    let items = [];
 
-        // Use a composite key if we need both codes in value
-        // But standardized logic usually assumes we pick 'es' and know source is 'en' or pick pairs
-        // The implementation plan implies standard single-code selection, but internally we need pairs.
-        // Let's store codes in data attributes.
-        option.setAttribute('data-from', lang.from_code);
-        option.setAttribute('data-to', lang.to_code);
-        option.setAttribute('data-installed', lang.installed);
-
-        let label = `${lang.from_name} ➝ ${lang.to_name}`;
-        if (!lang.installed) {
-            let info = 'Download';
-            if (lang.size_bytes && lang.size_bytes > 0) {
-                info += ` ${formatBytes(lang.size_bytes)}`;
+    if (mode === 'pair') {
+        items = langs.map(l => ({
+            value: l.to_code, // Default legacy behavior
+            label: `${l.from_name} ➝ ${l.to_name}`,
+            installed: l.installed,
+            size: l.size_bytes,
+            data: { from: l.from_code, to: l.to_code }
+        }));
+    } else if (mode === 'source') {
+        const unique = new Map();
+        langs.forEach(l => {
+            if (!unique.has(l.from_code)) {
+                unique.set(l.from_code, {
+                    value: l.from_code,
+                    label: l.from_name,
+                    installed: l.installed,
+                    size: l.size_bytes, // Store size
+                    data: { code: l.from_code }
+                });
+            } else if (l.installed) {
+                unique.get(l.from_code).installed = true;
             }
+        });
+        items = Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label));
+    } else if (mode === 'target') {
+        const unique = new Map();
+        langs.forEach(l => {
+            if (!unique.has(l.to_code)) {
+                unique.set(l.to_code, {
+                    value: l.to_code,
+                    label: l.to_name,
+                    installed: l.installed,
+                    size: l.size_bytes, // Store size
+                    data: { code: l.to_code }
+                });
+            } else {
+                // If we encounter another package for same target,
+                // we should prefer 'installed'. If both not installed, what about size?
+                // If filterSource implies we only have one, this is fine.
+                // If auto, we accept first size or if we want logic we can add here.
+                if (l.installed) unique.get(l.to_code).installed = true;
+            }
+        });
+        items = Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.value;
+
+        let label = item.label;
+        // Display download info if not installed.
+        // Enabled for source, target and pair modes.
+        if (!item.installed && (mode === 'pair' || mode === 'target' || mode === 'source')) {
+            let info = 'Download';
+            if (item.size && item.size > 0) info += ` ${formatBytes(item.size)}`;
             label += ` (${info})`;
         }
 
-
         option.textContent = label;
+        if (item.data) {
+            Object.keys(item.data).forEach(k => option.setAttribute(`data-${k}`, item.data[k]));
+        }
+        option.setAttribute('data-installed', item.installed);
 
-        if (lang.installed) {
+        if (item.installed) {
             installedGroup.appendChild(option);
             hasInstalled = true;
         } else {
