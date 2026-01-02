@@ -6,6 +6,7 @@ const ribbonConfig = {
     'home': [
         {
             group: 'File',
+            className: 'separator-full',
             tools: [
                 { id: 'save-btn', icon: 'bi-floppy', label: 'Save', action: 'globalAction', function: 'saveChanges', testId: 'save-btn' },
                 { id: 'undo-btn', icon: 'bi-arrow-counterclockwise', label: 'Undo', action: 'globalAction', function: 'undoAction' },
