@@ -27,7 +27,7 @@ const ribbonConfig = {
         {
             group: 'Text',
             tools: [
-                { id: 'add-text', icon: 'bi-type', label: 'Add Text', action: 'setMode', value: 'text' }
+                { id: 'add-text', icon: 'bi-fonts', label: 'Add Text', action: 'toggleMode', mode: 'text' }
             ]
         },
         {
@@ -269,6 +269,14 @@ const ribbonConfig = {
         }
     ],
     'tools': [
+        {
+            group: 'AI Tools',
+            tools: [
+                { id: 'translate-doc', icon: 'bi-translate', label: 'Translate', action: 'globalAction', function: 'openTranslateModal' },
+                { id: 'ocr-doc', icon: 'bi-eye', label: 'OCR', action: 'globalAction', function: 'openOCRModal' },
+                { id: 'summarize-doc', icon: 'bi-file-earmark-text', label: 'Summarize', action: 'globalAction', function: 'summarizeDocument' }
+            ]
+        },
         {
             group: 'Pages',
             tools: [

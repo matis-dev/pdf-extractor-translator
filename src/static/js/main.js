@@ -20,6 +20,9 @@ import { splitPdf } from './modules/split.js';
 import * as notes from './modules/notes.js';
 import { initAIChat } from './modules/ai_chat.js';
 import * as compare from './modules/compare.js';
+import { openTranslateModal, submitTranslation } from './modules/translateDocument.js';
+import { openOCRModal, runOCR } from './modules/ocr.js';
+import { summarizeDocument } from './modules/summarize.js';
 import { initCommandPalette, registerCommand } from './modules/command_palette.js';
 
 // Expose to window for HTML access
@@ -57,7 +60,15 @@ Object.assign(window, {
     closeCompareModal: compare.closeCompareModal,
     handleCompareFileSelect: compare.handleCompareFileSelect,
     runComparison: compare.runComparison,
-    currentFilename: window.filename
+    currentFilename: window.filename,
+    // Translation
+    openTranslateModal,
+    submitTranslation,
+    // OCR
+    openOCRModal,
+    runOCR,
+    // Summarize
+    summarizeDocument
 });
 
 // Initialize
@@ -229,6 +240,9 @@ function registerCommands() {
     registerCommand('watermark', 'Add Watermark', () => openWatermarkModal(), 'bi-badge-ad');
     registerCommand('signature', 'Add Signature', () => openSignatureModal(), 'bi-pen-fill'); // Fixed calling function
     registerCommand('page-numbers', 'Add Page Numbers', () => openPageNumbersModal(), 'bi-123');
+    registerCommand('translate', 'Translate Document', () => openTranslateModal(), 'bi-translate');
+    registerCommand('ocr', 'Make Searchable (OCR)', () => openOCRModal(), 'bi-eye');
+    registerCommand('summarize', 'Summarize Document', () => summarizeDocument(), 'bi-file-earmark-text');
 
     // Page Actions
     registerCommand('rotate-page', 'Rotate Current Page', () => pages.rotateCurrentPage(), 'bi-arrow-repeat');

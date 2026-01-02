@@ -22,7 +22,7 @@ from PIL import Image, ImageChops, ImageDraw
 
 # App specific imports
 from celery_utils import celery_init_app
-from tasks import process_pdf_task, run_pdf_extraction
+from tasks import process_pdf_task, run_pdf_extraction, run_ocr_task, process_ocr
 from translation_utils import translate_text
 from ai_utils import get_pdf_chat_instance, LANGCHAIN_AVAILABLE
 from logging_config import setup_logging, get_logger
@@ -227,6 +227,32 @@ def process_request():
         except Exception as e:
             sync_results[task_id] = MockTask(task_id, state='FAILURE', error=str(e))
             
+        return {'task_id': task_id, 'mode': 'sync'}, 202
+
+@app.route('/api/ocr_pdf', methods=['POST'])
+def ocr_pdf():
+    """Endpoint to run OCR on a PDF."""
+    filename = request.form.get('filename')
+    language = request.form.get('language', 'eng')
+    
+    if not filename:
+        return {'error': 'Filename required'}, 400
+
+    if is_redis_available():
+        task = run_ocr_task.delay(filename, app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], language)
+        return {'task_id': task.id, 'mode': 'async'}, 202
+    else:
+        # Sync run
+        task_id = str(uuid.uuid4())
+        try:
+             result = process_ocr(filename, app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], language)
+             if result.get('status') == 'Failed':
+                 sync_results[task_id] = MockTask(task_id, state='FAILURE', error=result.get('error'))
+             else:
+                 sync_results[task_id] = MockTask(task_id, result=result, state='SUCCESS')
+        except Exception as e:
+             sync_results[task_id] = MockTask(task_id, state='FAILURE', error=str(e))
+             
         return {'task_id': task_id, 'mode': 'sync'}, 202
 
 @app.route('/status/<task_id>')

@@ -178,4 +178,62 @@ def run_pdf_extraction(extraction_type, filename, upload_folder, output_folder, 
         # In a real app, you might want to log this better
         if progress_callback:
             progress_callback('FAILURE', {'status': 'Failed', 'error': str(e)})
+
+@shared_task(bind=True)
+def run_ocr_task(self, filename, upload_folder, output_folder, language='eng'):
+    """Celery task to run OCR on a PDF."""
+    
+    def update_progress(state, meta):
+        self.update_state(state=state, meta=meta)
+        
+    return process_ocr(filename, upload_folder, output_folder, language, progress_callback=update_progress)
+
+def process_ocr(filename, upload_folder, output_folder, language='eng', progress_callback=None):
+    """Runs OCR on the PDF using ocrmypdf."""
+    import ocrmypdf
+    
+    input_path = os.path.join(upload_folder, filename)
+    
+    # Generate output filename
+    name, ext = os.path.splitext(filename)
+    new_filename = f"{name}_ocr{ext}"
+    output_path = os.path.join(output_folder, new_filename)
+    
+    try:
+        if progress_callback:
+            progress_callback('PROCESSING', {'status': 'Starting OCR engine...', 'current': 0, 'total': 100})
+            
+        # Hook into ocrmypdf's progress via a wrapper or just simple estimation?
+        # ocrmypdf supports --progress but capturing it via library call is trickier.
+        # We can use the 'progress_bar' argument if we implement a tqdm-like wrapper, 
+        # or we just rely on steps.
+        
+        # Simple invocation
+        # We force 'redo_ocr=False' (skip_text=True) by default to be safe, 
+        # unless user specifically asked to Force OCR (redo). 
+        # Let's stick to standard behavior: skip pages that have text.
+        
+        # Define a custom progress bar to capture updates if possible, 
+        # otherwise we just update start/end.
+        
+        if progress_callback:
+            progress_callback('PROCESSING', {'status': 'Running OCR (this may take a while)...', 'current': 20, 'total': 100})
+
+        ocrmypdf.ocr(
+            input_path,
+            output_path,
+            language=language,
+            deskew=True,
+            skip_text=True, # Don't OCR text pages
+            jobs=4,
+            progress_bar=False 
+        )
+        
+        if progress_callback:
+            progress_callback('PROCESSING', {'status': 'Optimizing PDF...', 'current': 90, 'total': 100})
+
+        return {'status': 'Completed', 'result_file': new_filename}
+
+    except Exception as e:
+        logger.error(f"OCR Failed: {e}")
         return {'status': 'Failed', 'error': str(e)}
