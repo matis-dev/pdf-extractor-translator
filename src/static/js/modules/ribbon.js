@@ -25,6 +25,13 @@ const ribbonConfig = {
     ],
     'edit': [
         {
+            group: 'History',
+            tools: [
+                { id: 'undo-btn', icon: 'bi-arrow-counterclockwise', label: 'Undo', action: 'globalAction', function: 'undo' },
+                { id: 'redo-btn', icon: 'bi-arrow-clockwise', label: 'Redo', action: 'globalAction', function: 'redo' }
+            ]
+        },
+        {
             group: 'Text',
             tools: [
                 { id: 'add-text', icon: 'bi-fonts', label: 'Add Text', action: 'toggleMode', mode: 'text' }

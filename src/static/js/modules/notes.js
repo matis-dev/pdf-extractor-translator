@@ -1,6 +1,6 @@
 
 import { state } from './state.js';
-import { saveState } from './history.js';
+import { recordAction, ActionType } from './history.js';
 
 let selectedNote = null;
 let isDragging = false;
@@ -8,26 +8,73 @@ let isResizing = false;
 let dragStartX, dragStartY;
 let initialLeft, initialTop;
 let initialWidth, initialHeight;
+let startState = null;
 
-/**
- * Handles a click on the PDF page in 'Note' mode to create a new note.
- * @param {Event} e - Click event
- * @param {number} pageIndex - Index of the page clicked
- * @param {number} x - Relative X coordinate (0-1)
- * @param {number} y - Relative Y coordinate (0-1)
- * @param {HTMLElement} container - The page container element
- */
+export function getNoteState(noteEl) {
+    if (!noteEl) return null;
+    const textarea = noteEl.querySelector('textarea');
+    return {
+        id: noteEl.id,
+        pageIndex: parseInt(noteEl.dataset.pageIndex),
+        x: parseFloat(noteEl.style.left) / 100, // stored as %
+        y: parseFloat(noteEl.style.top) / 100,
+        width: parseFloat(noteEl.style.width),
+        height: parseFloat(noteEl.style.height),
+        color: noteEl.style.getPropertyValue('--note-color').trim(),
+        textColor: noteEl.style.getPropertyValue('--note-text-color').trim(),
+        fontSize: parseInt(textarea ? textarea.style.fontSize : 12) || 12,
+        text: textarea ? textarea.value : '',
+        collapsed: noteEl.classList.contains('collapsed')
+    };
+}
+
+export function restoreNote(data) {
+    let noteEl = document.getElementById(data.id);
+
+    // Create if missing
+    if (!noteEl) {
+        const pageContainer = document.querySelector(`.page-container[data-page-index="${data.pageIndex}"]`);
+        if (!pageContainer) return;
+        noteEl = createNoteElement(data, pageContainer);
+    }
+
+    // Update properties
+    noteEl.style.left = (data.x * 100) + '%';
+    noteEl.style.top = (data.y * 100) + '%';
+    noteEl.style.width = data.width + 'px';
+    noteEl.style.height = data.height + 'px';
+
+    noteEl.style.setProperty('--note-color', data.color);
+    noteEl.style.setProperty('--note-text-color', data.textColor);
+
+    const textarea = noteEl.querySelector('textarea');
+    if (textarea) {
+        textarea.value = data.text;
+        textarea.style.fontSize = data.fontSize + 'px';
+        textarea.style.color = data.textColor;
+    }
+
+    if (data.collapsed) {
+        noteEl.classList.add('collapsed');
+        noteEl.classList.remove('expanded');
+    } else {
+        noteEl.classList.remove('collapsed');
+    }
+
+    // Ensure we re-setup interaction if we just created it? 
+    // createNoteElement does it. If we updated existing, wrappers are there.
+    return noteEl;
+}
+
 export async function handleNoteClick(e, pageIndex, x, y, container) {
-    // Only create if we are NOT clicking on an existing note
     if (e.target.closest('.note-annotation')) return;
 
-    // Create a new note
     const noteConfig = {
         pageIndex: pageIndex,
-        x: x,       // Relative
-        y: y,       // Relative
-        width: 200, // Default pixels
-        height: 150,// Default pixels
+        x: x,
+        y: y,
+        width: 200,
+        height: 150,
         text: '',
         color: state.noteSettings.color,
         textColor: state.noteSettings.textColor,
@@ -36,24 +83,17 @@ export async function handleNoteClick(e, pageIndex, x, y, container) {
         id: 'note-' + Date.now()
     };
 
-    createNoteElement(noteConfig, container);
+    const noteEl = createNoteElement(noteConfig, container);
 
-    // Save state (new annotation)
-    await saveState();
+    recordAction(ActionType.ADD, noteConfig, restoreNote);
 }
 
-/**
- * Creates the DOM element for a note annotation.
- * @param {Object} config - Note configuration object
- * @param {HTMLElement} container - Container to append to
- */
 export function createNoteElement(config, container) {
     const noteEl = document.createElement('div');
     noteEl.className = 'note-annotation';
     noteEl.id = config.id || 'note-' + Date.now();
     noteEl.dataset.pageIndex = config.pageIndex;
 
-    // Force critical styles inline to ensure visibility
     noteEl.style.position = 'absolute';
     noteEl.style.zIndex = '1000';
     noteEl.style.display = 'flex';
@@ -62,32 +102,29 @@ export function createNoteElement(config, container) {
     noteEl.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
     noteEl.style.borderRadius = '4px';
 
-    // Apply color var for children
     noteEl.style.setProperty('--note-color', config.color);
     noteEl.style.setProperty('--note-text-color', config.textColor);
 
-    // Position (Relative 0-1 to %)
-    noteEl.style.left = (config.x * 100) + '%';
-    noteEl.style.top = (config.y * 100) + '%';
+    // Initial position
+    if (config.x <= 1) noteEl.style.left = (config.x * 100) + '%';
+    else noteEl.style.left = config.x + 'px'; // Fallback for pixel values
 
-    // Size
+    if (config.y <= 1) noteEl.style.top = (config.y * 100) + '%';
+    else noteEl.style.top = config.y + 'px';
+
     noteEl.style.width = config.width + 'px';
     noteEl.style.height = config.height + 'px';
 
     const iconClass = 'bi-sticky-fill';
 
     noteEl.innerHTML = `
-        <div class="note-icon" style="display:none;">
-            <i class="bi ${iconClass}"></i>
-        </div>
-        
         <div class="note-header" style="height:28px; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:space-between; padding:0 8px; cursor:move;">
             <span class="note-title" style="font-size:11px; font-weight:600; opacity:0.5; user-select:none;">NOTE</span>
             <div class="note-actions" style="display:flex; gap:4px;">
-                <button class="note-btn btn-collapse-note" title="Minimize" style="border:none; bg:transparent; cursor:pointer;">
+                <button class="note-btn btn-collapse-note" title="Minimize" style="border:none; background:transparent; cursor:pointer;">
                     <i class="bi bi-dash-lg"></i>
                 </button>
-                <button class="note-btn btn-close-note" title="Delete" style="border:none; bg:transparent; cursor:pointer;">
+                <button class="note-btn btn-close-note" title="Delete" style="border:none; background:transparent; cursor:pointer;">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
@@ -102,15 +139,26 @@ export function createNoteElement(config, container) {
     const textarea = noteEl.querySelector('textarea');
     textarea.value = config.text || '';
 
-    // Bind Interactions
     setupNoteInteraction(noteEl, container);
 
-    // Event Listeners
+    textarea.addEventListener('focus', () => {
+        startState = getNoteState(noteEl);
+    });
+
     textarea.addEventListener('change', () => {
-        saveState(false);
+        const newState = getNoteState(noteEl);
+        if (startState && newState.text !== startState.text) {
+            recordAction(ActionType.MODIFY, {
+                id: noteEl.id,
+                oldState: startState,
+                newState: newState
+            }, restoreNote); // Pass restoreNote
+        }
     });
 
     container.appendChild(noteEl);
+
+    if (config.collapsed) noteEl.classList.add('collapsed');
 
     if (!config.collapsed) {
         setTimeout(() => textarea.focus(), 50);
@@ -119,60 +167,43 @@ export function createNoteElement(config, container) {
     return noteEl;
 }
 
-/**
- * Sets up event listeners for move, resize, select, delete.
- */
 function setupNoteInteraction(noteEl, container) {
     const resizeHandle = noteEl.querySelector('.note-resize-handle');
     const closeBtn = noteEl.querySelector('.btn-close-note');
     const collapseBtn = noteEl.querySelector('.btn-collapse-note');
     const textarea = noteEl.querySelector('textarea');
 
-    // 1. Selection & Toggle Collapse from Icon
+    // Selection
     noteEl.addEventListener('mousedown', (e) => {
-        // If clicking resize handle or controls, don't trigger selection logic immediately override
         if (e.target.closest('.note-actions') || e.target.closest('.note-resize-handle')) return;
+        if (e.target === textarea && !noteEl.classList.contains('collapsed')) return;
 
-        // If collapsed, clicking anywhere expands it
-        if (noteEl.classList.contains('collapsed')) {
-            e.stopPropagation(); // Don't trigger page click
-            selectNote(noteEl);
-        } else {
-            // Expanded
-            if (e.target === textarea) {
-                // Clicking text area, just focus.
-                return;
-            }
-            e.stopPropagation();
-            selectNote(noteEl);
-        }
+        e.stopPropagation();
+        selectNote(noteEl);
     });
 
     noteEl.addEventListener('dblclick', (e) => {
         if (e.target.closest('.note-actions') || e.target.closest('.note-resize-handle')) return;
-
         e.stopPropagation();
         toggleNoteCollapse(noteEl);
     });
 
-    // 2. Drag to Move (Only via Header if expanded, or anywhere if collapsed)
+    // Drag
     noteEl.addEventListener('mousedown', (e) => {
         const isCollapsed = noteEl.classList.contains('collapsed');
         const isHeader = e.target.closest('.note-header');
+        if (!isCollapsed && !isHeader) return;
+        if (e.target.closest('.note-actions')) return;
 
-        if (!isCollapsed && !isHeader) return; // Expanded notes only draggable by header
-        if (e.target.closest('.note-actions')) return; // Don't drag if clicking buttons
-
-        // Start Drag
         isDragging = true;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
         initialLeft = noteEl.offsetLeft;
         initialTop = noteEl.offsetTop;
+        startState = getNoteState(noteEl);
 
-        e.preventDefault(); // Prevent text selection
+        e.preventDefault();
         e.stopPropagation();
-
         selectNote(noteEl);
 
         const onMouseMove = (ev) => {
@@ -180,11 +211,9 @@ function setupNoteInteraction(noteEl, container) {
             const dx = ev.clientX - dragStartX;
             const dy = ev.clientY - dragStartY;
 
-            // Constrain to container
             let newLeft = initialLeft + dx;
             let newTop = initialTop + dy;
 
-            // Bounds check
             if (newLeft < 0) newLeft = 0;
             if (newTop < 0) newTop = 0;
             if (newLeft + noteEl.offsetWidth > container.offsetWidth) newLeft = container.offsetWidth - noteEl.offsetWidth;
@@ -194,27 +223,32 @@ function setupNoteInteraction(noteEl, container) {
             noteEl.style.top = newTop + 'px';
         };
 
-        const onMouseUp = async () => {
+        const onMouseUp = () => {
             if (!isDragging) return;
             isDragging = false;
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
 
-            // Re-normalize to %
             const pctX = noteEl.offsetLeft / container.offsetWidth;
             const pctY = noteEl.offsetTop / container.offsetHeight;
-
             noteEl.style.left = (pctX * 100) + '%';
             noteEl.style.top = (pctY * 100) + '%';
 
-            await saveState(false);
+            const newState = getNoteState(noteEl);
+            if (startState && (newState.x !== startState.x || newState.y !== startState.y)) {
+                recordAction(ActionType.MOVE, {
+                    id: noteEl.id,
+                    oldState: startState,
+                    newState: newState
+                }, restoreNote); // Pass restoreNote
+            }
         };
 
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     });
 
-    // 3. Resize
+    // Resize
     if (resizeHandle) {
         resizeHandle.addEventListener('mousedown', (e) => {
             e.stopPropagation();
@@ -224,36 +258,39 @@ function setupNoteInteraction(noteEl, container) {
             dragStartY = e.clientY;
             initialWidth = noteEl.offsetWidth;
             initialHeight = noteEl.offsetHeight;
+            startState = getNoteState(noteEl);
 
             const onMouseMove = (ev) => {
                 if (!isResizing) return;
                 const dx = ev.clientX - dragStartX;
                 const dy = ev.clientY - dragStartY;
-
-                let newW = initialWidth + dx;
-                let newH = initialHeight + dy;
-
-                if (newW < 100) newW = 100;
-                if (newH < 80) newH = 80;
-
+                const newW = Math.max(100, initialWidth + dx);
+                const newH = Math.max(80, initialHeight + dy);
                 noteEl.style.width = newW + 'px';
                 noteEl.style.height = newH + 'px';
             };
 
-            const onMouseUp = async () => {
+            const onMouseUp = () => {
                 if (!isResizing) return;
                 isResizing = false;
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
-                await saveState(false);
-            };
 
+                const newState = getNoteState(noteEl);
+                if (startState && (newState.width !== startState.width || newState.height !== startState.height)) {
+                    recordAction(ActionType.RESIZE, {
+                        id: noteEl.id,
+                        oldState: startState,
+                        newState: newState
+                    }, restoreNote); // Pass restoreNote
+                }
+            };
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
     }
 
-    // 4. Buttons
+    // Controls
     closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         deleteNote(noteEl);
@@ -269,8 +306,7 @@ export function selectNote(noteEl) {
     deselectAllNotes();
     selectedNote = noteEl;
     noteEl.classList.add('selected');
-    noteEl.style.zIndex = '210'; // Bring to front
-    // Visual feedback
+    noteEl.style.zIndex = '210';
     noteEl.style.outline = '2px solid #2196f3';
     noteEl.style.outlineOffset = '2px';
 }
@@ -279,7 +315,7 @@ export function deselectAllNotes() {
     if (selectedNote) {
         selectedNote.classList.remove('selected');
         selectedNote.style.zIndex = '';
-        selectedNote.style.outline = 'none'; // Remove visual feedback
+        selectedNote.style.outline = 'none';
         selectedNote = null;
     }
 }
@@ -290,15 +326,15 @@ export function getSelectedNote() {
 
 export function deleteNote(noteEl) {
     if (!noteEl) return;
+    const currentState = getNoteState(noteEl);
     noteEl.remove();
     if (selectedNote === noteEl) selectedNote = null;
-    saveState(false);
+
+    recordAction(ActionType.DELETE, currentState, restoreNote); // Pass restoreNote
 }
 
 export function deleteSelectedNote() {
-    if (selectedNote) {
-        deleteNote(selectedNote);
-    }
+    if (selectedNote) deleteNote(selectedNote);
 }
 
 export function toggleNoteCollapse(noteEl) {
@@ -310,15 +346,12 @@ export function toggleNoteCollapse(noteEl) {
         noteEl.classList.remove('expanded');
         noteEl.classList.add('collapsed');
     }
-    saveState(false);
 }
 
-// Ribbon Settings Updates
 export function updateNoteSettings(key, value) {
     state.noteSettings[key] = value;
-
-    // If a note is selected, update it immediately
     if (selectedNote) {
+        startState = getNoteState(selectedNote);
         if (key === 'color') {
             selectedNote.style.setProperty('--note-color', value);
         } else if (key === 'textColor') {
@@ -327,7 +360,11 @@ export function updateNoteSettings(key, value) {
             const ta = selectedNote.querySelector('textarea');
             if (ta) ta.style.fontSize = value + 'px';
         }
-        saveState(false);
+
+        recordAction(ActionType.MODIFY, {
+            id: selectedNote.id,
+            oldState: startState,
+            newState: getNoteState(selectedNote)
+        }, restoreNote); // Pass restoreNote
     }
 }
-

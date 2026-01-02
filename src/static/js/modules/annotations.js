@@ -1,8 +1,16 @@
-
 /**
  * Annotations Facade Module
- * Re-exports functionality from split modules for backward compatibility.
+ * Re-exports functionality and manages global state capture/restore for all annotation types.
  */
+
+import * as drawing from './drawing.js';
+import * as text from './textAnnotations.js';
+import * as image from './imageAnnotations.js';
+import * as shape from './shapeAnnotations.js';
+import * as watermark from './watermark.js';
+import * as commit from './commitAnnotations.js';
+import * as forms from './formFields.js';
+import * as notes from './notes.js';
 
 export * from './drawing.js';
 export * from './textAnnotations.js';
@@ -12,8 +20,53 @@ export * from './watermark.js';
 export * from './commitAnnotations.js';
 export * from './formFields.js';
 
-// Backward compatibility or legacy functions if any were left that didn't fit.
-// Specifically `handleSelectionClick` was referenced in `drawing.js`.
-// If it was supposed to be here, we should ensure it exists.
-// Codebase analysis showed it might have been missing or in `ui.js`.
-// I will not define it here if it wasn't defined in the original `annotations.js` visible code.
+/**
+ * Captures the current state of all granular annotations (Text, Shape, Image, Note)
+ * that exist in the DOM. Used for sidecar persistence during Snapshots.
+ */
+export function captureAnnotationState() {
+    const state = [];
+
+    // Text
+    document.querySelectorAll('.text-wrapper').forEach(el => {
+        state.push({ type: 'text', data: text.getTextState(el) });
+    });
+
+    // Shape
+    document.querySelectorAll('.shape-wrapper').forEach(el => {
+        state.push({ type: 'shape', data: shape.getShapeState(el) });
+    });
+
+    // Image
+    document.querySelectorAll('.image-wrapper').forEach(el => {
+        state.push({ type: 'image', data: image.getImageState(el) });
+    });
+
+    // Notes
+    document.querySelectorAll('.note-annotation').forEach(el => {
+        state.push({ type: 'note', data: notes.getNoteState(el) });
+    });
+
+    return state;
+}
+
+/**
+ * Restores a list of granular annotations to the DOM.
+ */
+export function restoreAnnotationState(stateList) {
+    if (!stateList || !Array.isArray(stateList)) return;
+
+    stateList.forEach(item => {
+        if (!item.data) return;
+        try {
+            switch (item.type) {
+                case 'text': text.restoreTextAnnotation(item.data); break;
+                case 'shape': shape.restoreShapeAnnotation(item.data); break;
+                case 'image': image.restoreImageAnnotation(item.data); break;
+                case 'note': notes.restoreNote(item.data); break;
+            }
+        } catch (e) {
+            console.warn("Failed to restore annotation item:", item, e);
+        }
+    });
+}

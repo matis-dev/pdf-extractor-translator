@@ -351,7 +351,10 @@ export function handlePageClick(e, index) {
     }
 
     // Ignore clicks on existing annotations or overlays
-    if (e.target.closest('.text-annotation') || e.target.closest('.selection-overlay') || e.target.closest('.shape-annotation') || e.target.closest('.selection-handle')) {
+    if (e.target.closest('.text-annotation') || e.target.closest('.text-wrapper') ||
+        e.target.closest('.image-annotation') || e.target.closest('.image-wrapper') ||
+        e.target.closest('.shape-annotation') || e.target.closest('.shape-wrapper') ||
+        e.target.closest('.selection-overlay') || e.target.closest('.selection-handle')) {
         return;
     }
 

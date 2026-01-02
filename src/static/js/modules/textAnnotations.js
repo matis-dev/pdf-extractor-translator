@@ -1,6 +1,6 @@
 
 import { state } from './state.js';
-import { saveState } from './history.js';
+import { saveState, recordAction, ActionType } from './history.js';
 import { startWrapperMove, startWrapperResize, startWrapperRotation } from './imageAnnotations.js';
 import { refreshView } from './viewer.js';
 
@@ -13,7 +13,6 @@ export function ensureTextSettings() {
             color: '#000000',
             isBold: false,
             isItalic: false,
-            // Background defaults (Opaque White, per user request)
             backgroundColor: '#ffffff',
             backgroundAlpha: 1.0,
             isTransparent: false
@@ -21,37 +20,131 @@ export function ensureTextSettings() {
     }
 }
 
+export function getTextState(wrapper) {
+    const pageContainer = wrapper.closest('.page-container');
+    const pageIndex = parseInt(pageContainer.dataset.pageIndex);
+    const content = wrapper.querySelector('.text-content');
+    return {
+        id: wrapper.id,
+        pageIndex,
+        x: wrapper.style.left,
+        y: wrapper.style.top,
+        width: wrapper.style.width,
+        height: wrapper.style.height,
+        transform: wrapper.style.transform || 'none',
+        text: content.innerText,
+        styles: {
+            fontFamily: content.style.fontFamily,
+            fontSize: content.style.fontSize,
+            color: content.style.color,
+            fontWeight: content.style.fontWeight,
+            fontStyle: content.style.fontStyle,
+            backgroundColor: content.style.backgroundColor,
+        },
+        metadata: {
+            bgColor: content.dataset.bgColor,
+            bgAlpha: content.dataset.bgAlpha,
+            isTransparent: content.dataset.isTransparent
+        },
+        domElement: wrapper
+    };
+}
+
+export function restoreTextAnnotation(data) {
+    let wrapper = document.getElementById(data.id);
+    if (!wrapper) {
+        // Create it
+        const pageContainer = document.querySelectorAll('.page-container')[data.pageIndex];
+        if (!pageContainer) return;
+
+        wrapper = document.createElement('div');
+        wrapper.className = 'text-wrapper'; // Default logic
+        wrapper.id = data.id;
+
+        wrapper.innerHTML = `
+        <div class="resize-handle handle-nw" data-dir="nw"></div>
+        <div class="resize-handle handle-n" data-dir="n"></div>
+        <div class="resize-handle handle-ne" data-dir="ne"></div>
+        <div class="resize-handle handle-e" data-dir="e"></div>
+        <div class="resize-handle handle-se" data-dir="se"></div>
+        <div class="resize-handle handle-s" data-dir="s"></div>
+        <div class="resize-handle handle-sw" data-dir="sw"></div>
+        <div class="resize-handle handle-w" data-dir="w"></div>
+        <div class="rotate-handle"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="delete-handle" title="Delete Text"><i class="bi bi-x-lg"></i></div>
+        `;
+
+        const textContent = document.createElement('div');
+        textContent.className = 'text-content';
+        textContent.contentEditable = true;
+        // Text/Styles applied below
+
+        wrapper.prepend(textContent);
+        pageContainer.appendChild(wrapper);
+        setupTextWrapperInteraction(wrapper, pageContainer);
+
+        // Listeners for modifications
+        let startContent = data.text;
+        textContent.addEventListener('focus', () => { startContent = textContent.innerText; });
+        textContent.addEventListener('blur', () => {
+            const currentContent = textContent.innerText;
+            if (currentContent !== startContent) {
+                // Record content change
+                const oldState = { ...getTextState(wrapper), text: startContent };
+                const newState = getTextState(wrapper);
+                recordAction(ActionType.MODIFY, { oldState, newState }, restoreTextAnnotation);
+                startContent = currentContent;
+                if (!currentContent.trim()) {
+                    // Empty text handling if needed
+                }
+            }
+        });
+    }
+
+    // Apply State
+    Object.assign(wrapper.style, {
+        left: data.x, top: data.y, width: data.width, height: data.height, transform: data.transform
+    });
+
+    // Safety check for content
+    const content = wrapper.querySelector('.text-content');
+    if (content) {
+        content.innerText = data.text;
+        Object.assign(content.style, data.styles);
+        Object.assign(content.dataset, data.metadata);
+    }
+
+    return wrapper;
+}
+
+
 export async function addTextAnnotation(e, pageIndex) {
-    // 1. Check for Active Selection First
     const existingSelected = document.querySelectorAll('.text-wrapper.selected');
     if (existingSelected.length > 0) {
-        // If clicking outside the selected wrapper (handled by e.target check below),
-        // we just deselect and return.
         if (!e.target.closest('.text-wrapper.selected')) {
             existingSelected.forEach(el => el.classList.remove('selected'));
-            return; // STOP creation
+            // Continue to create new text
         }
     }
 
     if (e.target.closest('.text-wrapper') || e.target.closest('.resize-handle') || e.target.closest('.delete-handle')) return;
 
     ensureTextSettings();
-    await saveState(false);
+    // No saveState(false) - using Action
 
     const pageContainer = document.querySelectorAll('.page-container')[pageIndex];
-    if (!pageContainer) return; // Guard
+    if (!pageContainer) return;
 
-    // Position relative to page container
     const rect = pageContainer.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Create Wrapper
+    // Create via restore logic or manually? 
+    // Manual creation to match event context, then stick listeners.
     const wrapper = document.createElement('div');
-    wrapper.className = 'text-wrapper selected'; // Start selected
+    wrapper.className = 'text-wrapper selected';
     wrapper.id = `text-annot-${Date.now()}`;
 
-    // Minimal HTML for Wrapper + Controls
     wrapper.innerHTML = `
         <div class="resize-handle handle-nw" data-dir="nw"></div>
         <div class="resize-handle handle-n" data-dir="n"></div>
@@ -65,13 +158,11 @@ export async function addTextAnnotation(e, pageIndex) {
         <div class="delete-handle" title="Delete Text"><i class="bi bi-x-lg"></i></div>
     `;
 
-    // Create Text Content
     const textContent = document.createElement('div');
     textContent.className = 'text-content';
-    textContent.contentEditable = true; // Start editing
+    textContent.contentEditable = true;
     textContent.innerText = "Type here";
 
-    // Apply Styles
     Object.assign(textContent.style, {
         fontFamily: state.textSettings?.fontFamily || 'Helvetica',
         fontSize: `${state.textSettings?.fontSize || 16}px`,
@@ -82,7 +173,6 @@ export async function addTextAnnotation(e, pageIndex) {
             hexToRgba(state.textSettings.backgroundColor, state.textSettings.backgroundAlpha)
     });
 
-    // Metadata for saving
     textContent.dataset.bgColor = state.textSettings.backgroundColor;
     textContent.dataset.bgAlpha = state.textSettings.backgroundAlpha;
     textContent.dataset.isTransparent = state.textSettings.isTransparent;
@@ -98,41 +188,42 @@ export async function addTextAnnotation(e, pageIndex) {
 
     setupTextWrapperInteraction(wrapper, pageContainer);
 
-    // Handle Edit Mode Focus
+    // Modify Listeners
+    let startContent = textContent.innerText;
+    textContent.addEventListener('focus', () => { startContent = textContent.innerText; });
+    textContent.addEventListener('blur', () => {
+        const current = textContent.innerText;
+        if (current !== startContent) {
+            const oldState = { ...getTextState(wrapper), text: startContent };
+            const newState = getTextState(wrapper);
+            recordAction(ActionType.MODIFY, { oldState, newState }, restoreTextAnnotation);
+            startContent = current;
+        }
+        if (!current.trim()) {
+            // Optional empty clean up
+        }
+    });
+
     textContent.focus();
 
-    // Select all text
     const range = document.createRange();
     range.selectNodeContents(textContent);
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
 
-    // Listen for blur to cleanup empty
-    textContent.addEventListener('blur', () => {
-        // Don't remove wrapper immediately on blur, maybe user just clicked handle.
-        // Only remove if empty text.
-        if (!textContent.innerText.trim()) {
-            // wrapper.remove(); // Optional: remove if empty
-        }
-    });
+    // Record Addition
+    recordAction(ActionType.ADD, getTextState(wrapper), restoreTextAnnotation);
 
-    // Ensure Text Mode stays active
     state.modes.text = true;
     if (window.updateButtonStates) window.updateButtonStates();
 }
 
-/**
- * Text Wrapper Interaction - Matches Image Wrapper Logic
- */
 export function setupTextWrapperInteraction(wrapper, container) {
-    // 1. Move Logic (MouseDown on wrapper)
     wrapper.addEventListener('mousedown', (e) => {
-        // If clicking handle or internal text (while editing), ignore move?
-        // If editing text, we want standard text selection.
         const content = wrapper.querySelector('.text-content');
         if (content && content.isContentEditable && e.target === content) {
-            e.stopPropagation(); // Allow text interactions
+            e.stopPropagation();
             return;
         }
 
@@ -143,103 +234,120 @@ export function setupTextWrapperInteraction(wrapper, container) {
         e.stopPropagation();
         e.preventDefault();
 
-        // Select Logic
         document.querySelectorAll('.text-wrapper.selected').forEach(el => el.classList.remove('selected'));
         wrapper.classList.add('selected');
 
-        // Move only on Double Click Hold (e.detail >= 2)
-        // User requested: "click double on the text field and hold ... move"
         if (e.detail >= 2) {
-            startWrapperMove(e, wrapper);
+            const startState = getTextState(wrapper);
+            startWrapperMove(e, wrapper, () => {
+                const newState = getTextState(wrapper);
+                if (newState.x !== startState.x || newState.y !== startState.y) {
+                    recordAction(ActionType.MOVE, { oldState: startState, newState }, restoreTextAnnotation);
+                }
+            });
         }
     });
 
-    // Handles
     wrapper.querySelectorAll('.resize-handle').forEach(handle => {
         handle.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             e.preventDefault();
             const dir = handle.dataset.dir;
-            startWrapperResize(e, wrapper, dir);
+            const startState = getTextState(wrapper);
+            startWrapperResize(e, wrapper, dir, () => {
+                const newState = getTextState(wrapper);
+                recordAction(ActionType.RESIZE, { oldState: startState, newState }, restoreTextAnnotation);
+            });
         });
     });
 
-    // Rotation
     const rotHandle = wrapper.querySelector('.rotate-handle');
     if (rotHandle) {
         rotHandle.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            startWrapperRotation(e, wrapper);
+            const startState = getTextState(wrapper);
+            startWrapperRotation(e, wrapper, () => {
+                const newState = getTextState(wrapper);
+                recordAction(ActionType.MODIFY, { oldState: startState, newState }, restoreTextAnnotation);
+            });
         });
     }
 
-    // Delete
     const delHandle = wrapper.querySelector('.delete-handle');
     if (delHandle) {
         delHandle.addEventListener('click', (e) => {
             e.stopPropagation();
             if (confirm("Delete this text field?")) {
+                const s = getTextState(wrapper);
                 wrapper.remove();
-                saveState(false);
+                recordAction(ActionType.DELETE, s, restoreTextAnnotation);
             }
         });
         delHandle.addEventListener('mousedown', (e) => e.stopPropagation());
     }
 
-    // Double Click to Edit
     wrapper.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         const content = wrapper.querySelector('.text-content');
         if (content) {
-            // If we were moving, we might prevent edit? 
-            // Usually dblclick fires after mouseup of 2nd click.
-            // If movement happened, maybe we don't want to edit?
-            // But let's allow it for now or check if moved.
             content.contentEditable = true;
             content.focus();
         }
     });
 }
 
-
-
-
-
-// Global Text Settings Handlers (exposed for Ribbon)
+// Global Text Settings Handlers
 export function updateTextSettings(key, value) {
     ensureTextSettings();
     state.textSettings[key] = value;
-
-    // Apply to selected element if any
-    // Fix: Selector must target content inside wrapper
     const selected = document.querySelector('.text-wrapper.selected .text-content');
     if (selected) {
+        const wrapper = selected.closest('.text-wrapper');
+        const oldState = getTextState(wrapper);
+
         if (key === 'fontFamily') selected.style.fontFamily = value;
         else if (key === 'fontSize') selected.style.fontSize = `${value}px`;
         else if (key === 'color') selected.style.color = value;
+
+        const newState = getTextState(wrapper);
+        recordAction(ActionType.MODIFY, { oldState, newState }, restoreTextAnnotation);
     }
 }
 
 export function toggleTextProperty(prop) {
     ensureTextSettings();
+    const selected = document.querySelector('.text-wrapper.selected .text-content');
+    let changed = false;
+    let oldState = null;
+    let wrapper = null;
+    if (selected) {
+        wrapper = selected.closest('.text-wrapper');
+        oldState = getTextState(wrapper);
+    }
+
     if (prop === 'bold') {
         state.textSettings.isBold = !state.textSettings.isBold;
-        const selected = document.querySelector('.text-wrapper.selected .text-content');
-        if (selected) selected.style.fontWeight = state.textSettings.isBold ? 'bold' : 'normal';
-
-        // Toggle UI Button State
+        if (selected) {
+            selected.style.fontWeight = state.textSettings.isBold ? 'bold' : 'normal';
+            changed = true;
+        }
         const btn = document.getElementById('btn-text-bold');
         if (btn) btn.classList.toggle('active');
 
     } else if (prop === 'italic') {
         state.textSettings.isItalic = !state.textSettings.isItalic;
-        const selected = document.querySelector('.text-wrapper.selected .text-content');
-        if (selected) selected.style.fontStyle = state.textSettings.isItalic ? 'italic' : 'normal';
-
-        // Toggle UI Button State
+        if (selected) {
+            selected.style.fontStyle = state.textSettings.isItalic ? 'italic' : 'normal';
+            changed = true;
+        }
         const btn = document.getElementById('btn-text-italic');
         if (btn) btn.classList.toggle('active');
+    }
+
+    if (changed && wrapper) {
+        const newState = getTextState(wrapper);
+        recordAction(ActionType.MODIFY, { oldState, newState }, restoreTextAnnotation);
     }
 }
 
@@ -247,26 +355,39 @@ export function updateTextBackground() {
     ensureTextSettings();
     const { backgroundColor, backgroundAlpha, isTransparent } = state.textSettings;
     const color = isTransparent ? 'transparent' : hexToRgba(backgroundColor, backgroundAlpha);
-
-    // Update selected or all active editing?
-    // addTextAnnotation handles selection logic now.
     const selected = document.querySelector('.text-wrapper.selected .text-content') || document.querySelector('.text-content[contenteditable="true"]');
+
     if (selected) {
+        const wrapper = selected.closest('.text-wrapper');
+        const oldState = getTextState(wrapper);
+
         selected.style.backgroundColor = color;
         selected.dataset.bgColor = backgroundColor;
         selected.dataset.bgAlpha = backgroundAlpha;
         selected.dataset.isTransparent = isTransparent;
+
+        const newState = getTextState(wrapper);
+        // Only record if changed? Metadata change is change.
+        // But this function might be called repeatedly during slider move?
+        // Ideally we record on change End.
+        // But for buttons it's instant.
+        // For now, record it.
+        recordAction(ActionType.MODIFY, { oldState, newState }, restoreTextAnnotation);
     }
 }
+
+// Background Setters wrap updateTextBackground, so we might duplicate history if we are not careful.
+// updateTextBackgroundSettings calls updateTextBackground.
+// recordAction should likely be in updateTextBackground? 
+// Yes, I put it there.
 
 export function updateTextBackgroundSettings(key, value) {
     ensureTextSettings();
 
-    // Wake up action (clicking color picker)
+    // Wake up action
     if (key === 'wakeUp') {
         if (state.textSettings.isTransparent) {
             state.textSettings.isTransparent = false;
-            // Also ensure visible opacity if it was 0
             if (state.textSettings.backgroundAlpha === 0) {
                 state.textSettings.backgroundAlpha = 1;
             }
@@ -278,23 +399,19 @@ export function updateTextBackgroundSettings(key, value) {
 
     state.textSettings[key] = value;
 
-    // Logic: Opacity 0 -> Active No Fill
     if (key === 'backgroundAlpha') {
         if (value === 0) {
             state.textSettings.isTransparent = true;
         } else {
-            // If we are moving slider > 0, deactivate No Fill
             if (state.textSettings.isTransparent) {
                 state.textSettings.isTransparent = false;
             }
         }
     }
 
-    // Logic: Color Change -> Deactivate No Fill (Wake up)
     if (key === 'backgroundColor') {
         if (state.textSettings.isTransparent) {
             state.textSettings.isTransparent = false;
-            // Ensure visible opacity
             if (state.textSettings.backgroundAlpha === 0) {
                 state.textSettings.backgroundAlpha = 1;
             }
@@ -308,15 +425,8 @@ export function updateTextBackgroundSettings(key, value) {
 export function toggleTextBackgroundTransparency() {
     ensureTextSettings();
     const current = state.textSettings.isTransparent;
-
-    // Toggle state
     state.textSettings.isTransparent = !current;
-
-    // If turning ON transparency (isTransparent = true)
-    // We don't necessarily force alpha to 0, just the flag.
-    // If turning OFF transparency
-    // We ensure alpha is visible (e.g. 1) if it was 0
-    if (!current === false) { // becoming visible
+    if (!current === false) {
         if (state.textSettings.backgroundAlpha === 0) {
             state.textSettings.backgroundAlpha = 1;
         }
@@ -327,9 +437,9 @@ export function toggleTextBackgroundTransparency() {
 }
 
 function updateBackgroundUIState() {
+    // ... existing UI logic ...
     const isTransparent = state.textSettings.isTransparent;
     const alpha = state.textSettings.backgroundAlpha;
-
     const btn = document.getElementById('bg-transparent-btn');
     const slider = document.getElementById('bg-opacity-slider');
     const colorPicker = document.getElementById('bg-color-picker');
@@ -343,36 +453,13 @@ function updateBackgroundUIState() {
             btn.classList.add('btn-outline-secondary');
         }
     }
-
-    // Sync slider value if not transparent (or even if transparent, to show 0?)
-    // If transparent, usually implies 0 opacity visually, but state might be preserved.
-    // User said: "if opacity zero ... no fill active".
-    // If No Fill active -> "slider disabled styling".
-
     if (slider) {
-        if (isTransparent) {
-            slider.style.opacity = '0.5';
-            // Optional: slider.value = 0; // Visual sync
-            // But if we want to preserve previous alpha when toggling back?
-            // User: "if opacity zero ... no fill active".
-            // If I click No Fill, maybe slider should stay where it is but look disabled?
-            // Or snap to 0? "opacity to zero suit as a transparency indicator".
-            // Let's snap visual value to 0 if purely transparent via opacity logic.
-            // But if toggled via button, maybe keep value?
-            // Let's keep it simple: Just visual dimming.
-        } else {
-            slider.style.opacity = '1';
-            slider.value = alpha;
-        }
+        if (isTransparent) slider.style.opacity = '0.5';
+        else { slider.style.opacity = '1'; slider.value = alpha; }
     }
-
     if (colorPicker) {
-        if (isTransparent) {
-            colorPicker.style.opacity = '0.5';
-            // colorPicker.disabled = true; // User said: "able to use them", so NO disabled attribute.
-        } else {
-            colorPicker.style.opacity = '1';
-        }
+        if (isTransparent) colorPicker.style.opacity = '0.5';
+        else colorPicker.style.opacity = '1';
     }
 }
 

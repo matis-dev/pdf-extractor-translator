@@ -293,7 +293,7 @@ export async function handleGlobalMouseUp() {
         currentRect = null; currentPath = null; currentSvg = null; currentShapeElement = null;
         isDrawing = false;
 
-        await saveState(false);
+        // saveState is handled by createShapeWrapper logic (recordAction)
         return;
     }
 
