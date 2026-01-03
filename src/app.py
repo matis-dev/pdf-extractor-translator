@@ -1073,6 +1073,59 @@ def uninstall_lang_package():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/pdf-to-pdfa', methods=['POST'])
+def convert_to_pdfa():
+    filename = request.json.get('filename')
+    level = request.json.get('level', '2b') # 1b, 2b, 3b
+    
+    logger.info(f"PDF/A conversion requested for {filename} at level {level}")
+    
+    if not filename:
+         return jsonify({'error': 'Filename required'}), 400
+         
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(input_path):
+         logger.error(f"File not found: {input_path}")
+         return jsonify({'error': 'File not found'}), 404
+         
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename = f"pdfa_{level}_{timestamp}_{secure_filename(filename)}"
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+    
+    gs_level = 2
+    if level == '1b': gs_level = 1
+    elif level == '2b': gs_level = 2
+    elif level == '3b': gs_level = 3
+    
+    cmd = [
+        "gs", 
+        f"-dPDFA={gs_level}",
+        "-dBATCH", "-dNOPAUSE", 
+        "-sColorConversionStrategy=RGB",
+        "-sDEVICE=pdfwrite", 
+        "-dPDFACompatibilityPolicy=1", 
+        f"-sOutputFile={output_path}",
+        input_path
+    ]
+    
+    logger.info(f"Running command: {' '.join(cmd)}")
+    
+    try:
+        # Add timeout to prevent hanging
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+        logger.info(f"Conversion successful: {output_filename}")
+        return jsonify({'filename': output_filename, 'url': url_for('download_file', filename=output_filename)})
+    except subprocess.TimeoutExpired:
+        logger.error("Ghostscript timed out")
+        return jsonify({'error': 'Conversion timed out'}), 504
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr.decode() if e.stderr else str(e)
+        logger.error(f"Ghostscript failed: {error_msg}")
+        return jsonify({'error': f'PDF/A conversion failed: {error_msg}'}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     app.run(debug=debug_mode)

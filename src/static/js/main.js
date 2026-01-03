@@ -27,6 +27,7 @@ import { summarizeDocument } from './modules/summarize.js';
 import { initCommandPalette, registerCommand } from './modules/command_palette.js';
 import * as redaction from './modules/redaction.js';
 import { checkForDraft, saveDraft, clearDraft } from './modules/autosave.js';
+import { openPdfAModal, convertToPdfA } from './modules/pdfa.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -80,7 +81,10 @@ Object.assign(window, {
     // Autosave
     saveDraft,
     clearDraft,
-    addTextAnnotation: annotations.addTextAnnotation // Expose for testing
+    addTextAnnotation: annotations.addTextAnnotation, // Expose for testing
+    // PDF/A
+    openPdfAModal,
+    convertToPdfA
 });
 
 // Initialize

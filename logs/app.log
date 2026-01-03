@@ -406,3 +406,50 @@ target_lang
 [2026-01-02 22:20:30] INFO     root         Logging initialized. Writing to logs/app.log
 [2026-01-02 22:20:44] INFO     root         Logging initialized. Writing to logs/app.log
 [2026-01-02 22:20:44] WARNING  werkzeug      * Debugger is active!
+[2026-01-02 22:29:04] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:29:04] WARNING  werkzeug      * Debugger is active!
+[2026-01-02 22:31:06] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:31:23] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:32:57] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:33:15] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:34:33] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:34:49] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:36:15] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:36:29] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:37:39] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:37:54] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:39:16] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:39:16] WARNING  werkzeug      * Debugger is active!
+[2026-01-02 22:39:56] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:40:11] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:41:19] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:41:19] WARNING  werkzeug      * Debugger is active!
+[2026-01-02 22:41:23] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:41:38] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:42:50] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:43:05] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:44:02] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:44:18] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:44:23] INFO     app          PDF/A conversion requested for pdfa_test.pdf at level 2b
+[2026-01-02 22:44:23] INFO     app          Running command: gs -dPDFA=2 -dBATCH -dNOPAUSE -sColorConversionStrategy=RGB -sDEVICE=pdfwrite -dPDFACompatibilityPolicy=1 -sOutputFile=/home/matis/Desktop/projects/pdf/outputs/pdfa_2b_20260102_224423_pdfa_test.pdf /home/matis/Desktop/projects/pdf/uploads/pdfa_test.pdf
+[2026-01-02 22:44:23] INFO     app          Conversion successful: pdfa_2b_20260102_224423_pdfa_test.pdf
+[2026-01-02 22:45:06] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:45:24] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:45:30] INFO     app          PDF/A conversion requested for pdfa_test.pdf at level 2b
+[2026-01-02 22:45:30] INFO     app          Running command: gs -dPDFA=2 -dBATCH -dNOPAUSE -sColorConversionStrategy=RGB -sDEVICE=pdfwrite -dPDFACompatibilityPolicy=1 -sOutputFile=/home/matis/Desktop/projects/pdf/outputs/pdfa_2b_20260102_224530_pdfa_test.pdf /home/matis/Desktop/projects/pdf/uploads/pdfa_test.pdf
+[2026-01-02 22:45:30] INFO     app          Conversion successful: pdfa_2b_20260102_224530_pdfa_test.pdf
+[2026-01-02 22:46:04] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:46:24] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-02 22:46:30] INFO     app          PDF/A conversion requested for pdfa_test.pdf at level 2b
+[2026-01-02 22:46:30] INFO     app          Running command: gs -dPDFA=2 -dBATCH -dNOPAUSE -sColorConversionStrategy=RGB -sDEVICE=pdfwrite -dPDFACompatibilityPolicy=1 -sOutputFile=/home/matis/Desktop/projects/pdf/outputs/pdfa_2b_20260102_224630_pdfa_test.pdf /home/matis/Desktop/projects/pdf/uploads/pdfa_test.pdf
+[2026-01-02 22:46:30] INFO     app          Conversion successful: pdfa_2b_20260102_224630_pdfa_test.pdf
+[2026-01-03 15:31:08] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 15:31:24] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 15:31:29] INFO     app          PDF/A conversion requested for pdfa_test.pdf at level 2b
+[2026-01-03 15:31:29] INFO     app          Running command: gs -dPDFA=2 -dBATCH -dNOPAUSE -sColorConversionStrategy=RGB -sDEVICE=pdfwrite -dPDFACompatibilityPolicy=1 -sOutputFile=/home/matis/Desktop/projects/pdf/outputs/pdfa_2b_20260103_153129_pdfa_test.pdf /home/matis/Desktop/projects/pdf/uploads/pdfa_test.pdf
+[2026-01-03 15:31:29] INFO     app          Conversion successful: pdfa_2b_20260103_153129_pdfa_test.pdf
+[2026-01-03 15:37:27] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 15:37:45] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 15:37:50] INFO     app          PDF/A conversion requested for pdfa_test.pdf at level 2b
+[2026-01-03 15:37:50] INFO     app          Running command: gs -dPDFA=2 -dBATCH -dNOPAUSE -sColorConversionStrategy=RGB -sDEVICE=pdfwrite -dPDFACompatibilityPolicy=1 -sOutputFile=/home/matis/Desktop/projects/pdf/outputs/pdfa_2b_20260103_153750_pdfa_test.pdf /home/matis/Desktop/projects/pdf/uploads/pdfa_test.pdf
+[2026-01-03 15:37:50] INFO     app          Conversion successful: pdfa_2b_20260103_153750_pdfa_test.pdf

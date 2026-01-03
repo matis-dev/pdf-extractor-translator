@@ -320,26 +320,18 @@ body {
 }
 
 /* Modals */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 3000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-}
+/* Modals - Bootstrap Overrides for Theme */
+/* We rely on Bootstrap for positioning and z-index (1055) */
+/* .modal { z-index: 3000; }  <-- Removed to fix layering issues */
 
 .modal-content {
     background-color: var(--modal-bg);
     color: var(--modal-text);
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 600px;
+    /* margin: 15% auto; <-- Let Bootstrap handle centering */
+    /* padding: 20px; */
+    border: 1px solid var(--border-color);
+    /* width: 80%; */
+    /* max-width: 600px; */
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }

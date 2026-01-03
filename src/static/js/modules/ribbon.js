@@ -272,7 +272,8 @@ const ribbonConfig = {
                 { id: 'apply-redactions-btn', icon: 'bi-check-circle-fill', label: 'Apply Redactions', action: 'globalAction', function: 'applyRedactions' },
                 { id: 'watermark', icon: 'bi-water', label: 'Watermark', action: 'globalAction', function: 'openWatermarkModal' },
                 { id: 'manage-security', icon: 'bi-shield-lock', label: 'Security', action: 'globalAction', function: 'manageSecurity' },
-                { id: 'sign', icon: 'bi-pen', label: 'Sign', action: 'globalAction', function: 'openSignatureModal' }
+                { id: 'sign', icon: 'bi-pen', label: 'Sign', action: 'globalAction', function: 'openSignatureModal' },
+                { id: 'pdfa', icon: 'bi-file-earmark-pdf', label: 'PDF/A', action: 'globalAction', function: 'openPdfAModal' }
             ]
         }
     ],
