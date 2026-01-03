@@ -1,0 +1,138 @@
+<!-- Settings Modal -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true"
+    data-testid="settings-modal">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="settingsModalLabel">
+                    <i class="bi bi-gear-fill me-2"></i>Settings
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="d-flex h-100" style="min-height: 400px;">
+                    <!-- Sidebar Navigation -->
+                    <div class="settings-sidebar bg-light border-end p-3" style="width: 200px; flex-shrink: 0;">
+                        <div class="nav flex-column nav-pills" id="settings-tabs" role="tablist"
+                            aria-orientation="vertical">
+                            <button class="nav-link active text-start" id="tab-general" data-bs-toggle="pill"
+                                data-bs-target="#settings-general" type="button" role="tab"
+                                aria-controls="settings-general" aria-selected="true">
+                                <i class="bi bi-sliders me-2"></i>General
+                            </button>
+                            <button class="nav-link text-start" id="tab-shortcuts" data-bs-toggle="pill"
+                                data-bs-target="#settings-shortcuts" type="button" role="tab"
+                                aria-controls="settings-shortcuts" aria-selected="false">
+                                <i class="bi bi-keyboard me-2"></i>Shortcuts
+                            </button>
+                            <button class="nav-link text-start" id="tab-pdf-defaults" data-bs-toggle="pill"
+                                data-bs-target="#settings-pdf-defaults" type="button" role="tab"
+                                aria-controls="settings-pdf-defaults" aria-selected="false">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>PDF Defaults
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Content Area -->
+                    <div class="settings-content flex-grow-1 p-4">
+                        <div class="tab-content" id="settings-tabContent">
+                            <!-- General Settings -->
+                            <div class="tab-pane fade show active" id="settings-general" role="tabpanel"
+                                aria-labelledby="tab-general">
+                                <h6 class="border-bottom pb-2 mb-3">Appearance</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Theme</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="theme" id="theme-light"
+                                            value="light" checked>
+                                        <label class="btn btn-outline-secondary" for="theme-light"><i
+                                                class="bi bi-sun me-2"></i>Light</label>
+
+                                        <input type="radio" class="btn-check" name="theme" id="theme-dark" value="dark">
+                                        <label class="btn btn-outline-secondary" for="theme-dark"><i
+                                                class="bi bi-moon me-2"></i>Dark</label>
+
+                                        <input type="radio" class="btn-check" name="theme" id="theme-auto" value="auto">
+                                        <label class="btn btn-outline-secondary" for="theme-auto"><i
+                                                class="bi bi-display me-2"></i>Auto</label>
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="compact-mode">
+                                    <label class="form-check-label" for="compact-mode">Compact Mode</label>
+                                </div>
+                                <hr>
+                                <h6>About</h6>
+                                <p class="text-muted small">
+                                    <strong>PDF Editor</strong><br>
+                                    Version: v1.0.0<br>
+                                </p>
+                            </div>
+
+                            <!-- Shortcuts Settings -->
+                            <div class="tab-pane fade" id="settings-shortcuts" role="tabpanel"
+                                aria-labelledby="tab-shortcuts">
+                                <h6 class="border-bottom pb-2 mb-3">Keyboard Shortcuts</h6>
+
+                                <div class="mb-3">
+                                    <input type="text" id="shortcut-search" class="form-control"
+                                        placeholder="Search shortcuts...">
+                                </div>
+
+                                <div id="shortcuts-list"
+                                    class="list-group list-group-flush border rounded overflow-auto"
+                                    style="max-height: 400px;">
+                                    <!-- Shortcuts populated by JS -->
+                                </div>
+
+                                <!-- Capture Dialog Overlay (inside modal or handled via separate modal? 
+                                     Using a simple overlay div inside this tab or a separate modal is better. 
+                                     Let's use a hidden div that covers the list when active.) 
+                                -->
+                                <div id="shortcut-capture-overlay"
+                                    class="position-absolute top-0 start-0 w-100 h-100 bg-white d-none flex-column align-items-center justify-content-center"
+                                    style="z-index: 10; opacity: 0.95;">
+                                    <h5>Press new key combination...</h5>
+                                    <div class="display-6 my-3 text-primary" id="captured-combo-display">...</div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-secondary" id="cancel-capture-btn">Cancel</button>
+                                        <button class="btn btn-primary" id="confirm-capture-btn"
+                                            disabled>Confirm</button>
+                                    </div>
+                                    <div id="capture-conflict-msg" class="text-danger mt-3 small"></div>
+                                </div>
+                            </div>
+
+                            <!-- PDF Defaults Settings -->
+                            <div class="tab-pane fade" id="settings-pdf-defaults" role="tabpanel"
+                                aria-labelledby="tab-pdf-defaults">
+                                <h6 class="border-bottom pb-2 mb-3">PDF Defaults</h6>
+                                <p class="text-muted small">These values will be applied to all saved PDFs.</p>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Default Author</label>
+                                    <input type="text" class="form-control" id="setting-pdf-author"
+                                        placeholder="e.g., John Smith">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Default Creator</label>
+                                    <input type="text" class="form-control" id="setting-pdf-creator"
+                                        placeholder="e.g., My Company">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Default Producer</label>
+                                    <input type="text" class="form-control" id="setting-pdf-producer"
+                                        placeholder="e.g., PDF Editor">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="save-settings-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>

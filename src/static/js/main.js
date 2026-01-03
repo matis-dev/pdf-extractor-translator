@@ -28,6 +28,9 @@ import { initCommandPalette, registerCommand } from './modules/command_palette.j
 import * as redaction from './modules/redaction.js';
 import { checkForDraft, saveDraft, clearDraft } from './modules/autosave.js';
 import { openPdfAModal, convertToPdfA } from './modules/pdfa.js';
+import { initSettings, getSetting, getShortcut } from './modules/settings.js';
+import { buildComboString } from './modules/hotkeyCapture.js';
+import { getCommands } from './modules/command_palette.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -84,7 +87,8 @@ Object.assign(window, {
     addTextAnnotation: annotations.addTextAnnotation, // Expose for testing
     // PDF/A
     openPdfAModal,
-    convertToPdfA
+    convertToPdfA,
+    getSetting
 });
 
 // Initialize
@@ -100,6 +104,7 @@ async function init() {
         initCommandPalette();
         registerCommands();
         if (redaction.initRedactionListeners) redaction.initRedactionListeners();
+        initSettings();
         document.body.setAttribute('data-ribbon-called', 'true');
 
         state.filename = window.filename;
@@ -140,15 +145,27 @@ async function init() {
 
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
-        // Undo: Ctrl+Z
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
-            e.preventDefault();
-            undo();
+        // Ignore if typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+            return;
         }
-        // Redo: Ctrl+Y or Ctrl+Shift+Z
-        if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
-            e.preventDefault();
-            redo();
+
+        const combo = buildComboString(e);
+        if (!combo) return;
+
+        // Find matching command
+        // We iterate default commands or ALL registered commands? 
+        // We need to look up which action has this shortcut.
+        // It's cheaper to reverse map? Or just iterate. Commands list is small.
+
+        const commands = getCommands();
+        for (const cmd of commands) {
+            const assigned = getShortcut(cmd.id);
+            if (assigned === combo) {
+                e.preventDefault();
+                cmd.action();
+                return;
+            }
         }
     });
 }
@@ -290,7 +307,10 @@ function registerCommands() {
     registerCommand('redo', 'Redo', () => redo(), 'bi-arrow-clockwise');
     registerCommand('dark-mode', 'Toggle Dark Mode', () => ui.toggleDarkMode(), 'bi-moon');
     registerCommand('zoom-in', 'Zoom In', () => zoomIn(), 'bi-zoom-in');
+
     registerCommand('zoom-out', 'Zoom Out', () => zoomOut(), 'bi-zoom-out');
+    registerCommand('copy', 'Copy Selection', () => console.log('Copy not impl'), 'bi-clipboard');
+    registerCommand('paste', 'Paste', () => console.log('Paste not impl'), 'bi-clipboard-check');
 
     // Tools
     registerCommand('mode-text', 'Add Text Tool', () => ui.toggleTextMode(), 'bi-fonts');
@@ -315,6 +335,10 @@ function registerCommands() {
     registerCommand('split-pdf', 'Split / Burst PDF', () => splitPdf(), 'bi-grid-3x3');
     registerCommand('compare', 'Compare PDFs', () => compare.openCompareModal(), 'bi-columns');
     registerCommand('security', 'Security Settings', () => ui.openSecurityModal(), 'bi-shield-lock');
+    registerCommand('settings', 'Open Settings', () => {
+        const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
+        modal.show();
+    }, 'bi-gear');
 
     // Forms
     registerCommand('field-text', 'Add Form Text Field', () => annotations.toggleFormMode('textfield'), 'bi-input-cursor-text');

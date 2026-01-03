@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { commitAnnotations } from './annotations.js';
 import { closePageExtractionModal, updateUnsavedIndicator } from './ui.js';
 import { clearDraft } from './autosave.js';
+import { getSetting } from './settings.js';
 
 export async function performExtraction(pageIndex, x, y, w, h, pageWidth, pageHeight) {
     document.getElementById('processing-overlay').style.display = 'flex';
@@ -169,6 +170,17 @@ export async function submitPageExtraction() {
 export async function saveChanges() {
     try {
         await commitAnnotations();
+
+        // Apply Metadata from Settings
+        const author = getSetting('pdf.defaultAuthor');
+        const creator = getSetting('pdf.defaultCreator');
+        const producer = getSetting('pdf.defaultProducer');
+
+        if (author !== undefined) state.pdfDoc.setAuthor(author);
+        if (creator !== undefined) state.pdfDoc.setCreator(creator);
+        if (producer !== undefined) state.pdfDoc.setProducer(producer);
+        state.pdfDoc.setModificationDate(new Date());
+
         const savedBytes = await state.pdfDoc.save();
 
         const blob = new Blob([savedBytes], { type: 'application/pdf' });

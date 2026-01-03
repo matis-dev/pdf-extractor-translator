@@ -55,13 +55,14 @@
 
     <!-- Right Column: Tabs, Ribbon, Preview -->
     <div id="main-content-wrapper">
-        <div id="tab-bar">
+        <div id="tab-bar" class="header-bar">
             <!-- Left Side: Branding & File -->
             <div class="d-flex align-items-center gap-2 me-3">
                 <a href="/" class="text-decoration-none text-body" title="Back to Library">
                     <i class="bi bi-arrow-left-circle-fill" style="font-size: 1.2rem;"></i>
                 </a>
                 <span class="fw-bold fs-6">PDF Editor</span>
+                <span class="badge bg-secondary ms-2 small" title="Application Version">v1.0.0</span>
 
                 <div class="vr mx-2 h-50"></div>
 
@@ -80,6 +81,10 @@
                 <button class="btn btn-link text-warning p-0" data-bs-toggle="modal" data-bs-target="#bugReportModal"
                     title="Report Issue">
                     <i class="bi bi-bug-fill"></i>
+                </button>
+                <button class="btn btn-link text-body p-0 ms-2" data-bs-toggle="modal" data-bs-target="#settingsModal"
+                    title="Settings" aria-label="Settings">
+                    <i class="bi bi-gear fs-6"></i>
                 </button>
             </div>
         </div>
@@ -133,7 +138,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">PDF Security</h5>
+                    <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>PDF Security</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -679,6 +684,7 @@
         </div>
     </div>
     {% include "partials/cloud_picker_modal.html" %}
+    {% include "partials/settings_modal.html" %}
 
     <!-- Save to Cloud Provider Selection Modal -->
     <div id="save-cloud-provider-modal" class="modal fade" tabindex="-1">
@@ -714,7 +720,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
 
-    <script type="module" src="{{ url_for('static', filename='js/editor.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 
     <script type="module">
         import { openCloudPicker } from "{{ url_for('static', filename='js/modules/cloud_picker.js') }}";

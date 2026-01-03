@@ -20,6 +20,11 @@ export function initCommandPalette() {
     searchInput = document.getElementById('cmd-search');
     resultsContainer = document.getElementById('cmd-results');
 
+    // Set placeholder with shortcut hint
+    if (searchInput) {
+        searchInput.placeholder = 'Search commands... (Ctrl+K)';
+    }
+
     // Global Shortcut
     document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -63,6 +68,10 @@ export function initCommandPalette() {
 
 export function registerCommand(id, name, action, icon = 'bi-gear') {
     commands.push({ id, name, action, icon });
+}
+
+export function getCommands() {
+    return commands;
 }
 
 function openPalette() {
