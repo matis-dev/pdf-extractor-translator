@@ -9,6 +9,7 @@ const ribbonConfig = {
             className: 'separator-full',
             tools: [
                 { id: 'save-btn', icon: 'bi-floppy', label: 'Save', action: 'globalAction', function: 'saveChanges', testId: 'save-btn' },
+                { id: 'save-cloud-btn', icon: 'bi-cloud-upload', label: 'Save to Cloud', action: 'globalAction', function: 'openSaveToCloud', testId: 'save-cloud-btn' },
                 { id: 'undo-btn', icon: 'bi-arrow-counterclockwise', label: 'Undo', action: 'globalAction', function: 'undoAction' },
                 { id: 'redo-btn', icon: 'bi-arrow-clockwise', label: 'Redo', action: 'globalAction', function: 'redoAction' }
             ]

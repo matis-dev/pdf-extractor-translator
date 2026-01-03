@@ -20,3 +20,11 @@ pdfplumber
 mcp
 pydantic>=2.0
 langchain_experimental>=0.4.1
+google-auth-oauthlib
+google-api-python-client
+webdavclient3
+dropbox
+msal
+
+
+

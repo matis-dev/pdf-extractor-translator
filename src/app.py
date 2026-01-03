@@ -27,12 +27,15 @@ from translation_utils import translate_text
 from ai_utils import get_pdf_chat_instance, LANGCHAIN_AVAILABLE
 from logging_config import setup_logging, get_logger
 from language_manager import get_available_languages, get_installed_languages, install_language, uninstall_language
+from dotenv import load_dotenv
+from cloud_routes import cloud_bp
 
 # Initialize logging
 setup_logging()
 logger = get_logger("app")
 
 # Configuration
+load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent # Project root
 SRC_DIR = Path(__file__).resolve().parent
 
@@ -42,6 +45,8 @@ OUTPUT_FOLDER = os.environ.get('OUTPUT_FOLDER', str(BASE_DIR / 'outputs'))
 app = Flask(__name__, 
             static_folder=str(SRC_DIR / 'static'), 
             template_folder=str(SRC_DIR / 'templates'))
+
+app.register_blueprint(cloud_bp)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER

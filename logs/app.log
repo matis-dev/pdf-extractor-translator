@@ -453,3 +453,59 @@ target_lang
 [2026-01-03 15:37:50] INFO     app          PDF/A conversion requested for pdfa_test.pdf at level 2b
 [2026-01-03 15:37:50] INFO     app          Running command: gs -dPDFA=2 -dBATCH -dNOPAUSE -sColorConversionStrategy=RGB -sDEVICE=pdfwrite -dPDFACompatibilityPolicy=1 -sOutputFile=/home/matis/Desktop/projects/pdf/outputs/pdfa_2b_20260103_153750_pdfa_test.pdf /home/matis/Desktop/projects/pdf/uploads/pdfa_test.pdf
 [2026-01-03 15:37:50] INFO     app          Conversion successful: pdfa_2b_20260103_153750_pdfa_test.pdf
+[2026-01-03 16:38:25] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 16:38:25] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 16:38:39] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 16:38:39] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 16:40:08] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 16:40:39] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 16:41:28] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 16:41:46] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 16:42:32] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 16:42:51] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:04:47] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:04:47] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 17:05:33] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:05:33] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 17:06:01] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:06:01] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 17:07:32] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:07:52] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:08:53] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:09:12] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:10:32] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:10:51] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:11:56] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:12:18] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:15:03] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:15:03] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 17:16:01] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:16:24] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:22:39] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:23:01] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:24:03] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 17:24:26] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:30:58] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:31:21] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:33:26] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:33:46] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:35:14] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:35:38] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:36:09] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:36:09] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:36:29] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:36:29] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 18:36:58] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:37:22] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:38:43] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:39:07] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:40:38] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:40:57] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:42:07] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:42:26] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:43:05] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:43:25] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:44:51] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:45:10] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:45:57] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 18:46:16] INFO     root         Logging initialized. Writing to logs/app.log

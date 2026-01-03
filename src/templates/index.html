@@ -70,6 +70,26 @@
                         <i class="bi bi-cloud-arrow-up text-primary mb-3" style="font-size: 3rem;"></i>
                         <h4 class="fw-normal">Drag and drop PDF files here</h4>
                         <p class="text-muted">or click to browse from your computer</p>
+
+                        <div class="d-flex justify-content-center gap-3 mt-4" onclick="event.stopPropagation()">
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                onclick="openCloudPicker('google')">
+                                <i class="bi bi-google me-1"></i> Google Drive
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                onclick="openCloudPicker('nextcloud')">
+                                <i class="bi bi-cloud me-1"></i> Nextcloud
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                onclick="openCloudPicker('dropbox')">
+                                <i class="bi bi-box-seam me-1"></i> Dropbox
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                onclick="openCloudPicker('onedrive')">
+                                <i class="bi bi-microsoft me-1"></i> OneDrive
+                            </button>
+                        </div>
+
                         <input type="file" class="d-none" id="pdf_file" name="pdf_file" accept=".pdf" multiple
                             onchange="document.getElementById('upload-form').submit()" data-testid="file-upload-input">
                     </form>
@@ -234,6 +254,10 @@
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/batch.js') }}"></script>
     <script type="module">
+        import { openCloudPicker } from "{{ url_for('static', filename='js/modules/cloud_picker.js') }}";
+        window.openCloudPicker = openCloudPicker;
+    </script>
+    <script type="module">
         import { renderLanguageDropdown, ensureLanguageInstalled } from "{{ url_for('static', filename='js/modules/language_manager.js') }}";
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -281,6 +305,7 @@
     <script src="{{ url_for('static', filename='js/modules/bug_reporter.js') }}"></script>
 
     {% include 'partials/language_settings_modal.html' %}
+    {% include 'partials/cloud_picker_modal.html' %}
 
     <!-- Bug Report Modal -->
     <div class="modal fade" id="bugReportModal" tabindex="-1">
