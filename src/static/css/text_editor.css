@@ -13,7 +13,7 @@
     /* Prevent text selection while moving wrapper */
     touch-action: none;
     transform-origin: center center;
-    z-index: 20;
+    z-index: var(--z-annotation);
     min-width: 50px;
     min-height: 20px;
 }
@@ -41,7 +41,7 @@
 
 /* Selected State */
 .text-wrapper.selected {
-    z-index: 30;
+    z-index: var(--z-annotation-handles);
 }
 
 .text-wrapper.selected .text-content {
@@ -61,7 +61,7 @@
     background: #007bff;
     border: 1px solid white;
     border-radius: 50%;
-    z-index: 31;
+    z-index: var(--z-content-handles);
     display: none;
     /* Hidden by default */
 }
@@ -135,7 +135,7 @@
     border: 1px solid #007bff;
     border-radius: 50%;
     display: none;
-    z-index: 31;
+    z-index: var(--z-content-handles);
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>') 10 10, alias;
     align-items: center;
     justify-content: center;

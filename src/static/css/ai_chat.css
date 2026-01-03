@@ -11,7 +11,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
-    z-index: 1000;
+    z-index: var(--z-overlay);
     font-family: 'Segoe UI', system-ui, sans-serif;
     transition: transform 0.3s ease;
 }
@@ -209,7 +209,7 @@
     border: none;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     cursor: pointer;
-    z-index: 999;
+    z-index: var(--z-ai-toggle);
     display: none;
     /* Shown when chat is hidden */
     align-items: center;

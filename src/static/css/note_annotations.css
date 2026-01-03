@@ -1,6 +1,6 @@
 .note-annotation {
     position: absolute;
-    z-index: 200;
+    z-index: var(--z-annotation);
     cursor: default;
     transition: transform 0.1s ease-out;
     user-select: none;
@@ -22,7 +22,7 @@
 
 .note-annotation.collapsed:hover {
     transform: scale(1.1);
-    z-index: 210;
+    z-index: var(--z-annotation-hover-high);
 }
 
 .note-annotation.collapsed .note-icon {
@@ -154,7 +154,7 @@
     width: 15px;
     height: 15px;
     cursor: nwse-resize;
-    z-index: 10;
+    z-index: var(--z-ribbon);
 }
 
 .note-resize-handle::after {
