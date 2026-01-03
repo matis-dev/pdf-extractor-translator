@@ -290,6 +290,7 @@ const ribbonConfig = {
         {
             group: 'Pages',
             tools: [
+                { id: 'crop-tool', icon: 'bi-crop', label: 'Crop', action: 'setMode', value: 'crop' },
                 { id: 'page-numbers', icon: 'bi-123', label: 'Page #', action: 'globalAction', function: 'openPageNumbersModal' }
             ]
         },
@@ -333,7 +334,7 @@ const ribbonConfig = {
                             <option value="fr">French</option>
                             <option value="de">German</option>
                         </select>
-                         <span class="small text-muted">Translation</span>
+                        <span class="small text-muted">Translation</span>
                     </div>`
                 },
                 { id: 'start-process', icon: 'bi-play-circle', label: 'Run', action: 'custom', function: () => submitRibbonProcessing() }
@@ -453,7 +454,8 @@ function switchTab(tabName) {
 
 function handleAction(tool) {
     if (tool.action === 'setMode') {
-        if (tool.value === 'text') window.toggleTextMode();
+        if (tool.value === 'crop') window.toggleCropMode();
+        else if (tool.value === 'text') window.toggleTextMode();
         else if (tool.value === 'select') window.toggleSelectMode();
         else if (tool.value === 'highlight') window.toggleHighlightMode();
         else if (tool.value === 'redact') window.toggleRedactMode();

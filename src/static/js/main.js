@@ -31,6 +31,7 @@ import { openPdfAModal, convertToPdfA } from './modules/pdfa.js';
 import { initSettings, getSetting, getShortcut } from './modules/settings.js';
 import { buildComboString } from './modules/hotkeyCapture.js';
 import { getCommands } from './modules/command_palette.js';
+import * as crop from './modules/crop.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -104,6 +105,7 @@ async function init() {
         initCommandPalette();
         registerCommands();
         if (redaction.initRedactionListeners) redaction.initRedactionListeners();
+        if (crop.initCropListeners) crop.initCropListeners();
         initSettings();
         document.body.setAttribute('data-ribbon-called', 'true');
 
@@ -300,7 +302,6 @@ function setupContextMenu() {
         }
     });
 }
-
 function registerCommands() {
     registerCommand('save', 'Save Changes', () => extraction.saveChanges(), 'bi-save');
     registerCommand('undo', 'Undo', () => undo(), 'bi-arrow-counterclockwise');
@@ -317,6 +318,7 @@ function registerCommands() {
     registerCommand('mode-note', 'Add Sticky Note', () => ui.toggleNoteMode(), 'bi-sticky');
     registerCommand('mode-redact', 'Redact Tool', () => ui.toggleRedactMode(), 'bi-eraser');
     registerCommand('mode-highlight', 'Highlight Tool', () => ui.toggleHighlightMode(), 'bi-highlighter');
+    registerCommand('mode-crop', 'Crop Tool', () => window.toggleCropMode(), 'bi-crop');
     registerCommand('watermark', 'Add Watermark', () => openWatermarkModal(), 'bi-badge-ad');
     registerCommand('signature', 'Add Signature', () => openSignatureModal(), 'bi-pen-fill');
     registerCommand('page-numbers', 'Add Page Numbers', () => openPageNumbersModal(), 'bi-123');
@@ -344,6 +346,7 @@ function registerCommands() {
     registerCommand('field-text', 'Add Form Text Field', () => annotations.toggleFormMode('textfield'), 'bi-input-cursor-text');
     registerCommand('field-check', 'Add Form Checkbox', () => annotations.toggleFormMode('checkbox'), 'bi-check-square');
 }
+
 
 // Start
 window.initMain = init;

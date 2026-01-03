@@ -1131,6 +1131,97 @@ def convert_to_pdfa():
         logger.error(f"Unexpected error: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
+
+@app.route('/api/crop', methods=['POST'])
+def crop_pdf():
+    """Crops pages of a PDF based on provided coordinates.
+    
+    Request Body:
+        filename (str): Name of the file in upload folder.
+        crops (list): List of dicts {pageIndex, x, y, width, height} (DOM units).
+        
+    Returns:
+        JSON: New filename and download URL.
+    """
+    data = request.json
+    filename = data.get('filename')
+    crops = data.get('crops', [])
+    
+    if not filename or not crops:
+        return jsonify({'error': 'Filename and crops required'}), 400
+        
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(input_path):
+        return jsonify({'error': 'File not found'}), 404
+        
+    try:
+        reader = PdfReader(input_path)
+        writer = PdfWriter()
+        
+        # Map crop data by page index
+        crop_map = {c['pageIndex']: c for c in crops}
+        
+        for i, page in enumerate(reader.pages):
+            writer.add_page(page)
+            
+            if i in crop_map:
+                c = crop_map[i]
+                
+                # Get page dimensions
+                # Note: We rely on page.mediabox for height
+                # If rotation is present, pypdf handles coordinates relative to unrotated page usually?
+                # PDF.js renders visually. If user selects a region on a rotated page, 
+                # PDF.js gives coordinates relative to the visual view.
+                # This needs careful testing with rotated pages.
+                
+                page_height = float(page.mediabox.height)
+                
+                # Inputs (DOM / Visual Top-Left origin)
+                x = float(c['x'])
+                y = float(c['y'])
+                w = float(c['width'])
+                h = float(c['height'])
+                
+                # Convert to PDF Bottom-Left origin
+                # PDF Rect: (x_ll, y_ll, x_ur, y_ur)
+                
+                # Lower Left X = x
+                # Lower Left Y = height - (y + h)
+                # Upper Right X = x + w
+                # Upper Right Y = height - y
+                
+                llx = x
+                lly = page_height - (y + h)
+                urx = x + w
+                ury = page_height - y
+                
+                # Apply crop
+                # accessing the page we just added (last one)
+                current_page = writer.pages[-1]
+                current_page.cropbox.lower_left = (llx, lly)
+                current_page.cropbox.upper_right = (urx, ury)
+                
+                # Also update mediabox to match? Not strictly necessary for display, 
+                # but good for printing/cleanliness.
+                # current_page.mediabox.lower_left = (llx, lly)
+                # current_page.mediabox.upper_right = (urx, ury)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"cropped_{timestamp}_{secure_filename(filename)}"
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        
+        with open(output_path, "wb") as f:
+            writer.write(f)
+            
+        return jsonify({
+            'filename': output_filename,
+            'download_url': url_for('uploaded_file', filename=output_filename)
+        })
+        
+    except Exception as e:
+        logger.error(f"Crop failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     app.run(debug=debug_mode)

@@ -39,7 +39,9 @@ export function disableAllModes() {
     state.modes.formField = false;
     state.modes.note = false; // Ensure note is cleared
     state.modes.shape = null; // Ensure shape is cleared
+    state.modes.crop = false;
 }
+
 
 export function setShapeMode(mode) {
     if (state.modes.shape === mode) {
@@ -77,6 +79,8 @@ export function updateButtonStates() {
     updateBtn('tool-hand', state.modes.hand);
     updateBtn('zoom-in', state.modes.zoomIn);
     updateBtn('zoom-out', state.modes.zoomOut);
+    updateBtn('crop-tool', state.modes.crop);
+
 
     // Shape buttons
     updateBtn('shape-rect', state.modes.shape === 'rect');
