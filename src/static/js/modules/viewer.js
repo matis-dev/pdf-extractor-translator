@@ -4,6 +4,7 @@ import { initDrawListeners, addTextAnnotation, addFormField } from './annotation
 import { rotatePage, movePage, deletePage, extractSinglePage } from './pages.js';
 import { updateActiveThumbnail } from './ui.js';
 import { handleNoteClick, getSelectedNote, deselectAllNotes } from './notes.js';
+import { renderDocumentInfo } from './document_info.js';
 
 // const PDFLib = window.PDFLib;
 // const pdfjsLib = window.pdfjsLib;
@@ -41,6 +42,7 @@ export async function loadPdf(bytes, password = null) {
     // Now handle PDF.js for rendering, which also needs password
     await renderPdf(bytes, password);
     await renderThumbnails(bytes, password);
+    renderDocumentInfo(bytes);
 }
 
 export async function renderPdf(bytes, password = null) {
