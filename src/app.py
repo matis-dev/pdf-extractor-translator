@@ -23,7 +23,7 @@ import pikepdf
 
 # App specific imports
 from celery_utils import celery_init_app
-from tasks import process_pdf_task, run_pdf_extraction, run_ocr_task, process_ocr
+from tasks import process_pdf_task, run_pdf_extraction, run_ocr_task, process_ocr, translate_pdf_task, run_translation
 from translation_utils import translate_text
 from ai_utils import get_pdf_chat_instance, LANGCHAIN_AVAILABLE
 from logging_config import setup_logging, get_logger
@@ -400,6 +400,33 @@ def translate_content():
         return {'text': translated}
     except Exception as e:
         return {'error': str(e)}, 500
+
+
+@app.route('/api/translate-document', methods=['POST'])
+def translate_document():
+    filename = request.form.get('filename')
+    source_lang = request.form.get('source_lang', 'en')
+    target_lang = request.form.get('target_lang')
+    
+    if not filename or not target_lang:
+        return {'error': 'Filename and target_lang required'}, 400
+        
+    if is_redis_available():
+        task = translate_pdf_task.delay(filename, app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], source_lang, target_lang)
+        return {'task_id': task.id, 'mode': 'async'}, 202
+    else:
+        # Sync
+        task_id = str(uuid.uuid4())
+        try:
+             result = run_translation(filename, app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], source_lang, target_lang)
+             if result.get('status') == 'Failed':
+                 sync_results[task_id] = MockTask(task_id, state='FAILURE', error=result.get('error'))
+             else:
+                 sync_results[task_id] = MockTask(task_id, result=result, state='SUCCESS')
+        except Exception as e:
+             sync_results[task_id] = MockTask(task_id, state='FAILURE', error=str(e))
+             
+        return {'task_id': task_id, 'mode': 'sync'}, 202
 
 
 

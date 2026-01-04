@@ -618,3 +618,12 @@ Invoked with: <pikepdf.Pdf description='/tmp/tmpbwc9nlr6/to_flatten.pdf'>; kwarg
 [2026-01-04 10:14:39] INFO     root         Logging initialized. Writing to logs/app.log
 [2026-01-04 10:14:39] WARNING  werkzeug      * Debugger is active!
 [2026-01-04 10:22:33] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 11:21:51] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 11:21:51] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 11:22:10] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 11:22:10] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 11:23:32] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 11:33:26] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 11:33:26] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 11:33:39] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 11:33:39] WARNING  werkzeug      * Debugger is active!

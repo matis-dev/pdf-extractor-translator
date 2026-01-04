@@ -237,3 +237,40 @@ def process_ocr(filename, upload_folder, output_folder, language='eng', progress
     except Exception as e:
         logger.error(f"OCR Failed: {e}")
         return {'status': 'Failed', 'error': str(e)}
+
+from pdf_translation_service import PDFTranslationService
+
+@shared_task(bind=True)
+def translate_pdf_task(self, filename, upload_folder, output_folder, source_lang, target_lang):
+    """Celery background task to handle PDF in-place translation."""
+    
+    def update_progress(state, meta):
+        self.update_state(state=state, meta=meta)
+        
+    return run_translation(filename, upload_folder, output_folder, source_lang, target_lang, progress_callback=update_progress)
+
+def run_translation(filename, upload_folder, output_folder, source_lang, target_lang, progress_callback=None):
+    """Executes the translation service."""
+    if progress_callback:
+        progress_callback('PROCESSING', {'status': 'Preparing translation...', 'current': 0, 'total': 100})
+        
+    service = PDFTranslationService()
+    input_path = os.path.join(upload_folder, filename)
+    
+    name, ext = os.path.splitext(filename)
+    new_filename = f"{name}_{target_lang}_translated{ext}"
+    output_path = os.path.join(output_folder, new_filename)
+    
+    try:
+        if progress_callback:
+             progress_callback('PROCESSING', {'status': f'Translating... (this may take time)', 'current': 10, 'total': 100})
+             
+        service.translate_pdf_in_place(input_path, output_path, source_lang, target_lang)
+        
+        if progress_callback:
+             progress_callback('PROCESSING', {'status': 'Completed', 'current': 100, 'total': 100})
+             
+        return {'status': 'Completed', 'result_file': new_filename}
+    except Exception as e:
+        logger.error(f"Translation failed: {e}")
+        return {'status': 'Failed', 'error': str(e)}

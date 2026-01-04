@@ -35,8 +35,7 @@ export async function openTranslateModal() {
 }
 
 /**
- * Submits the translation request by leveraging the existing extraction/processing flow.
- * It simulates a request to the backend with type='word' (DOCX) and the selected target language.
+ * Submits the translation request to the dedicated endpoint.
  */
 export async function submitTranslation() {
     const sourceLang = document.getElementById('translate-source-lang').value;
@@ -47,19 +46,13 @@ export async function submitTranslation() {
         return;
     }
 
-    // Check availability and prompt download if needed
+    // Check availability (existing logic)
     if (sourceLang !== 'auto' && sourceLang !== 'multilingual') {
         const langs = await fetchLanguages();
-        // Check if specific pair exists
         const pair = langs.find(l => l.from_code === sourceLang && l.to_code === targetLang);
-
         if (pair && !pair.installed) {
-            console.log(`Language pair ${sourceLang}->${targetLang} not installed. Prompting download.`);
             const success = await ensureLanguageInstalled(sourceLang, targetLang);
-            if (!success) {
-                // User cancelled or download failed
-                return;
-            }
+            if (!success) return;
         }
     }
 
@@ -68,43 +61,89 @@ export async function submitTranslation() {
     const modal = bootstrap.Modal.getInstance(modalEl);
     modal.hide();
 
-    // Show processing toast via existing UI util if available, or just rely on the processing callback
-    if (window.showToast) window.showToast("Starting translation...", "info");
+    if (window.showToast) window.showToast("Requesting translation...", "info");
 
-    // We can reuse the existing submitProcessing logic (from sidebar/main) if we can set the values
-    // Or we can manually trigger the fetch.
-    // The existing submitProcessing function (in utils.js or main.js sidebar logic) typically reads from the form.
-    // Let's manually invoke the fetch for cleaner isolation, or inject into the hidden form.
+    const formData = new FormData();
+    formData.append('filename', window.state.filename);
+    formData.append('source_lang', sourceLang);
+    formData.append('target_lang', targetLang);
 
-    // OPTION 1: Reuse window.submitProcessing by updating the hidden form
-    const form = document.getElementById('process-form');
-    if (form) {
-        // Set hidden inputs
-        // We force extraction_type to 'word' because that's what our backend supports for translation currently
-        const typeInput = form.querySelector('[name="extraction_type"]');
-        if (typeInput) typeInput.value = 'word';
+    try {
+        const response = await fetch('/api/translate-document', {
+            method: 'POST',
+            body: formData
+        });
 
-        const targetInput = form.querySelector('[name="target_lang"]');
-        if (targetInput) targetInput.value = targetLang;
-
-        const sourceInput = document.createElement('input');
-        sourceInput.type = 'hidden';
-        sourceInput.name = 'source_lang';
-        sourceInput.value = sourceLang;
-        form.appendChild(sourceInput);
-
-        console.log(`Submitting translation: DOCX from ${sourceLang} to ${targetLang}`);
-
-        // Call global submit (defined in index.html usually or main.js)
-        if (window.submitProcessing) {
-            window.submitProcessing();
-        } else {
-            console.error("window.submitProcessing not found");
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Translation request failed');
         }
 
-        // Clean up source input after a moment? 
-        setTimeout(() => { if (sourceInput.parentNode) sourceInput.parentNode.removeChild(sourceInput); }, 1000);
-    } else {
-        console.error("Process form not found");
+        const data = await response.json();
+        pollTranslationStatus(data.task_id);
+
+    } catch (e) {
+        console.error(e);
+        if (window.showToast) window.showToast(`Error: ${e.message}`, "error");
     }
+}
+
+async function pollTranslationStatus(taskId) {
+    const statusUrl = `/status/${taskId}`;
+    const interval = setInterval(async () => {
+        try {
+            const res = await fetch(statusUrl);
+            const data = await res.json();
+
+            if (data.state === 'SUCCESS') {
+                clearInterval(interval);
+                if (window.showToast) window.showToast("Translation completed!", "success");
+
+                // Result file name
+                const resultFile = data.result_file;
+
+                // Construct URL
+                const fileUrl = `/outputs/${resultFile}`;
+
+                // Option: Download
+                // const link = document.createElement('a');
+                // link.href = fileUrl;
+                // link.download = resultFile;
+                // link.click();
+
+                // Option: Preview (Reload Viewer)
+                // We ask the user or just do it? 
+                // AC3 says "Export", AC4 says "Preview".
+                // Let's load it into the viewer for "In-Place" feel.
+                // And offer a download button (already in Ribbon).
+
+                // We need to load this "Output" file. 
+                // The viewer usually loads from /uploads/. 
+                // We can fetch bytes and load.
+
+                const pdfBytes = await fetch(fileUrl).then(r => r.arrayBuffer());
+                await window.loadPdf(pdfBytes);
+
+                // Update filename in state so subsequent saves might work?
+                // But this file is in 'outputs', not 'uploads'. 
+                // Saving might fail if backend expects file in 'uploads'.
+                // Ideally we should move it to uploads or handle "Save As".
+                // For now, visual preview is key.
+
+            } else if (data.state === 'FAILURE') {
+                clearInterval(interval);
+                if (window.showToast) window.showToast(`Translation failed: ${data.status}`, "error");
+            } else {
+                // Update progress?
+                if (window.showToast && Math.random() > 0.8) {
+                    // Don't spam toasts, maybe update a status bar if we had one.
+                    window.showToast(`Translating: ${data.status}`, "info");
+                }
+            }
+        } catch (e) {
+            clearInterval(interval);
+            console.error("Polling error", e);
+            if (window.showToast) window.showToast("Error checking status", "error");
+        }
+    }, 2000);
 }

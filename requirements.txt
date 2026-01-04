@@ -5,6 +5,7 @@ python-docx
 argostranslate
 pandoc
 pypdf
+pymupdf
 werkzeug
 gevent
 gunicorn
