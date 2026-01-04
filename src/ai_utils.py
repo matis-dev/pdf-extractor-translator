@@ -277,6 +277,81 @@ Thought:{agent_scratchpad}""")
             logger.warning(f"Agent failed: {e}. Falling back to simple RAG.")
             return self._ask_fallback_rag(question)
 
+    def summarize_document(self, mode: str = "brief") -> Dict[str, Any]:
+        """
+        Generate a structured summary of the document.
+        
+        Args:
+            mode: 'brief' for executive summary, 'detailed' for section-by-section.
+        """
+        if self.vectorstore is None:
+             raise ValueError("No document indexed. Index a PDF first.")
+             
+        # retrieve all documents (or a large number) to summarize the whole thing
+        # For very large docs, we might need map-reduce, but for now let's try to fit in context
+        # or use the retriever to get key parts.
+        
+        # Strategy: Get as many chunks as possible up to context limit context?
+        # Or just use the retriever with a very broad query.
+        
+        try:
+            # 1. Fetch chunks with page metadata
+            # For simplicity, we might just reload the PDF text by page to ensure clean page refs
+            # independent of vector store chunks if we want precise page numbers.
+            # But relying on vector store is consistent.
+            
+            # Let's try to retrieve "everything" or use the top K most relevant chunks for "summary"
+            # Actually for a summary, we usually want the whole text. 
+            # If the text is too long (e.g. > 100k tokens), we need map-reduce.
+            # Assuming "Vertical Slice" for typical PDFs (< 50 pages), we might fit in Llama 3 context (8k-128k depending on variant).
+            # Llama 3.2 3B has 128k context? If so, we can dump the whole text.
+            # Let's assume we can fetch all loaded docs from the loader if we re-load, 
+            # OR we just query the vector store for "Summary"
+            
+            # Better approach for Vertical Slice:
+            # Use the vector store to find "Introduction", "Conclusion", "Key points".
+            docs = self.retriever.invoke("What are the main topics, conclusions, and key details of this document?")
+            
+            # Format context with Page Numbers
+            context_list = []
+            for d in docs:
+                page_num = d.metadata.get("page", 0) + 1 # 1-based
+                context_list.append(f"[Page {page_num}] {d.page_content}")
+            
+            context_text = "\n\n".join(context_list)
+            
+            if mode == "detailed":
+                system_prompt = (
+                    "You are a professional document summarizer. "
+                    "Analyze the provided text chunks (which are from a larger document) and write a detailed, section-by-section summary. "
+                    "Structure your response with Markdown headings (##). "
+                    "For every key claim or fact, append the page reference in the format `[Page X]` defined in the source text. "
+                    "If multiple pages apply, use `[Page X, Y]`. "
+                    "Do not make up page numbers. Only use the ones provided in the context."
+                )
+            else: # brief
+                system_prompt = (
+                    "You are a professional document summarizer. "
+                    "Write a concise Executive Summary of the following text. "
+                    "Use structured bullet points. "
+                    "Include a 'Key Takeaways' section. "
+                    "Cite the source page numbers for each point using the format `[Page X]` based on the context provided. "
+                    "Do not make up page numbers."
+                )
+                
+            prompt = f"{system_prompt}\n\nContext:\n{context_text}\n\nSummary:"
+            
+            response = self.llm.invoke(prompt)
+            return {
+                "summary": response.content,
+                "mode": mode,
+                "model_used": self.llm_model
+            }
+            
+        except Exception as e:
+            logger.error(f"Summarization failed: {e}")
+            return {"error": str(e), "summary": "Failed to generate summary."}
+
     def _ask_fallback_rag(self, question: str):
         """Fallback to simple RAG if agent fails."""
         docs = self.retriever.invoke(question)

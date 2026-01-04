@@ -952,6 +952,20 @@ def ai_ask():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/ai/summarize', methods=['POST'])
+def ai_summarize():
+    """Generates a structured summary of the indexed PDF."""
+    mode = request.json.get('mode', 'brief') # brief | detailed
+    
+    try:
+        from ai_utils import get_pdf_chat_instance
+        chat = get_pdf_chat_instance()
+        
+        result = chat.summarize_document(mode=mode)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/ai/pull', methods=['POST'])
 def ai_pull():
     """Pull a new model from Ollama."""
