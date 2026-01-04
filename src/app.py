@@ -288,29 +288,44 @@ def task_status(task_id):
     if task_id in sync_results:
         task = sync_results[task_id]
     else:
+        # If Redis is not available, we cannot check for Celery tasks.
+        # This implies a lost sync task (e.g., server restart cleared memory).
+        if not is_redis_available():
+            return jsonify({
+                'state': 'FAILURE', 
+                'status': 'Task not found. The server likely restarted.'
+            }), 404
+
         # Assume Celery task
         task = process_pdf_task.AsyncResult(task_id)
         
-    if task.state == 'PENDING':
-        response = {
-            'state': task.state,
-            'status': 'Pending...'
-        }
-    elif task.state != 'FAILURE':
-        response = {
-            'state': task.state,
-            'status': task.info.get('status', '') if isinstance(task.info, dict) else '',
-            'current': task.info.get('current', 0) if isinstance(task.info, dict) else 0,
-            'total': task.info.get('total', 100) if isinstance(task.info, dict) else 100,
-        }
-        if task.state == 'SUCCESS':
-             response['result_file'] = task.info.get('result_file')
-    else:
-        response = {
-            'state': task.state,
-            'status': str(task.info),
-        }
-    return response
+    try:
+        if task.state == 'PENDING':
+            response = {
+                'state': task.state,
+                'status': 'Pending...'
+            }
+        elif task.state != 'FAILURE':
+            response = {
+                'state': task.state,
+                'status': task.info.get('status', '') if isinstance(task.info, dict) else '',
+                'current': task.info.get('current', 0) if isinstance(task.info, dict) else 0,
+                'total': task.info.get('total', 100) if isinstance(task.info, dict) else 100,
+            }
+            if task.state == 'SUCCESS':
+                 response['result_file'] = task.info.get('result_file')
+        else:
+            response = {
+                'state': task.state,
+                'status': str(task.info),
+            }
+        return jsonify(response)
+    except Exception as e:
+        logger.error(f"Error checking task status: {e}")
+        return jsonify({
+            'state': 'FAILURE',
+            'status': 'An error occurred while checking task status.'
+        }), 500
 
 @app.route('/results_view/<filename>')
 def show_results(filename):

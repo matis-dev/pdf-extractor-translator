@@ -1,47 +1,245 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extraction Results</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f8f9fc;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        .container {
-            max-width: 700px;
+
+        .navbar {
+            background-color: #fff !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .navbar-brand {
+            color: #333 !important;
+            font-weight: 600;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-bottom: 4rem;
+            /* Visual balance */
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            border: 1px solid #f0f0f0;
+        }
+
+        .icon-container {
+            margin-bottom: 24px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            color: #2e7d32;
+        }
+
+        .lock-icon-badge {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            background: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .card-title {
+            color: #1a1a1a;
+            font-weight: 700;
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .card-subtitle {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 32px;
+        }
+
+        .download-box {
+            background-color: #e6f4ea;
+            border: 1px solid #ceead6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .download-label {
+            color: #1e4620;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .file-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 16px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 1px;
+            transition: opacity 0.2s;
+        }
+
+        .file-link:hover {
+            opacity: 0.8;
+            color: #000;
+        }
+
+        .file-link svg {
+            margin-left: 6px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn-custom-primary {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-custom-primary:hover {
+            background-color: #1d4ed8;
+            color: white;
+        }
+
+        .btn-custom-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-custom-secondary:hover {
+            background-color: #e5e7eb;
+            color: #111827;
+        }
+
+        .footer-note {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 16px;
         }
     </style>
 </head>
+
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <!-- Optional: Keep navbar if part of the larger app, but styled minimally -->
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">PDF Extractor</a>
         </div>
     </nav>
 
-    <div class="container mt-5">
-        <div class="card">
-            <div class="card-body">
-                <h1 class="card-title text-center mb-4">Extraction Complete</h1>
-                <div class="alert alert-success" role="alert">
-                    Your file(s) are ready for download:
+    <div class="main-content">
+        <div class="result-card">
+            <div class="icon-container">
+                <!-- Checkmark Icon -->
+                <svg class="success-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                <!-- Lock Icon Badge -->
+                <div class="lock-icon-badge">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="5" y="11" width="14" height="10" rx="2" fill="#2e7d32" />
+                        <path d="M8 11V7C8 4.79086 9.79086 3 12 3V3C14.2091 3 16 4.79086 16 7V11" stroke="#2e7d32"
+                            stroke-width="2.5" stroke-linecap="round" />
+                        <path d="M12 14V17" stroke="white" stroke-width="2" stroke-linecap="round" />
+                    </svg>
                 </div>
-                <ul class="list-group mb-4">
-                    {% for file in files %}
-                    <li class="list-group-item">
-                        <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-link">{{ file }}</a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                <div class="d-grid">
-                    <a href="/" class="btn btn-secondary">Extract another PDF</a>
+            </div>
+
+            <h1 class="card-title">Extraction Complete</h1>
+            <p class="card-subtitle">
+                Your document was processed securely and offline.<br>
+                Your privacy is protected.
+            </p>
+
+            <div class="download-box">
+                <div class="download-label">Your file(s) are ready for download:</div>
+                {% for file in files %}
+                <div class="mt-2">
+                    <a href="{{ url_for('download_file', filename=file) }}" class="file-link">
+                        {{ file }}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </a>
                 </div>
+                {% endfor %}
+            </div>
+
+            <div class="action-buttons">
+                <a href="/" class="btn btn-custom-primary text-decoration-none">Extract Another PDF</a>
+                <a href="/" class="btn btn-custom-secondary text-decoration-none">View Extracted Files</a>
+            </div>
+
+            <div class="footer-note">
+                All processing happens locally on your device. No data is ever uploaded.
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
