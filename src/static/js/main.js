@@ -36,6 +36,7 @@ import * as crop from './modules/crop.js';
 import { openSanitizeModal, runSanitization } from './modules/sanitize.js';
 import { openFlattenModal, submitFlatten } from './modules/flatten.js';
 import { openPipelineModal, addPipelineStep, removePipelineStep, movePipelineStep, runPipeline } from './modules/pipelines.js';
+import { initNavigation } from './modules/navigation.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
@@ -113,6 +114,7 @@ async function init() {
 
         ui.initTheme();
         initRibbon();
+        initNavigation();
         initAIChat();
         initHandPan();
         initCommandPalette();

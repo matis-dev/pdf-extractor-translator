@@ -5,7 +5,10 @@ export const state = {
     pdfBytes: null,
     filename: '',
     selectedPageIndex: 0,
+    currentPage: 1, // 1-indexed, for navigation
+    totalPages: 0,
     zoom: 1.0,
+    zoomMode: 'custom', // 'custom', 'fitWidth', 'fitPage'
     modes: {
         text: false,
         redact: false,

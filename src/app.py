@@ -31,6 +31,7 @@ from language_manager import get_available_languages, get_installed_languages, i
 from pipeline_executor import PipelineExecutor
 from dotenv import load_dotenv
 from cloud_routes import cloud_bp
+from database import init_db, get_document_state, update_document_state
 
 # Initialize logging
 setup_logging()
@@ -67,6 +68,10 @@ celery = celery_init_app(app)
 # Ensure upload and output directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+
+# Initialize Database
+with app.app_context():
+    init_db()
 
 def is_valid_file(filename):
     """Validates if a file is a PDF and not a hidden/system file.
@@ -139,6 +144,21 @@ def create_zip():
 @app.route('/editor/<filename>')
 def editor(filename):
     return render_template('editor.html', filename=filename)
+
+@app.route('/api/state/<filename>', methods=['GET'])
+def get_state(filename):
+    state = get_document_state(filename)
+    if state:
+        return jsonify(state)
+    return jsonify({'current_page': 1, 'zoom_level': 1.0})
+
+@app.route('/api/state/<filename>', methods=['POST'])
+def save_state(filename):
+    data = request.json
+    page = data.get('current_page', 1)
+    zoom = data.get('zoom_level', 1.0)
+    update_document_state(filename, page, zoom)
+    return jsonify({'status': 'saved'})
 
 
 # Helper to check Redis availability

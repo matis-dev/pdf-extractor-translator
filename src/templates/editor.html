@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/image_editor.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/text_editor.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/note_annotations.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navigation_bar.css') }}">
 </head>
 
 <body>
@@ -779,6 +780,48 @@
     </div>
     {% include "partials/cloud_picker_modal.html" %}
     {% include "partials/settings_modal.html" %}
+
+    <!-- Navigation Bar -->
+    <div id="navigation-bar" style="opacity: 0;"> <!-- Start hidden until loaded -->
+        <div class="nav-group zoom-control">
+            <button class="nav-btn" id="nav-zoom-out" title="Zoom Out (-)">
+                <i class="bi bi-dash-lg"></i>
+            </button>
+            <div class="zoom-dropdown-wrapper">
+                <span id="nav-zoom-display" title="Click to edit or select preset">100%</span>
+                <div id="zoom-dropdown" class="zoom-dropdown">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <button class="nav-btn" id="nav-zoom-in" title="Zoom In (+)">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+
+        <div class="nav-divider"></div>
+
+        <div class="nav-group">
+            <button class="nav-btn" id="nav-prev-page" title="Previous Page (PgUp)">
+                <i class="bi bi-chevron-up"></i>
+            </button>
+            <div class="page-indicator">
+                <input type="text" id="nav-page-input" class="page-input" value="--" aria-label="Current Page">
+                <span class="text-muted mx-1">/</span>
+                <span id="nav-total-pages">--</span>
+            </div>
+            <button class="nav-btn" id="nav-next-page" title="Next Page (PgDn)">
+                <i class="bi bi-chevron-down"></i>
+            </button>
+        </div>
+
+        <div class="nav-divider"></div>
+
+        <div class="nav-group">
+            <button class="nav-btn" id="nav-fullscreen" title="Toggle Fullscreen">
+                <i class="bi bi-arrows-fullscreen"></i>
+            </button>
+        </div>
+    </div>
 
     <!-- Save to Cloud Provider Selection Modal -->
     <div id="save-cloud-provider-modal" class="modal fade" tabindex="-1">

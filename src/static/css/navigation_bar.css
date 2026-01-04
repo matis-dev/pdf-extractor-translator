@@ -1,0 +1,190 @@
+#navigation-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 8px 16px;
+    border-radius: 9999px;
+    /* Pill shape */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-color, #212529);
+}
+
+[data-theme="dark"] #navigation-bar {
+    background: rgba(33, 37, 41, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.nav-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-divider {
+    width: 1px;
+    height: 20px;
+    background-color: var(--border-color, #dee2e6);
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: inherit;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.nav-btn:hover {
+    background-color: var(--thumbnail-hover, rgba(0, 0, 0, 0.05));
+    color: var(--accent-color, #0d6efd);
+}
+
+.nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.nav-btn i {
+    font-size: 16px;
+}
+
+.page-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+}
+
+.page-input {
+    width: 36px;
+    text-align: center;
+    border: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    font-weight: inherit;
+    padding: 2px 0;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.page-input:hover {
+    background-color: var(--thumbnail-hover, rgba(0, 0, 0, 0.05));
+}
+
+.page-input:focus {
+    border-color: var(--accent-color, #0d6efd);
+    background: var(--bg-body, #fff);
+    outline: none;
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .page-input:focus {
+    background: #495057;
+}
+
+/* Auto-hide state */
+#navigation-bar.nav-hidden {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+    pointer-events: none;
+}
+/* Zoom Control & Dropdown */
+.zoom-control {
+    position: relative;
+    cursor: pointer;
+}
+
+.zoom-dropdown-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+}
+
+/* Make display look editable/clickable */
+#nav-zoom-display {
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+#nav-zoom-display:hover {
+    background-color: var(--thumbnail-hover, rgba(0,0,0,0.05));
+    color: var(--accent-color, #0d6efd);
+}
+
+#nav-zoom-display:focus {
+    background-color: var(--bg-body, white);
+    outline: 2px solid var(--accent-color, #0d6efd);
+    color: var(--text-color);
+    cursor: text;
+}
+
+.zoom-dropdown {
+    position: absolute;
+    bottom: 40px; /* Above nav bar */
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-body, #fff);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 4px;
+    min-width: 100px;
+    z-index: 200;
+    display: none;
+}
+
+[data-theme=dark] .zoom-dropdown {
+    background: #343a40;
+    border-color: #495057;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.zoom-option {
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: center;
+    color: var(--text-color);
+}
+
+.zoom-option:hover {
+    background-color: var(--thumbnail-hover, rgba(0,0,0,0.05));
+    color: var(--accent-color, #0d6efd);
+}
+
+.zoom-option.active {
+    background-color: var(--thumbnail-active-bg, #e7f1ff);
+    color: var(--accent-color, #0d6efd);
+    font-weight: 600;
+}
+
+.zoom-divider {
+    height: 1px;
+    background-color: var(--border-color, #dee2e6);
+    margin: 4px 0;
+}
+

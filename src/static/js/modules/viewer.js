@@ -5,6 +5,7 @@ import { rotatePage, movePage, deletePage, extractSinglePage } from './pages.js'
 import { updateActiveThumbnail } from './ui.js';
 import { handleNoteClick, getSelectedNote, deselectAllNotes } from './notes.js';
 import { renderDocumentInfo } from './document_info.js';
+import { updateCurrentPage, onPdfLoaded } from './navigation.js';
 
 // const PDFLib = window.PDFLib;
 // const pdfjsLib = window.pdfjsLib;
@@ -14,12 +15,24 @@ let pageObserver = null;
 
 // Redefining proper export to replace logic
 export async function zoomIn() {
-    state.zoom = Math.min(state.zoom * 1.25, 3.0);
-    await refreshView();
+    setZoom(state.zoom * 1.25);
 }
 
 export async function zoomOut() {
-    state.zoom = Math.max(state.zoom * 0.8, 0.5);
+    setZoom(state.zoom * 0.8);
+}
+
+export async function setZoom(newZoom) {
+    // Clamp to 50% - 300%
+    state.zoom = Math.min(Math.max(newZoom, 0.5), 3.0);
+    state.zoomMode = 'custom'; // Any manual zoom resets mode
+
+    // Notify Navigation UI if needed (though refreshView -> updateNavigationUI via observer might not happen immediately)
+    // We should trigger a UI update event or call explicitly if circular dependency allows.
+    // Ideally navigation.js listens to changes. 
+    // For now, we trust navigation.js hooks or we dispatch event.
+    document.dispatchEvent(new CustomEvent('zoom-changed', { detail: state.zoom }));
+
     await refreshView();
 }
 
@@ -71,6 +84,9 @@ export async function renderPdf(bytes, password = null) {
 
     state.pdfJsDoc = await loadingTask.promise;
 
+    // Notify Navigation
+    setTimeout(onPdfLoaded, 100);
+
     pageObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -79,6 +95,7 @@ export async function renderPdf(bytes, password = null) {
                 if (pageContainer.dataset.loaded !== 'true') {
                     renderPageContent(pageContainer, pageIndex);
                 }
+                updateCurrentPage(pageIndex);
             }
         });
     }, { root: null, rootMargin: '200px', threshold: 0.1 });
@@ -95,6 +112,10 @@ export async function renderPdf(bytes, password = null) {
             backgroundColor: '#f8f9fa'
         });
         pageContainer.dataset.pageIndex = i - 1;
+        // Store natural dimensions for fit calcs
+        pageContainer.dataset.naturalWidth = viewport.width / state.zoom;
+        pageContainer.dataset.naturalHeight = viewport.height / state.zoom;
+
         pageContainer.dataset.loaded = 'false';
 
 

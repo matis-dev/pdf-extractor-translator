@@ -1123,3 +1123,14 @@ body.compact-mode .ribbon-btn span {
 body.compact-mode #sidebar {
     width: 220px;
 }
+/* Fullscreen Mode Overrides */
+body.app-fullscreen #sidebar,
+body.app-fullscreen #title-bar,
+body.app-fullscreen #ribbon-container {
+}
+
+body.app-fullscreen #main-content-wrapper {
+    width: 100vw;
+    height: 100vh;
+}
+

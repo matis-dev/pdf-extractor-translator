@@ -1,11 +1,205 @@
-docling-main
-prompt.md
-.history
-__pycache__
+# ==============================================================================
+# PDF Extractor & Translator - Gitignore Configuration
+# ==============================================================================
+# Last updated: 2026-01-04
+# Organized by category for maintainability
+# ==============================================================================
+
+# ==============================================================================
+# 🔐 ENVIRONMENT & SECRETS (CRITICAL - Never commit these!)
+# ==============================================================================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+secrets/
+credentials.json
+token.json
+
+# ==============================================================================
+# 📦 DEPENDENCIES
+# ==============================================================================
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vendored dependencies (consider using git submodule instead)
+docling-main/
+
+# ==============================================================================
+# 🏗️ BUILD OUTPUTS & GENERATED FILES
+# ==============================================================================
+# Python build
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Frontend build
+*.min.js.map
+
+# ==============================================================================
+# 🗄️ DATABASES & STORAGE
+# ==============================================================================
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Vector databases (ChromaDB)
+chroma_db/
+
+# Application directories (keep structure, ignore contents)
 !outputs/
 outputs/*
 !uploads/
 uploads/*
+
+# ==============================================================================
+# 🧪 TESTING & COVERAGE
+# ==============================================================================
+# Python testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# JavaScript testing
+coverage/
+.vitest/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Visual regression - KEEP baseline snapshots, ignore test output
+!tests/visual/snapshots/
+tests/visual/test-results/
+
+# Test artifacts in root (generated during test runs)
+test_output*.log
+test_output*.txt
+debug_*.png
+
+# Test sample files (generated, not source)
+tests/samples/
+
+# ==============================================================================
+# 📝 LOGS & TEMPORARY FILES
+# ==============================================================================
+logs/
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# ==============================================================================
+# 💻 IDE & EDITOR SETTINGS
+# ==============================================================================
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim/Neovim
+*.swp
+*.swo
+Session.vim
+.netrwhist
+
+# ==============================================================================
+# 🖥️ OS-SPECIFIC FILES
+# ==============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ==============================================================================
+# 🤖 AI & AGENT CONFIGURATION
+# ==============================================================================
 /.gemini/*.json
-logs/app.log
-docs
+
+# ==============================================================================
+# 📊 DOCUMENTATION
+# ==============================================================================
+docs/
+
+# Local history (VS Code extension)
+.history/
+
+# ==============================================================================
+# 🐳 DOCKER (handled by .dockerignore, but belt & suspenders)
+# ==============================================================================
+# Docker override files (local customization)
+docker-compose.override.yml
+
+# ==============================================================================
+# 📄 PROJECT-SPECIFIC EXCLUSIONS
+# ==============================================================================
+# Temporary/debug files
+prompt.md
+repro_*.py
+
+# Root-level test files (should be in tests/ directory)
+test_*.pdf
+
+# Empty directories to keep tracked
+!test_agent_tables/
+test_agent_tables/*
