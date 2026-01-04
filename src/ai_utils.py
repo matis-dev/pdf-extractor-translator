@@ -6,7 +6,7 @@ Now supports Agentic Workflow with tool calling.
 import os
 import requests
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TypedDict
 from logging_config import get_logger
 
 logger = get_logger("ai_utils")
@@ -277,39 +277,28 @@ Thought:{agent_scratchpad}""")
             logger.warning(f"Agent failed: {e}. Falling back to simple RAG.")
             return self._ask_fallback_rag(question)
 
-    def summarize_document(self, mode: str = "brief") -> Dict[str, Any]:
+    class SummarizeResponse(TypedDict):
+        summary: str
+        mode: str
+        model_used: str
+        error: Optional[str]
+
+    def summarize_document(self, mode: str = "brief") -> SummarizeResponse:
         """
         Generate a structured summary of the document.
         
         Args:
             mode: 'brief' for executive summary, 'detailed' for section-by-section.
+            
+        Returns:
+            SummarizeResponse: Dictionary containing summary text, mode, and metadata.
         """
         if self.vectorstore is None:
              raise ValueError("No document indexed. Index a PDF first.")
              
-        # retrieve all documents (or a large number) to summarize the whole thing
-        # For very large docs, we might need map-reduce, but for now let's try to fit in context
-        # or use the retriever to get key parts.
-        
-        # Strategy: Get as many chunks as possible up to context limit context?
-        # Or just use the retriever with a very broad query.
-        
         try:
             # 1. Fetch chunks with page metadata
-            # For simplicity, we might just reload the PDF text by page to ensure clean page refs
-            # independent of vector store chunks if we want precise page numbers.
-            # But relying on vector store is consistent.
-            
-            # Let's try to retrieve "everything" or use the top K most relevant chunks for "summary"
-            # Actually for a summary, we usually want the whole text. 
-            # If the text is too long (e.g. > 100k tokens), we need map-reduce.
-            # Assuming "Vertical Slice" for typical PDFs (< 50 pages), we might fit in Llama 3 context (8k-128k depending on variant).
-            # Llama 3.2 3B has 128k context? If so, we can dump the whole text.
-            # Let's assume we can fetch all loaded docs from the loader if we re-load, 
-            # OR we just query the vector store for "Summary"
-            
-            # Better approach for Vertical Slice:
-            # Use the vector store to find "Introduction", "Conclusion", "Key points".
+            # Use the retriever to find "Introduction", "Conclusion", "Key points".
             docs = self.retriever.invoke("What are the main topics, conclusions, and key details of this document?")
             
             # Format context with Page Numbers
@@ -322,8 +311,8 @@ Thought:{agent_scratchpad}""")
             
             if mode == "detailed":
                 system_prompt = (
-                    "You are a professional document summarizer. "
-                    "Analyze the provided text chunks (which are from a larger document) and write a detailed, section-by-section summary. "
+                    "You are a professional document summarizer properly trained in technical writing. "
+                    "Analyze the provided text chunks and write a detailed, section-by-section summary. "
                     "Structure your response with Markdown headings (##). "
                     "For every key claim or fact, append the page reference in the format `[Page X]` defined in the source text. "
                     "If multiple pages apply, use `[Page X, Y]`. "
@@ -345,12 +334,18 @@ Thought:{agent_scratchpad}""")
             return {
                 "summary": response.content,
                 "mode": mode,
-                "model_used": self.llm_model
+                "model_used": self.llm_model,
+                "error": None
             }
             
         except Exception as e:
             logger.error(f"Summarization failed: {e}")
-            return {"error": str(e), "summary": "Failed to generate summary."}
+            return {
+                "summary": "Failed to generate summary.",
+                "mode": mode,
+                "model_used": self.llm_model,
+                "error": str(e)
+            }
 
     def _ask_fallback_rag(self, question: str):
         """Fallback to simple RAG if agent fails."""

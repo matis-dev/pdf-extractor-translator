@@ -7,4 +7,5 @@ outputs/*
 !uploads/
 uploads/*
 /.gemini/*.json
+logs/app.log
 docs

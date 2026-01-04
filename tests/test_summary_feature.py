@@ -73,3 +73,15 @@ def test_summary_workflow(page: Page, live_server_url):
     # Verify update
     expect(page.locator("#summary-content")).to_contain_text("Section 1")
 
+    # 6. Verify Copy/Export buttons (AC5)
+    expect(page.locator("button[title='Copy to Clipboard']")).to_be_visible()
+    expect(page.locator("button[title='Export as Markdown']")).to_be_visible()
+
+    # 7. Verify Page Navigation (AC4)
+    # We need to simulate PDFViewerApplication presence if not fully loaded, 
+    # but editor.html usually has it.
+    # Ensure we can click the page ref
+    page.click(".page-ref >> nth=0")
+    # In a real app, this changes the page. We can check if the modal hid (as per my code change)
+    expect(page.locator("#summaryModal")).not_to_be_visible()
+
