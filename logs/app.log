@@ -558,3 +558,63 @@ target_lang
 [2026-01-03 23:43:14] INFO     root         Logging initialized. Writing to logs/app.log
 [2026-01-03 23:43:26] INFO     root         Logging initialized. Writing to logs/app.log
 [2026-01-03 23:43:26] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 23:48:12] INFO     chromadb.telemetry.product.posthog Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[2026-01-03 23:48:14] INFO     httpx        HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+[2026-01-03 23:55:55] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 23:55:55] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 23:56:32] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 23:56:32] WARNING  werkzeug      * Debugger is active!
+[2026-01-03 23:57:22] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 23:58:01] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 23:58:54] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-03 23:59:25] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:47:21] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:47:21] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 09:47:35] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:48:22] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:49:05] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:50:20] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:50:20] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 09:50:41] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:50:42] ERROR    app          Flatten failed: flatten_annotations(): incompatible function arguments. The following argument types are supported:
+    1. (self: pikepdf._core.Pdf, mode: str = 'all') -> None
+
+Invoked with: <pikepdf.Pdf description='/tmp/tmpir5aukzm/to_flatten.pdf'>; kwargs: render=True
+[2026-01-04 09:51:20] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:51:20] ERROR    app          Flatten failed: flatten_annotations(): incompatible function arguments. The following argument types are supported:
+    1. (self: pikepdf._core.Pdf, mode: str = 'all') -> None
+
+Invoked with: <pikepdf.Pdf description='/tmp/tmpbwc9nlr6/to_flatten.pdf'>; kwargs: render=True
+[2026-01-04 09:52:00] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:52:00] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 09:52:05] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:52:46] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:53:34] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:54:14] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:55:52] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:57:32] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:57:32] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:57:44] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 09:57:44] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 10:04:59] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:04:59] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 10:05:17] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:05:17] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 10:05:40] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:05:40] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 10:07:41] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:08:16] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:08:16] ERROR    pipeline_executor Pipeline failed at step sanitize: Input file pipeline_test.pdf not found
+[2026-01-04 10:08:46] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:08:46] ERROR    pipeline_executor Pipeline failed at step sanitize: Input file pipeline_test.pdf not found
+[2026-01-04 10:09:12] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:09:13] ERROR    pipeline_executor Pipeline failed at step sanitize: Input file pipeline_test.pdf not found
+[2026-01-04 10:09:45] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:09:45] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 10:09:52] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:11:06] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:14:21] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:14:21] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:14:39] INFO     root         Logging initialized. Writing to logs/app.log
+[2026-01-04 10:14:39] WARNING  werkzeug      * Debugger is active!
+[2026-01-04 10:22:33] INFO     root         Logging initialized. Writing to logs/app.log

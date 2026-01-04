@@ -70,3 +70,30 @@ function handleApiError(error, contextMessage = "An error occurred") {
     console.error(contextMessage, error);
     showToast(`${contextMessage}: ${error.message}`, 'danger');
 }
+
+export function showProcessingOverlay(message = "Processing...") {
+    const overlay = document.getElementById('processing-overlay');
+    if (overlay) {
+        const textEl = overlay.querySelector('.spinner-border + div') || overlay.querySelector('.mt-3') || overlay;
+        // Try to update text if possible, else just show
+        // Existing structure: <div id="processing-overlay"> ... <div class="mt-3">Processing...</div> ... </div>
+        // Let's assume there's a div with text
+        const msgDiv = overlay.querySelector('.mt-3');
+        if (msgDiv) msgDiv.innerText = message;
+
+        overlay.style.display = 'flex';
+    }
+}
+
+export function hideProcessingOverlay() {
+    const overlay = document.getElementById('processing-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+// Expose to window
+window.showToast = showToast;
+window.handleApiError = handleApiError;
+window.showProcessingOverlay = showProcessingOverlay;
+window.hideProcessingOverlay = hideProcessingOverlay;
+
+export { showToast, handleApiError };

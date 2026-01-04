@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 
-from flask import Flask, request, render_template, send_from_directory, url_for, redirect, jsonify
+from flask import Flask, request, render_template, send_from_directory, url_for, redirect, jsonify, stream_with_context, Response
 from werkzeug.utils import secure_filename
 import zipfile
 
@@ -19,6 +19,7 @@ import redis
 from pypdf import PdfReader, PdfWriter
 from pdf2image import convert_from_path
 from PIL import Image, ImageChops, ImageDraw
+import pikepdf
 
 # App specific imports
 from celery_utils import celery_init_app
@@ -27,6 +28,7 @@ from translation_utils import translate_text
 from ai_utils import get_pdf_chat_instance, LANGCHAIN_AVAILABLE
 from logging_config import setup_logging, get_logger
 from language_manager import get_available_languages, get_installed_languages, install_language, uninstall_language
+from pipeline_executor import PipelineExecutor
 from dotenv import load_dotenv
 from cloud_routes import cloud_bp
 
@@ -1221,6 +1223,156 @@ def crop_pdf():
     except Exception as e:
         logger.error(f"Crop failed: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sanitize', methods=['POST'])
+def sanitize_pdf():
+    filename = request.form.get('filename')
+    # Default to string 'true' check
+    remove_js = request.form.get('remove_js') == 'true'
+    remove_metadata = request.form.get('remove_metadata') == 'true' 
+    remove_layers = request.form.get('remove_layers') == 'true'
+    remove_embedded = request.form.get('remove_embedded') == 'true'
+
+    if not filename:
+         return jsonify({'error': 'Filename required'}), 400
+         
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(input_path):
+         return jsonify({'error': 'File not found'}), 404
+
+    try:
+        pdf = pikepdf.Pdf.open(input_path)
+        summary = []
+        
+        # 1. Remove JavaScript
+        if remove_js:
+            if '/Names' in pdf.Root:
+                names = pdf.Root['/Names']
+                if '/JavaScript' in names:
+                    del names['/JavaScript']
+                    summary.append('Removed document-level JavaScript')
+            
+            if '/OpenAction' in pdf.Root:
+                 del pdf.Root['/OpenAction']
+                 summary.append('Removed OpenAction scripts')
+            
+            count = 0
+            for page in pdf.pages:
+                if '/AA' in page:
+                    del page['/AA']
+                    count += 1
+                if '/Annots' in page:
+                    for annot in page.Annots:
+                        if '/A' in annot and '/S' in annot.A and annot.A.S == '/JavaScript':
+                             del annot['/A']
+                             count += 1
+                        if '/AA' in annot:
+                             del annot['/AA']
+                             count += 1
+            if count > 0:
+                summary.append(f'Removed {count} JS actions from pages/annotations')
+
+        # 2. Remove Metadata
+        if remove_metadata:
+            # Clear /Info
+            keys = list(pdf.docinfo.keys())
+            for k in keys:
+                del pdf.docinfo[k]
+            summary.append('Cleared Document Info dictionary')
+            
+            if '/Metadata' in pdf.Root:
+                del pdf.Root['/Metadata']
+                summary.append('Removed XMP Metadata')
+
+        # 3. Remove Hidden Layers (OCG)
+        if remove_layers:
+            if '/OCProperties' in pdf.Root:
+                del pdf.Root['/OCProperties']
+                summary.append('Removed Optional Content (Layers)')
+
+        # 4. Remove Embedded Files
+        if remove_embedded:
+             if '/Names' in pdf.Root:
+                names = pdf.Root['/Names']
+                if '/EmbeddedFiles' in names:
+                  del names['/EmbeddedFiles']
+                  summary.append('Removed Embedded Files')
+                  
+             if '/EmbeddedFiles' in pdf.Root:
+                 del pdf.Root['/EmbeddedFiles']
+                 summary.append('Removed Root Embedded Files')
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"sanitized_{timestamp}_{secure_filename(filename)}"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        
+        pdf.save(output_path)
+        pdf.close()
+        
+        return jsonify({
+            'filename': output_filename, 
+            'url': url_for('download_file', filename=output_filename),
+            'summary': summary
+        })
+        
+    except Exception as e:
+        logger.error(f"Sanitization failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/flatten', methods=['POST'])
+def flatten_pdf():
+    filename = request.form.get('filename')
+    
+    if not filename:
+         return jsonify({'error': 'Filename required'}), 400
+         
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(input_path):
+         return jsonify({'error': 'File not found'}), 404
+         
+    try:
+        pdf = pikepdf.Pdf.open(input_path)
+        
+        # Flatten all annotations
+        pdf.flatten_annotations()
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"flattened_{timestamp}_{secure_filename(filename)}"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        
+        pdf.save(output_path)
+        pdf.close()
+        
+        return jsonify({
+            'filename': output_filename,
+            'url': url_for('download_file', filename=output_filename)
+        })
+    except Exception as e:
+        logger.error(f"Flatten failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/pipeline/run', methods=['POST'])
+def run_pipeline():
+    data = request.json
+    filename = data.get('filename')
+    steps = data.get('steps', [])
+    
+    if not filename or not steps:
+        return jsonify({'error': 'Filename and steps required'}), 400
+        
+    def generate():
+        executor = PipelineExecutor(app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'])
+        for update in executor.execute(filename, steps):
+             if update['status'] == 'complete' and 'download_url' in update:
+                 # Update download_url to be a full URL/path
+                 update['download_url'] = url_for('download_file', filename=update['download_url'])
+                 
+             yield f"data: {json.dumps(update)}\n\n"
+             
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
+
 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'

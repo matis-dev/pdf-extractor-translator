@@ -269,6 +269,7 @@ const ribbonConfig = {
         {
             group: 'Security',
             tools: [
+                { id: 'sanitize-doc', icon: 'bi-bandaid-fill', label: 'Sanitize', action: 'globalAction', function: 'openSanitizeModal' },
                 { id: 'redact', icon: 'bi-eraser-fill', label: 'Redact', action: 'setMode', value: 'redact' },
                 { id: 'apply-redactions-btn', icon: 'bi-check-circle-fill', label: 'Apply Redactions', action: 'globalAction', function: 'applyRedactions' },
                 { id: 'watermark', icon: 'bi-water', label: 'Watermark', action: 'globalAction', function: 'openWatermarkModal' },
@@ -300,6 +301,7 @@ const ribbonConfig = {
                 { id: 'split', icon: 'bi-scissors', label: 'Split', action: 'globalAction', function: 'splitPdf' },
                 { id: 'sharding', icon: 'bi-grid-3x3', label: 'Split All Pages', action: 'globalAction', function: 'shardPdf' },
                 { id: 'merge', icon: 'bi-files', label: 'Append', action: 'triggerUpload', inputId: 'pdf-append' },
+                { id: 'flatten', icon: 'bi-layers-half', label: 'Flatten', action: 'globalAction', function: 'openFlattenModal' },
             ]
         },
         {
@@ -310,6 +312,12 @@ const ribbonConfig = {
         }
     ],
     'process': [
+        {
+            group: 'Automation',
+            tools: [
+                { id: 'pipelines', icon: 'bi-diagram-3', label: 'Pipelines', action: 'globalAction', function: 'openPipelineModal' }
+            ]
+        },
         {
             group: 'Extraction',
             tools: [

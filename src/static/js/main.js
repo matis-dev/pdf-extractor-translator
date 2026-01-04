@@ -5,6 +5,7 @@ try {
 } catch (e) { console.error("Error setting attr", e); }
 
 import { state, history as historyState } from './modules/state.js';
+import './utils.js'; // Check if this path is correct relative to main.js (src/static/js/main.js -> src/static/js/utils.js is ./utils.js)
 import * as ui from './modules/ui.js';
 import { updateUnsavedIndicator } from './modules/ui.js';
 import { initRibbon } from './modules/ribbon.js';
@@ -32,11 +33,23 @@ import { initSettings, getSetting, getShortcut } from './modules/settings.js';
 import { buildComboString } from './modules/hotkeyCapture.js';
 import { getCommands } from './modules/command_palette.js';
 import * as crop from './modules/crop.js';
+import { openSanitizeModal, runSanitization } from './modules/sanitize.js';
+import { openFlattenModal, submitFlatten } from './modules/flatten.js';
+import { openPipelineModal, addPipelineStep, removePipelineStep, movePipelineStep, runPipeline } from './modules/pipelines.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
     state,
     historyState, // Access to stacks
+    openSanitizeModal, // Sanitize
+    runSanitization, // Sanitize
+    openFlattenModal, // Flatten
+    submitFlatten, // Flatten
+    openPipelineModal,
+    addPipelineStep,
+    removePipelineStep,
+    movePipelineStep,
+    runPipeline,
     ...ui,
     appHistory: historyModule, // Access to saveState, undo, redo (avoiding window.history collision)
     undo,
@@ -336,6 +349,9 @@ function registerCommands() {
     // Misc
     registerCommand('split-pdf', 'Split / Burst PDF', () => splitPdf(), 'bi-grid-3x3');
     registerCommand('compare', 'Compare PDFs', () => compare.openCompareModal(), 'bi-columns');
+    registerCommand('sanitize', 'Sanitize PDF', () => openSanitizeModal(), 'bi-bandaid-fill');
+    registerCommand('flatten', 'Flatten PDF', () => openFlattenModal(), 'bi-layers-half');
+    registerCommand('pipeline', 'Pipeline Builder', () => openPipelineModal(), 'bi-diagram-3');
     registerCommand('security', 'Security Settings', () => ui.openSecurityModal(), 'bi-shield-lock');
     registerCommand('settings', 'Open Settings', () => {
         const modal = new bootstrap.Modal(document.getElementById('settingsModal'));

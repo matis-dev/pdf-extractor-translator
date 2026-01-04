@@ -445,6 +445,100 @@
         </div>
     </div>
 
+    <!-- Flatten Modal -->
+    <div class="modal fade" id="flattenModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-layers-half me-2"></i>Flatten PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Warning:</strong> This action is irreversible.
+                    </div>
+                    <p>Flattening will merge all annotations, form fields, and layers into the page content.</p>
+                    <ul>
+                        <li>Annotations will no longer be editable.</li>
+                        <li>Form fields will become static text.</li>
+                    </ul>
+                    <p class="small text-muted">A new file will be downloaded. The original file remains unchanged.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="window.submitFlatten()">
+                        <i class="bi bi-layers-half me-1"></i> Flatten PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline Modal -->
+    <div class="modal fade" id="pipelineModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-diagram-3 me-2"></i>Pipeline Builder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="pipeline-builder-container" style="min-height: 300px;">
+                        <!-- JS renders here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="window.runPipeline()">
+                        <i class="bi bi-play-fill me-1"></i> Run Pipeline
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sanitize Modal -->
+    <div class="modal fade" id="sanitizeModal" tabindex="-1" data-testid="sanitize-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-bandaid-fill me-2"></i>Sanitize PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Remove sensitive data and hidden information from your document.</p>
+
+                    <div class="list-group">
+                        <label class="list-group-item">
+                            <input class="form-check-input me-1" type="checkbox" id="sanitize-js" checked>
+                            Remove JavaScript (Form scripts, Actions)
+                        </label>
+                        <label class="list-group-item">
+                            <input class="form-check-input me-1" type="checkbox" id="sanitize-metadata" checked>
+                            Remove Metadata (Author, Creator, Title)
+                        </label>
+                        <label class="list-group-item">
+                            <input class="form-check-input me-1" type="checkbox" id="sanitize-layers">
+                            Remove Hidden Layers
+                        </label>
+                        <label class="list-group-item">
+                            <input class="form-check-input me-1" type="checkbox" id="sanitize-embedded">
+                            Remove Embedded Files
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="runSanitization()"
+                        data-testid="run-sanitize-btn">
+                        <i class="bi bi-shield-check me-1"></i> Sanitize
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
         <div class="modal-dialog">
