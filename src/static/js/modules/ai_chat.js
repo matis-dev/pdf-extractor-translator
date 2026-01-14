@@ -5,6 +5,7 @@
 
 import { state } from './state.js';
 import * as ui from './ui.js';
+import { AIService } from '../api/aiService.js';
 
 let isIndexed = false;
 let isIndexing = false;
@@ -18,8 +19,7 @@ export async function initAIChat() {
 
     // Check status
     try {
-        const response = await fetch('/ai/status');
-        const data = await response.json();
+        const data = await AIService.checkStatus();
 
         const statusEl = document.getElementById('ai-status');
         if (data.available && data.ollama_running) {
@@ -142,11 +142,7 @@ export async function initAIChat() {
                     if (confirmDownload) {
                         addBotMessage(`Starting download of ${prettyName}... I'll let you know when it's ready.`);
                         try {
-                            await fetch('/ai/pull', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ model: modelName })
-                            });
+                            await AIService.pullModel(modelName);
                         } catch (e) {
                             addBotMessage("Error triggering download: " + e.message);
                         }
@@ -257,13 +253,7 @@ async function indexDocument() {
     disableInput(true);
 
     try {
-        const response = await fetch('/ai/index', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: window.filename })
-        });
-
-        const data = await response.json();
+        const data = await AIService.indexPDF(window.filename);
 
         if (data.success) {
             isIndexed = true;
@@ -302,16 +292,7 @@ async function sendMessage() {
     const loadingId = addTypingIndicator();
 
     try {
-        const response = await fetch('/ai/ask', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                question: question,
-                model: model
-            })
-        });
-
-        const data = await response.json();
+        const data = await AIService.ask(question, model);
         removeMessage(loadingId);
 
         if (data.error) {

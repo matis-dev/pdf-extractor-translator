@@ -1,5 +1,6 @@
 
 import { state } from './state.js';
+import { AIService } from '../api/aiService.js';
 
 export async function summarizeDocument(mode = 'brief') {
     // Globals from utils.js
@@ -17,24 +18,14 @@ export async function summarizeDocument(mode = 'brief') {
     try {
         // Ensure index first
         if (statusText) statusText.innerText = 'Indexing content...';
-        await fetch('/ai/index', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: state.filename })
-        });
+        // Ensure index first
+        if (statusText) statusText.innerText = 'Indexing content...';
+        await AIService.indexPDF(state.filename);
 
         // Ask for summary
         if (statusText) statusText.innerText = `Generating ${mode} summary...`;
 
-        const response = await fetch('/ai/summarize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mode: mode
-            })
-        });
-
-        const data = await response.json();
+        const data = await AIService.summarize(mode);
 
         if (overlay) overlay.style.display = 'none';
 
