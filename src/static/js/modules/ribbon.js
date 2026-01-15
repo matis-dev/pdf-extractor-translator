@@ -304,50 +304,13 @@ const ribbonConfig = {
                 { id: 'sharding', icon: 'bi-grid-3x3', label: 'Split All Pages', action: 'globalAction', function: 'shardPdf' },
                 { id: 'merge', icon: 'bi-files', label: 'Append', action: 'triggerUpload', inputId: 'pdf-append' },
                 { id: 'flatten', icon: 'bi-layers-half', label: 'Flatten', action: 'globalAction', function: 'openFlattenModal' },
+                { id: 'pipelines', icon: 'bi-diagram-3', label: 'Pipeline', action: 'globalAction', function: 'openPipelineModal' }
             ]
         },
         {
             group: 'Compare',
             tools: [
                 { id: 'compare-pdf', icon: 'bi-file-diff', label: 'Compare', action: 'globalAction', function: 'openCompareModal' }
-            ]
-        }
-    ],
-    'process': [
-        {
-            group: 'Automation',
-            tools: [
-                { id: 'pipelines', icon: 'bi-diagram-3', label: 'Pipelines', action: 'globalAction', function: 'openPipelineModal' }
-            ]
-        },
-        {
-            group: 'Extraction',
-            tools: [
-                {
-                    type: 'html', html: `
-                    <div class="d-flex flex-column gap-1">
-                        <select id="ribbon-extract-type" class="form-select form-select-sm" style="width:180px; font-size: 0.8rem;">
-                            <option value="word">Word (.docx)</option>
-                            <option value="odt">OpenDocument (.odt)</option>
-                            <option value="csv">Tables (.csv)</option>
-                        </select>
-                        <span class="small text-muted">Format</span>
-                    </div>`
-                },
-                {
-                    type: 'html', html: `
-                    <div class="d-flex flex-column gap-1">
-                        <select id="ribbon-target-lang" class="form-select form-select-sm" style="width:180px; font-size: 0.8rem;">
-                            <option value="none">No Trans.</option>
-                            <option value="en">English</option>
-                            <option value="es">Spanish</option>
-                            <option value="fr">French</option>
-                            <option value="de">German</option>
-                        </select>
-                        <span class="small text-muted">Translation</span>
-                    </div>`
-                },
-                { id: 'start-process', icon: 'bi-play-circle', label: 'Run', action: 'custom', function: () => submitRibbonProcessing() }
             ]
         }
     ]
@@ -453,12 +416,7 @@ function switchTab(tabName) {
     });
 
     // Language Dropdown Hook
-    if (tabName === 'process') {
-        setTimeout(() => {
-            renderLanguageDropdown('ribbon-target-lang', 'none', false, null, true);
-            // We could also add a source lang dropdown here if we want to modify the ribbonConfig to include it
-        }, 0);
-    }
+    // Language Dropdown Hook - REMOVED (Process tab removed)
 }
 
 
@@ -503,71 +461,4 @@ window.redoAction = () => window.appHistory && window.appHistory.redo();
 
 // Helper to submit processing from ribbon inputs
 // Helper to submit processing from ribbon inputs via new Conversion API
-window.submitRibbonProcessing = async function () {
-    const type = document.getElementById('ribbon-extract-type').value;
-    const targetLang = document.getElementById('ribbon-target-lang').value;
-    const filename = window.filename;
-
-    // Use existing global UI loader if available or simple overlay
-    const overlay = document.getElementById('processing-overlay');
-    if (overlay) overlay.style.display = 'flex';
-
-    // Map ribbon types to API formats
-    // Ribbon: word, odt, csv
-    // API: docx, csv. (ODT not yet explicitly in API Allowed list? let's check)
-    // Checking allowed_formats in conversion_service: docx, jpg, pdfa, csv, png, webp, tiff, txt.
-    // ODT seems missing from new API whitelist. We should map 'word' -> 'docx' for now or add 'odt'.
-    // Legacy mapping: 'word' -> docx conversion.
-
-    let targetFormat = 'docx';
-    if (type === 'csv') targetFormat = 'csv';
-    if (type === 'odt') {
-        alert("ODT format is currently migrating. Please use DOCX.");
-        if (overlay) overlay.style.display = 'none';
-        return;
-    }
-
-    const options = {};
-    if (targetLang && targetLang !== 'none') {
-        options.target_lang = targetLang;
-        options.source_lang = 'en'; // Defaulting as prior logic
-    }
-
-    try {
-        const res = await fetch('/api/convert', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                filename: filename,
-                target_format: targetFormat,
-                options: options
-            })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.error || 'Conversion failed');
-
-        // Use existing polling logic from extraction module if possible, strictly for UI reuse
-        // Or implement simple inline polling since this is a ribbon action
-        if (data.status === 'completed') {
-            window.location.href = data.output_url;
-            if (overlay) overlay.style.display = 'none';
-        } else if (data.status === 'queued' || data.status === 'processing') {
-            // We can reuse pollStatus from extraction.js if it accepts the ID, 
-            // BUT extraction.js pollStatus expects /status/{id} which is standard.
-            // We need to ensure we pass the right ID.
-            if (window.pollStatus) {
-                window.pollStatus(data.job_id);
-            } else {
-                alert("Processing started. Check Recent Downloads later.");
-                if (overlay) overlay.style.display = 'none';
-            }
-        }
-
-    } catch (e) {
-        console.error(e);
-        alert("Error: " + e.message);
-        if (overlay) overlay.style.display = 'none';
-    }
-};
+// Helper to submit processing from ribbon inputs - REMOVED

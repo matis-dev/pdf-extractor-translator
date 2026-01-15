@@ -553,10 +553,10 @@ def test_ribbon_functional(page: Page, live_server_url):
         # Switch to Tools
         page.locator(".tab-btn").filter(has_text="Tools").click()
         expect(page.locator("#split")).to_be_visible()
+        expect(page.locator("#pipelines")).to_be_visible()
 
-        # Switch to Process
-        page.locator(".tab-btn").filter(has_text="Process").click()
-        expect(page.locator("#start-process")).to_be_visible()
+        # Verify Process Tab is GONE
+        expect(page.locator(".tab-btn").filter(has_text="Process")).not_to_be_visible()
 
     finally:
         if os.path.exists(pdf_path):
