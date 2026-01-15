@@ -323,6 +323,126 @@ async function compareSelectedFiles() {
     }
 }
 
+async function batchConvert() {
+    const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.value);
+
+    if (selectedFiles.length === 0) {
+        showToast("Please select at least one file to convert.", 'warning');
+        return;
+    }
+
+    // For now, modal handles one file best. But we can adapt it or just pick the first one 
+    // or iterate. The user asked for "modal like compression". 
+    // Compression modal applies same settings to ALL files.
+    // Conversion modal selects FORMAT.
+    // So we should open the modal, let user select format, then iterate all files.
+
+    // We need to override the modal's "Start" button to call a batch function instead of single
+    // OR we modify openConversionModal to accept a callback or check context.
+
+    // Let's hook into the existing modal.
+    if (window.openConversionModal) {
+        // We set a global flag or modify state
+        // Actually, openConversionModal sets 'ConversionState.filename'.
+        // If we set it to null or a special value, or just hook the start function.
+
+        // Let's modify conversion_modal.js to handle list of files?
+        // Or simpler: We open the modal, and when user clicks "Convert", we intercept it if we are in batch mode.
+        // But the modal is in a module scope.
+
+        // Quick fix: Just convert the first one for now? No, that's bad UX.
+        // Better: We iterate. But we need the FORMAT.
+        // We can expose a "Batch Conversion" mode in the modal.
+
+        // Let's show the modal for the first file, or generic text.
+        const modalLabel = document.getElementById('conversion-file-label');
+        if (modalLabel) modalLabel.innerText = `(${selectedFiles.length} files selected)`;
+
+        // We need to override the button action.
+        // This requires access to the button in the shared modal.
+        const btn = document.getElementById('startConversionBtn');
+        // Remove old listeners? It uses onclick="window.startConversionTransaction()" in HTML.
+        // We can override that global function temporarily?
+
+        const originalFn = window.startConversionTransaction;
+        window.startConversionTransaction = async function () {
+            // READ selected format from DOM or State (since State is in module, we might not reach it easily unless exposed)
+            // But 'window.selectConversionFormat' updates 'ConversionState' inside module.
+            // We can't easily read 'ConversionState' from here unless we export it or use the DOM.
+
+            // The DOM has 'selected' class on format-card.
+            const selected = document.querySelector('.format-card.selected');
+            if (!selected) return;
+            const format = selected.dataset.format;
+
+            // Hide modal
+            const el = document.getElementById('conversionModal');
+            const modal = bootstrap.Modal.getInstance(el);
+            modal.hide();
+
+            // Start Batch Loop
+            const progressContainer = document.getElementById('batch-progress-container');
+            progressContainer.innerHTML = '';
+            progressContainer.style.display = 'block';
+
+            for (const filename of selectedFiles) {
+                const progressItem = document.createElement('div');
+                progressItem.className = 'alert alert-info d-flex justify-content-between align-items-center mb-2';
+                progressItem.innerHTML = `
+                    <span>Converting <strong>${filename}</strong> to ${format}...</span>
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                `;
+                progressContainer.appendChild(progressItem);
+
+                try {
+                    const res = await fetch('/api/convert', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            filename: filename,
+                            target_format: format
+                        })
+                    });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        // Assuming Sync for now or Async handling similar to batch extraction
+                        // If Async, we need to poll. 
+                        // Simplified: Just show 'Started' if async.
+                        if (data.status === 'completed') {
+                            progressItem.className = 'alert alert-success mb-2';
+                            progressItem.innerHTML = `
+                                <i class="bi bi-check-circle-fill me-2"></i> ${filename} converted.
+                                <a href="${data.output_url}" class="btn btn-primary btn-sm ms-2"><i class="bi bi-download"></i></a>
+                            `;
+                        } else {
+                            progressItem.innerHTML += ' (Queued)';
+                            // TODO: Add polling for full batch experience
+                        }
+                    } else {
+                        progressItem.className = 'alert alert-danger mb-2';
+                        progressItem.innerText = `Error: ${data.error}`;
+                    }
+                } catch (e) {
+                    progressItem.className = 'alert alert-danger mb-2';
+                    progressItem.innerText = `Error: ${e.message}`;
+                }
+            }
+
+            // Restore original function
+            window.startConversionTransaction = originalFn;
+        };
+
+        const modal = new bootstrap.Modal(document.getElementById('conversionModal'));
+        modal.show();
+
+        // Ensure we listen for modal close to restore function in case they cancel?
+        el.addEventListener('hidden.bs.modal', function () {
+            window.startConversionTransaction = originalFn;
+        }, { once: true });
+    }
+}
+
 function updateBatchUI() {
     const checked = document.querySelectorAll('.file-checkbox:checked').length > 0;
     const container = document.getElementById('batch-actions-container');

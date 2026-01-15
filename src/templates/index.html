@@ -214,6 +214,9 @@
                                     <button class="btn btn-outline-secondary btn-sm" onclick="compareSelectedFiles()">
                                         <i class="bi bi-file-diff me-1 text-primary"></i> Compare
                                     </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="batchConvert()">
+                                        <i class="bi bi-arrow-repeat me-1 text-success"></i> Convert
+                                    </button>
                                 </div>
                             </div>
 
@@ -305,7 +308,10 @@
     <script src="{{ url_for('static', filename='js/modules/bug_reporter.js') }}"></script>
 
     {% include 'partials/language_settings_modal.html' %}
+    {% include 'partials/language_settings_modal.html' %}
     {% include 'partials/cloud_picker_modal.html' %}
+    {% include 'partials/convert_modal.html' %}
+    <script type="module" src="{{ url_for('static', filename='js/modules/conversion_modal.js') }}"></script>
 
     <!-- Compression Modal -->
     <div class="modal fade" id="compressionModal" tabindex="-1">
@@ -316,35 +322,44 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted mb-3">Select a quality preset to balance file size and visual fidelity.</p>
-                    
+                    <p class="small text-muted mb-3">Select a quality preset to balance file size and visual fidelity.
+                    </p>
+
                     <div class="list-group">
                         <label class="list-group-item d-flex gap-3">
-                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality" value="screen" style="font-size: 1.375em;">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality"
+                                value="screen" style="font-size: 1.375em;">
                             <span class="pt-1 form-checked-content">
                                 <strong>Screen (72 DPI)</strong>
-                                <small class="d-block text-muted">Smallest file size. Best for email or viewing on screens.</small>
+                                <small class="d-block text-muted">Smallest file size. Best for email or viewing on
+                                    screens.</small>
                             </span>
                         </label>
                         <label class="list-group-item d-flex gap-3">
-                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality" value="ebook" checked style="font-size: 1.375em;">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality"
+                                value="ebook" checked style="font-size: 1.375em;">
                             <span class="pt-1 form-checked-content">
                                 <strong>eBook (150 DPI)</strong>
-                                <small class="d-block text-muted">Balanced quality and size. Recommended for most documents.</small>
+                                <small class="d-block text-muted">Balanced quality and size. Recommended for most
+                                    documents.</small>
                             </span>
                         </label>
                         <label class="list-group-item d-flex gap-3">
-                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality" value="printer" style="font-size: 1.375em;">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality"
+                                value="printer" style="font-size: 1.375em;">
                             <span class="pt-1 form-checked-content">
                                 <strong>Printer (300 DPI)</strong>
-                                <small class="d-block text-muted">High quality. Suitable for home or office printing.</small>
+                                <small class="d-block text-muted">High quality. Suitable for home or office
+                                    printing.</small>
                             </span>
                         </label>
                         <label class="list-group-item d-flex gap-3">
-                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality" value="prepress" style="font-size: 1.375em;">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality"
+                                value="prepress" style="font-size: 1.375em;">
                             <span class="pt-1 form-checked-content">
                                 <strong>Prepress (300 DPI+)</strong>
-                                <small class="d-block text-muted">Maximum quality. Preserves color accuracy for professional printing.</small>
+                                <small class="d-block text-muted">Maximum quality. Preserves color accuracy for
+                                    professional printing.</small>
                             </span>
                         </label>
                     </div>

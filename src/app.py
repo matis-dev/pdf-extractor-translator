@@ -57,6 +57,9 @@ app.register_blueprint(ai_bp)
 from routes.pdf_routes import pdf_bp
 app.register_blueprint(pdf_bp)
 
+from routes.convert_routes import convert_bp
+app.register_blueprint(convert_bp)
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB upload limit
@@ -95,6 +98,8 @@ def index():
     uploaded_files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if is_valid_file(f)]
     processed_files = [f for f in os.listdir(app.config['OUTPUT_FOLDER']) if is_valid_file(f)]
     return render_template('index.html', uploaded_files=uploaded_files, processed_files=processed_files)
+
+
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -361,7 +366,7 @@ def save_pdf():
         filename = secure_filename(file.filename)
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(pdf_path)
-        return "Saved", 200
+        return jsonify({'filename': filename}), 200
 
 @app.route('/extract_text_region', methods=['POST'])
 def extract_text_region():

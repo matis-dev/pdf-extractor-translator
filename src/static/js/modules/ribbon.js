@@ -298,6 +298,7 @@ const ribbonConfig = {
         {
             group: 'File',
             tools: [
+                { id: 'convert-pdf', icon: 'bi-arrow-repeat', label: 'Convert', action: 'globalAction', function: 'openConversionModal', args: [window.filename] },
                 { id: 'save-compress', icon: 'bi-arrows-collapse', label: 'Compress', action: 'globalAction', function: 'openCompressionModal' },
                 { id: 'split', icon: 'bi-scissors', label: 'Split', action: 'globalAction', function: 'splitPdf' },
                 { id: 'sharding', icon: 'bi-grid-3x3', label: 'Split All Pages', action: 'globalAction', function: 'shardPdf' },
@@ -482,7 +483,15 @@ function handleAction(tool) {
         if (window.resetModes) window.resetModes();
         document.getElementById(tool.inputId).click();
     } else if (tool.action === 'globalAction') {
-        if (window[tool.function]) window[tool.function]();
+        if (window[tool.function]) {
+            // Special handling for functions needing arguments (like openConversionModal needing filename)
+            const args = tool.args || [];
+            if (tool.function === 'openConversionModal' && args.length === 0) {
+                window[tool.function](window.filename);
+            } else {
+                window[tool.function](...args);
+            }
+        }
     } else if (tool.action === 'custom') {
         if (typeof tool.function === 'function') tool.function();
     }

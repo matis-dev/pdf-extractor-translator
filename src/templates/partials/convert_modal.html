@@ -1,0 +1,109 @@
+<div class="modal fade" id="conversionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-arrow-repeat text-primary me-2"></i>Convert PDF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-4">
+                    <p class="text-muted small mb-4">Choose the target format to convert this document. <span
+                            id="conversion-file-label" class="fw-bold"></span></p>
+
+                    <div class="format-grid" id="conversionFormatGrid">
+                        <!-- Formats will be selectable here -->
+                        <div class="format-card p-3 text-center" data-format="docx"
+                            onclick="window.selectConversionFormat('docx')">
+                            <i class="bi bi-check-circle-fill check-mark"></i>
+                            <div class="icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">📝</div>
+                            <h6 class="fw-bold mb-1">DOCX</h6>
+                            <small class="text-muted">Word Document</small>
+                        </div>
+                        <div class="format-card p-3 text-center" data-format="jpg"
+                            onclick="window.selectConversionFormat('jpg')">
+                            <i class="bi bi-check-circle-fill check-mark"></i>
+                            <div class="icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">🖼️</div>
+                            <h6 class="fw-bold mb-1">JPG</h6>
+                            <small class="text-muted">Images (ZIP)</small>
+                        </div>
+                        <div class="format-card p-3 text-center" data-format="pdfa"
+                            onclick="window.selectConversionFormat('pdfa')">
+                            <i class="bi bi-check-circle-fill check-mark"></i>
+                            <div class="icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">📋</div>
+                            <h6 class="fw-bold mb-1">PDF/A</h6>
+                            <small class="text-muted">Archival</small>
+                        </div>
+                        <div class="format-card p-3 text-center" data-format="csv"
+                            onclick="window.selectConversionFormat('csv')">
+                            <i class="bi bi-check-circle-fill check-mark"></i>
+                            <div class="icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">📊</div>
+                            <h6 class="fw-bold mb-1">CSV</h6>
+                            <small class="text-muted">Tables Only</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Section (Hidden by default) -->
+                <div id="conversionProgressSection" class="bg-light p-4 border-top d-none">
+                    <h6 class="mb-2" id="conversionStatusText">Processing...</h6>
+                    <div class="progress" style="height: 8px;">
+                        <div id="conversionProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                            role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="startConversionBtn" disabled
+                    onclick="window.startConversionTransaction()">
+                    Convert Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Scoped styles for the modal content if not imported globally yet */
+    .format-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 1rem;
+    }
+
+    .format-card {
+        position: relative;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #fff;
+    }
+
+    .format-card:hover {
+        border-color: #0d6efd;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .format-card.selected {
+        border-color: #0d6efd;
+        background-color: #f0f7ff;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+    }
+
+    .format-card .check-mark {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        color: #0d6efd;
+        opacity: 0;
+        transform: scale(0.5);
+        transition: all 0.2s;
+    }
+
+    .format-card.selected .check-mark {
+        opacity: 1;
+        transform: scale(1);
+    }
+</style>

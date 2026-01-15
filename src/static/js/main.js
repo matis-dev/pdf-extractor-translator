@@ -37,12 +37,15 @@ import { openSanitizeModal, runSanitization } from './modules/sanitize.js';
 import { openFlattenModal, submitFlatten } from './modules/flatten.js';
 import { openPipelineModal, addPipelineStep, removePipelineStep, movePipelineStep, runPipeline } from './modules/pipelines.js';
 import { initNavigation } from './modules/navigation.js';
+import { openConversionModal } from './modules/conversion_modal.js';
 
 // Expose to window for HTML access
 Object.assign(window, {
     state,
     historyState, // Access to stacks
+    openConversionModal, // Convert
     openSanitizeModal, // Sanitize
+
     runSanitization, // Sanitize
     openFlattenModal, // Flatten
     submitFlatten, // Flatten
@@ -352,6 +355,7 @@ function registerCommands() {
     registerCommand('split-pdf', 'Split / Burst PDF', () => splitPdf(), 'bi-grid-3x3');
     registerCommand('compare', 'Compare PDFs', () => compare.openCompareModal(), 'bi-columns');
     registerCommand('sanitize', 'Sanitize PDF', () => openSanitizeModal(), 'bi-bandaid-fill');
+    registerCommand('convert', 'Convert PDF', () => openConversionModal(window.filename), 'bi-arrow-repeat');
     registerCommand('flatten', 'Flatten PDF', () => openFlattenModal(), 'bi-layers-half');
     registerCommand('pipeline', 'Pipeline Builder', () => openPipelineModal(), 'bi-diagram-3');
     registerCommand('security', 'Security Settings', () => ui.openSecurityModal(), 'bi-shield-lock');
