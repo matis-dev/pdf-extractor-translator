@@ -730,6 +730,25 @@
         </div>
     </div>
 
+    <!-- Compression Modal -->
+    <div class="modal fade" id="compressionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-arrows-collapse text-warning me-2"></i>Compress PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Dynamic Content -->
+                </div>
+                <div class="modal-footer">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="{{ url_for('static', filename='js/modules/compression.js') }}"></script>
+
     <!-- Hidden Process Form (Used by Ribbon) -->
     <form action="/process_request" method="post" id="process-form" style="display:none;">
         <input type="hidden" name="filename" value="{{ filename }}">

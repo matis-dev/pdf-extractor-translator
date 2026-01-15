@@ -204,6 +204,18 @@ async function compressSelectedFiles() {
         return;
     }
 
+    const modal = new bootstrap.Modal(document.getElementById('compressionModal'));
+    modal.show();
+}
+
+window.confirmCompression = async function () {
+    const modalEl = document.getElementById('compressionModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+
+    const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.value);
+    const quality = document.querySelector('input[name="compressionQuality"]:checked').value;
+
     const progressContainer = document.getElementById('batch-progress-container');
     progressContainer.innerHTML = '';
     progressContainer.style.display = 'block';
@@ -221,14 +233,24 @@ async function compressSelectedFiles() {
             const res = await fetch('/compress', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename })
+                body: JSON.stringify({ filename, quality })
             });
             const data = await res.json();
 
             if (res.ok) {
+                const toMB = (b) => (b / (1024 * 1024)).toFixed(2);
+                let saved = 'No reduction';
+                if (data.reduction_percent > 0) {
+                    saved = `Reduced by ${data.reduction_percent}%`;
+                }
+
                 progressItem.className = 'alert alert-success d-flex justify-content-between align-items-center mb-2';
                 progressItem.innerHTML = `
-                    <span>Compressed: <strong>${data.filename}</strong></span>
+                    <div>
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <span><strong>${data.filename}</strong></span>
+                        <div class="small text-muted">${toMB(data.original_size)}MB &rarr; ${toMB(data.compressed_size)}MB (${saved})</div>
+                    </div>
                     <a href="${data.url}" class="btn btn-primary btn-sm"><i class="bi bi-download"></i></a>
                  `;
             } else {
@@ -243,7 +265,7 @@ async function compressSelectedFiles() {
     // Refresh list shortly after
     setTimeout(() => {
         window.location.reload();
-    }, 3000);
+    }, 4000);
 }
 
 async function compareSelectedFiles() {

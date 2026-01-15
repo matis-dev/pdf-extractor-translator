@@ -298,6 +298,7 @@ const ribbonConfig = {
         {
             group: 'File',
             tools: [
+                { id: 'save-compress', icon: 'bi-arrows-collapse', label: 'Compress', action: 'globalAction', function: 'openCompressionModal' },
                 { id: 'split', icon: 'bi-scissors', label: 'Split', action: 'globalAction', function: 'splitPdf' },
                 { id: 'sharding', icon: 'bi-grid-3x3', label: 'Split All Pages', action: 'globalAction', function: 'shardPdf' },
                 { id: 'merge', icon: 'bi-files', label: 'Append', action: 'triggerUpload', inputId: 'pdf-append' },

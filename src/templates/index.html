@@ -307,6 +307,58 @@
     {% include 'partials/language_settings_modal.html' %}
     {% include 'partials/cloud_picker_modal.html' %}
 
+    <!-- Compression Modal -->
+    <div class="modal fade" id="compressionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-arrows-collapse text-warning me-2"></i>Compress PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Select a quality preset to balance file size and visual fidelity.</p>
+                    
+                    <div class="list-group">
+                        <label class="list-group-item d-flex gap-3">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality" value="screen" style="font-size: 1.375em;">
+                            <span class="pt-1 form-checked-content">
+                                <strong>Screen (72 DPI)</strong>
+                                <small class="d-block text-muted">Smallest file size. Best for email or viewing on screens.</small>
+                            </span>
+                        </label>
+                        <label class="list-group-item d-flex gap-3">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality" value="ebook" checked style="font-size: 1.375em;">
+                            <span class="pt-1 form-checked-content">
+                                <strong>eBook (150 DPI)</strong>
+                                <small class="d-block text-muted">Balanced quality and size. Recommended for most documents.</small>
+                            </span>
+                        </label>
+                        <label class="list-group-item d-flex gap-3">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality" value="printer" style="font-size: 1.375em;">
+                            <span class="pt-1 form-checked-content">
+                                <strong>Printer (300 DPI)</strong>
+                                <small class="d-block text-muted">High quality. Suitable for home or office printing.</small>
+                            </span>
+                        </label>
+                        <label class="list-group-item d-flex gap-3">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="compressionQuality" value="prepress" style="font-size: 1.375em;">
+                            <span class="pt-1 form-checked-content">
+                                <strong>Prepress (300 DPI+)</strong>
+                                <small class="d-block text-muted">Maximum quality. Preserves color accuracy for professional printing.</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="window.confirmCompression()">
+                        <i class="bi bi-arrows-collapse me-1"></i> Compress
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bug Report Modal -->
     <div class="modal fade" id="bugReportModal" tabindex="-1">
 

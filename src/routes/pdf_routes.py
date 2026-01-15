@@ -109,7 +109,10 @@ def merge_files():
 
 @pdf_bp.route('/compress', methods=['POST'])
 def compress_file():
-    filename = request.json.get('filename')
+    data = request.json
+    filename = data.get('filename')
+    quality = data.get('quality', 'ebook')  # Default to ebook
+
     if not filename:
          return jsonify({'error': 'Filename required'}), 400
          
@@ -117,14 +120,26 @@ def compress_file():
     if not os.path.exists(input_path):
          return jsonify({'error': 'File not found'}), 404
          
+    original_size = os.path.getsize(input_path)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_filename = f"compressed_{timestamp}_{secure_filename(filename)}"
+    output_filename = f"compressed_{quality}_{timestamp}_{secure_filename(filename)}"
     output_path = os.path.join(current_app.config['OUTPUT_FOLDER'], output_filename)
     
+    # Quality Presets Mapping
+    QUALITY_PRESETS = {
+        'screen': '/screen',    # 72 dpi
+        'ebook': '/ebook',      # 150 dpi
+        'printer': '/printer',  # 300 dpi
+        'prepress': '/prepress' # 300 dpi + color
+    }
+    
+    preset = QUALITY_PRESETS.get(quality, '/ebook')
+
     # GS Command
-    # /ebook = 150 dpi
     cmd = [
-        "gs", "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.4", "-dPDFSETTINGS=/ebook",
+        "gs", "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.4", 
+        f"-dPDFSETTINGS={preset}",
         "-dNOPAUSE", "-dQUIET", "-dBATCH",
         f"-sOutputFile={output_path}",
         input_path
@@ -132,7 +147,19 @@ def compress_file():
     
     try:
         subprocess.run(cmd, check=True)
-        return jsonify({'filename': output_filename, 'url': url_for('download_file', filename=output_filename)})
+        
+        compressed_size = os.path.getsize(output_path)
+        reduction_percent = 0
+        if original_size > 0:
+            reduction_percent = round(((original_size - compressed_size) / original_size) * 100, 1)
+
+        return jsonify({
+            'filename': output_filename, 
+            'url': url_for('download_file', filename=output_filename),
+            'original_size': original_size,
+            'compressed_size': compressed_size,
+            'reduction_percent': reduction_percent
+        })
     except subprocess.CalledProcessError as e:
         return jsonify({'error': 'Compression failed'}), 500
 
