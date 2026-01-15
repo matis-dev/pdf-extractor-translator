@@ -8,7 +8,9 @@ from flask import current_app
 from tasks import process_pdf_task, run_pdf_extraction
 from extract_full_document_to_word import extract_full_document_to_word
 from extract_tables_to_csv import extract_tables as extract_tables_to_csv
+from extract_tables_to_csv import extract_tables as extract_tables_to_csv
 import pdf2image
+from converters import pdf_to_images, pdf_to_txt
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,7 @@ class ConversionService:
     Prioritizes type safety and atomic operations.
     """
 
-    ALLOWED_FORMATS = {'docx', 'jpg', 'pdfa', 'csv'}
+    ALLOWED_FORMATS = {'docx', 'odt', 'jpg', 'pdfa', 'csv', 'png', 'webp', 'tiff', 'txt'}
 
     @staticmethod
     def validate_request(filename: str, target_format: str) -> str:
@@ -36,26 +38,32 @@ class ConversionService:
         return None
 
     @staticmethod
-    def convert_to_jpg(pdf_path: str, output_folder: str) -> str:
+    def handle_output_files(generated_files: list, output_folder: str, base_name: str) -> str:
         """
-        Converts PDF to a series of JPG images, zipped.
+        Helper to package output files.
+        If single file -> return filename
+        If multiple files -> zip and return zip filename
         """
-        images = pdf2image.convert_from_path(pdf_path)
-        base_name = Path(pdf_path).stem
-        temp_dir = os.path.join(output_folder, f"{base_name}_jpgs")
-        os.makedirs(temp_dir, exist_ok=True)
+        if not generated_files:
+            raise Exception("No file generated")
+            
+        if len(generated_files) == 1:
+            # Move file to output_folder if not already there (converters write to temp or output?)
+            # Converters in my impl write directly to output_dir (which is passed as temp_dir or output_folder).
+            # If we let converters write to a temp subdir, we should move them.
+            # Let's assume converters wrote to 'output_folder/temp_sub_dir' or similar?
+            # My converters take 'output_dir'.
+            # If I pass the final output_folder to converters, they write there.
+            # But 'page_1.png', 'page_2.png' clutter output folder.
+            # Better to write to a temp dir first.
+            return generated_files[0]
+            
+        # Zip multiple
+        # generated_files are filenames inside the specific directory they were written to.
+        # We need to know where they are.
+        # Let's assume the caller manages the directory context.
+        return "batch.zip" # Placeholder, logic moved to process_conversion
 
-        for i, image in enumerate(images):
-            image.save(os.path.join(temp_dir, f"{base_name}_page_{i+1}.jpg"), "JPEG")
-        
-        # Zip it
-        shutil.make_archive(temp_dir, 'zip', temp_dir)
-        zip_filename = f"{base_name}_jpgs.zip"
-        final_path = os.path.join(output_folder, zip_filename)
-        shutil.move(f"{temp_dir}.zip", final_path)
-        shutil.rmtree(temp_dir)
-        
-        return zip_filename
 
     @staticmethod
     def convert_to_pdfa(pdf_path: str, output_folder: str) -> str:
@@ -85,7 +93,7 @@ class ConversionService:
         return output_filename
 
     @staticmethod
-    def process_conversion(filename: str, target_format: str, is_async: bool = False):
+    def process_conversion(filename: str, target_format: str, is_async: bool = False, options: dict = None):
         """
         Orchestrates the conversion.
         """
@@ -118,30 +126,100 @@ class ConversionService:
         # Synchronous execution
         job_id = str(uuid.uuid4())
         pdf_path = os.path.join(upload_folder, filename)
+        base_name = Path(filename).stem
+        options = options or {}
         
         try:
             result_file = None
+            
             if target_format == 'docx':
-                 # Re-use run_pdf_extraction logic which calls extract_full_document_to_word
-                 # But run_pdf_extraction is return dict.
-                 res = run_pdf_extraction('word', filename, upload_folder, output_folder)
+                 # Extract translation options
+                 target_lang = options.get('target_lang')
+                 source_lang = options.get('source_lang', 'en')
+                 
+                 res = run_pdf_extraction('word', filename, upload_folder, output_folder, target_lang, source_lang)
+                 if res['status'] == 'Completed':
+                     result_file = res['result_file']
+                 else:
+                     raise Exception(res.get('error', 'Unknown error'))
+
+            elif target_format == 'odt':
+                 target_lang = options.get('target_lang')
+                 source_lang = options.get('source_lang', 'en')
+                 res = run_pdf_extraction('odt', filename, upload_folder, output_folder, target_lang, source_lang)
                  if res['status'] == 'Completed':
                      result_file = res['result_file']
                  else:
                      raise Exception(res.get('error', 'Unknown error'))
 
             elif target_format == 'csv':
-                 res = run_pdf_extraction('csv', filename, upload_folder, output_folder)
+                 target_lang = options.get('target_lang')
+                 source_lang = options.get('source_lang', 'en')
+                 res = run_pdf_extraction('csv', filename, upload_folder, output_folder, target_lang, source_lang)
                  if res['status'] == 'Completed':
                      result_file = res['result_file']
                  else:
                      raise Exception(res.get('error', 'Unknown error'))
 
-            elif target_format == 'jpg':
-                 result_file = ConversionService.convert_to_jpg(pdf_path, output_folder)
-
             elif target_format == 'pdfa':
                  result_file = ConversionService.convert_to_pdfa(pdf_path, output_folder)
+                 
+            elif target_format in ['png', 'jpg', 'webp', 'tiff']:
+                # Image formats
+                # Create a temp directory for outputs to avoid clutter and facilitate zipping
+                temp_dir = os.path.join(output_folder, f"{base_name}_{target_format}_{job_id}")
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                try:
+                    files = pdf_to_images(pdf_path, temp_dir, target_format, options)
+                    
+                    if not files:
+                        raise Exception("No images generated")
+                        
+                    if len(files) > 1:
+                        # Zip
+                        shutil.make_archive(temp_dir, 'zip', temp_dir)
+                        result_file = f"{base_name}_{target_format}.zip"
+                        # Handle collision
+                        final_path = os.path.join(output_folder, result_file)
+                        if os.path.exists(final_path):
+                            result_file = f"{base_name}_{target_format}_{job_id}.zip"
+                            final_path = os.path.join(output_folder, result_file)
+                            
+                        shutil.move(f"{temp_dir}.zip", final_path)
+                    else:
+                        # Single file (e.g. single page or multipage tiff)
+                        # Move it to output
+                        src_file = os.path.join(temp_dir, files[0])
+                        result_file = files[0] # Try to keep original name
+                        final_path = os.path.join(output_folder, result_file)
+                        if os.path.exists(final_path):
+                            result_file = f"{job_id}_{files[0]}"
+                            final_path = os.path.join(output_folder, result_file)
+                        shutil.move(src_file, final_path)
+                        
+                finally:
+                     # Cleanup temp dir
+                     if os.path.exists(temp_dir):
+                         shutil.rmtree(temp_dir)
+                         
+            elif target_format == 'txt':
+                # Text format
+                temp_dir = os.path.join(output_folder, f"{base_name}_{target_format}_{job_id}")
+                os.makedirs(temp_dir, exist_ok=True)
+                try:
+                    files = pdf_to_txt(pdf_path, temp_dir, options)
+                    if files:
+                        src_file = os.path.join(temp_dir, files[0])
+                        result_file = files[0]
+                        final_path = os.path.join(output_folder, result_file)
+                        if os.path.exists(final_path):
+                            result_file = f"{job_id}_{files[0]}"
+                            final_path = os.path.join(output_folder, result_file)
+                        shutil.move(src_file, final_path)
+                finally:
+                    if os.path.exists(temp_dir):
+                        shutil.rmtree(temp_dir)
             
             return {
                 'job_id': job_id,

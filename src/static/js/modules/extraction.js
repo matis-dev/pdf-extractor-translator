@@ -89,6 +89,9 @@ export async function submitProcessing() {
     }
 }
 
+// Export for use in other modules if needed (e.g. ribbon)
+window.pollStatus = pollStatus;
+
 export function pollStatus(taskId) {
     const progressBar = document.getElementById('progress-bar');
     const statusText = document.getElementById('status-text');

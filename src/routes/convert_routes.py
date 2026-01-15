@@ -43,9 +43,10 @@ def convert_document():
 
     # 2. Determine Execution Mode
     use_async = is_redis_available()
+    options = data.get('options', {})
     
     # 3. Process
-    result = ConversionService.process_conversion(filename, target_format, is_async=use_async)
+    result = ConversionService.process_conversion(filename, target_format, is_async=use_async, options=options)
     
     if result.get('status') == 'failed':
         return jsonify({'error': result.get('error')}), 500
@@ -62,7 +63,12 @@ def get_formats():
     return jsonify({
         'formats': [
             {'id': 'docx', 'label': 'Word Document (DOCX)', 'icon': '📝'},
+            {'id': 'odt', 'label': 'OpenDocument Text (ODT)', 'icon': '📝'},
+            {'id': 'txt', 'label': 'Plain Text (TXT)', 'icon': '📄'},
+            {'id': 'png', 'label': 'Image (PNG)', 'icon': '🖼️'},
             {'id': 'jpg', 'label': 'Image (JPG)', 'icon': '🖼️'},
+            {'id': 'webp', 'label': 'Image (WEBP)', 'icon': '🌐'},
+            {'id': 'tiff', 'label': 'Image (TIFF)', 'icon': '📸'},
             {'id': 'pdfa', 'label': 'PDF/A (Archival)', 'icon': '📋'},
             {'id': 'csv', 'label': 'Tables (CSV)', 'icon': '📊'}
         ]

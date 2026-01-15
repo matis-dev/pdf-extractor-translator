@@ -11,34 +11,15 @@
                             id="conversion-file-label" class="fw-bold"></span></p>
 
                     <div class="format-grid" id="conversionFormatGrid">
-                        <!-- Formats will be selectable here -->
-                        <div class="format-card p-3 text-center" data-format="docx"
-                            onclick="window.selectConversionFormat('docx')">
-                            <i class="bi bi-check-circle-fill check-mark"></i>
-                            <div class="icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">📝</div>
-                            <h6 class="fw-bold mb-1">DOCX</h6>
-                            <small class="text-muted">Word Document</small>
-                        </div>
-                        <div class="format-card p-3 text-center" data-format="jpg"
-                            onclick="window.selectConversionFormat('jpg')">
-                            <i class="bi bi-check-circle-fill check-mark"></i>
-                            <div class="icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">🖼️</div>
-                            <h6 class="fw-bold mb-1">JPG</h6>
-                            <small class="text-muted">Images (ZIP)</small>
-                        </div>
-                        <div class="format-card p-3 text-center" data-format="pdfa"
-                            onclick="window.selectConversionFormat('pdfa')">
-                            <i class="bi bi-check-circle-fill check-mark"></i>
-                            <div class="icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">📋</div>
-                            <h6 class="fw-bold mb-1">PDF/A</h6>
-                            <small class="text-muted">Archival</small>
-                        </div>
-                        <div class="format-card p-3 text-center" data-format="csv"
-                            onclick="window.selectConversionFormat('csv')">
-                            <i class="bi bi-check-circle-fill check-mark"></i>
-                            <div class="icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">📊</div>
-                            <h6 class="fw-bold mb-1">CSV</h6>
-                            <small class="text-muted">Tables Only</small>
+                        <!-- Formats will be loaded dynamically -->
+                        <div class="text-center w-100 py-3 text-muted">Loading formats...</div>
+                    </div>
+
+                    <!-- Dynamic Options Panel -->
+                    <div id="conversionOptionsPanel" class="mt-4 p-3 bg-light rounded d-none">
+                        <h6 class="mb-3 border-bottom pb-2">Configuration</h6>
+                        <div id="conversionOptionsContainer">
+                            <!-- Options injected here -->
                         </div>
                     </div>
                 </div>
@@ -66,13 +47,16 @@
 <style>
     /* Scoped styles for the modal content if not imported globally yet */
     .format-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
         gap: 1rem;
     }
 
     .format-card {
         position: relative;
+        width: 140px;
+        /* Fixed width for consistency */
         border: 2px solid #e9ecef;
         border-radius: 8px;
         cursor: pointer;

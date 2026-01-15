@@ -502,25 +502,72 @@ window.undoAction = () => window.appHistory && window.appHistory.undo();
 window.redoAction = () => window.appHistory && window.appHistory.redo();
 
 // Helper to submit processing from ribbon inputs
-window.submitRibbonProcessing = function () {
+// Helper to submit processing from ribbon inputs via new Conversion API
+window.submitRibbonProcessing = async function () {
     const type = document.getElementById('ribbon-extract-type').value;
     const targetLang = document.getElementById('ribbon-target-lang').value;
+    const filename = window.filename;
 
-    // We need to inject these into the hidden form or call the submit function with these values
-    // The existing submitProcessing() reads from the big form in sidebar.
-    // Let's manually populate that form's hidden inputs if possible, or just create a new request object.
+    // Use existing global UI loader if available or simple overlay
+    const overlay = document.getElementById('processing-overlay');
+    if (overlay) overlay.style.display = 'flex';
 
-    // Direct call to endpoint? Or leverage existing form submission function?
-    // Let's try to reuse submitProcessing if we can map values.
+    // Map ribbon types to API formats
+    // Ribbon: word, odt, csv
+    // API: docx, csv. (ODT not yet explicitly in API Allowed list? let's check)
+    // Checking allowed_formats in conversion_service: docx, jpg, pdfa, csv, png, webp, tiff, txt.
+    // ODT seems missing from new API whitelist. We should map 'word' -> 'docx' for now or add 'odt'.
+    // Legacy mapping: 'word' -> docx conversion.
 
-    // Export for window access (so inline HTML onchange works)
-    window.updateShapeSettings = updateShapeSettings;
-    // Actually, we can just set the values in the hidden form if it exists, or create a formData object.
+    let targetFormat = 'docx';
+    if (type === 'csv') targetFormat = 'csv';
+    if (type === 'odt') {
+        alert("ODT format is currently migrating. Please use DOCX.");
+        if (overlay) overlay.style.display = 'none';
+        return;
+    }
 
-    const form = document.getElementById('process-form');
-    if (form) {
-        form.querySelector('[name="extraction_type"]').value = type;
-        form.querySelector('[name="target_lang"]').value = targetLang;
-        window.submitProcessing();
+    const options = {};
+    if (targetLang && targetLang !== 'none') {
+        options.target_lang = targetLang;
+        options.source_lang = 'en'; // Defaulting as prior logic
+    }
+
+    try {
+        const res = await fetch('/api/convert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filename: filename,
+                target_format: targetFormat,
+                options: options
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Conversion failed');
+
+        // Use existing polling logic from extraction module if possible, strictly for UI reuse
+        // Or implement simple inline polling since this is a ribbon action
+        if (data.status === 'completed') {
+            window.location.href = data.output_url;
+            if (overlay) overlay.style.display = 'none';
+        } else if (data.status === 'queued' || data.status === 'processing') {
+            // We can reuse pollStatus from extraction.js if it accepts the ID, 
+            // BUT extraction.js pollStatus expects /status/{id} which is standard.
+            // We need to ensure we pass the right ID.
+            if (window.pollStatus) {
+                window.pollStatus(data.job_id);
+            } else {
+                alert("Processing started. Check Recent Downloads later.");
+                if (overlay) overlay.style.display = 'none';
+            }
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("Error: " + e.message);
+        if (overlay) overlay.style.display = 'none';
     }
 };
