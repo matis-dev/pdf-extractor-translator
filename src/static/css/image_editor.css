@@ -30,79 +30,12 @@
 }
 
 /* Resize Handles - Children of Wrapper */
-.image-wrapper .resize-handle {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: #007bff;
-    border: 1px solid white;
-    border-radius: 50%;
-    z-index: var(--z-content-handles);
-    display: none;
-    /* Hidden by default */
-}
-
-.image-wrapper.selected .resize-handle {
-    display: block;
-}
-
-/* Handle Positions (Relative to Wrapper) */
-.handle-nw {
-    top: -5px;
-    left: -5px;
-    cursor: nwse-resize;
-}
-
-.handle-n {
-    top: -5px;
-    left: 50%;
-    transform: translateX(-50%);
-    cursor: ns-resize;
-}
-
-.handle-ne {
-    top: -5px;
-    right: -5px;
-    cursor: nesw-resize;
-}
-
-.handle-e {
-    top: 50%;
-    right: -5px;
-    transform: translateY(-50%);
-    cursor: ew-resize;
-}
-
-.handle-se {
-    bottom: -5px;
-    right: -5px;
-    cursor: nwse-resize;
-}
-
-.handle-s {
-    bottom: -5px;
-    left: 50%;
-    transform: translateX(-50%);
-    cursor: ns-resize;
-}
-
-.handle-sw {
-    bottom: -5px;
-    left: -5px;
-    cursor: nesw-resize;
-}
-
-.handle-w {
-    top: 50%;
-    left: -5px;
-    transform: translateY(-50%);
-    cursor: ew-resize;
-}
+/* Handle definitions moved to global editor.css */
 
 /* Rotation Knob (Top) */
 .rotate-handle {
     position: absolute;
-    top: -25px;
+    top: -44px;
     left: 50%;
     transform: translateX(-50%);
     width: 24px;

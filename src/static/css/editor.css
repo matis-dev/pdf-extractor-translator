@@ -302,6 +302,8 @@ body {
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
+/* Shape handles use global .handle-* classes now */
+
 .shape-wrapper.selected .resize-handle {
     display: block;
 }
@@ -309,7 +311,7 @@ body {
 .shape-wrapper .rotate-handle {
     display: none;
     position: absolute;
-    top: -28px;
+    top: -44px;
     left: 50%;
     transform: translateX(-50%);
     width: 24px;
@@ -914,6 +916,11 @@ body {
     z-index: 1002;
     transform: translate(-50%, -50%);
     /* Center on anchor point */
+    display: none;
+}
+
+.selected .resize-handle {
+    display: block;
 }
 
 /* Rotation Zones - Invisible interaction areas outside corners */
@@ -930,52 +937,54 @@ body {
 }
 
 .handle-nw {
-    top: 0;
-    left: 0;
+    top: -10px;
+    left: -10px;
     cursor: nwse-resize;
 }
 
 .handle-n {
-    top: 0;
+    top: -10px;
     left: 50%;
     cursor: ns-resize;
 }
 
 .handle-ne {
-    top: 0;
-    right: 0;
+    top: -10px;
+    right: -16px;
     cursor: nesw-resize;
 }
 
 .handle-e {
     top: 50%;
-    right: 0;
+    right: -16px;
     cursor: ew-resize;
 }
 
 .handle-se {
-    bottom: 0;
-    right: 0;
+    bottom: -20px;
+    right: -20px;
     cursor: nwse-resize;
 }
 
 .handle-s {
-    bottom: 0;
+    bottom: -16px;
     left: 50%;
     cursor: ns-resize;
 }
 
 .handle-sw {
-    bottom: 0;
-    left: 0;
+    bottom: -20px;
+    left: -10px;
     cursor: nesw-resize;
 }
 
 .handle-w {
     top: 50%;
-    left: 0;
+    left: -10px;
     cursor: ew-resize;
 }
+
+
 
 /* Delete Handle (for shapes/images if updated) */
 .delete-handle {
@@ -985,13 +994,11 @@ body {
     border: 1px solid white;
     border-radius: 50%;
     position: absolute;
-    top: -10px;
-    right: -25px;
-    /* Offset from corner */
+    top: -30px;
+    right: -30px;
     pointer-events: auto;
     z-index: 1003;
     display: none;
-    /* Hidden by default */
     align-items: center;
     justify-content: center;
     color: white;
@@ -1123,14 +1130,13 @@ body.compact-mode .ribbon-btn span {
 body.compact-mode #sidebar {
     width: 220px;
 }
+
 /* Fullscreen Mode Overrides */
 body.app-fullscreen #sidebar,
 body.app-fullscreen #title-bar,
-body.app-fullscreen #ribbon-container {
-}
+body.app-fullscreen #ribbon-container {}
 
 body.app-fullscreen #main-content-wrapper {
     width: 100vw;
     height: 100vh;
 }
-
