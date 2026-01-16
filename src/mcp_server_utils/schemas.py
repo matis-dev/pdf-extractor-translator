@@ -49,3 +49,88 @@ class ListPdfsInput(BaseModel):
         default=False,
         description="Whether to search subdirectories."
     )
+
+class CompressPdfInput(BaseModel):
+    """Input for PDF compression."""
+    pdf_path: str = Field(
+        ...,
+        description="Absolute path to the PDF file to compress."
+    )
+    quality: Literal['screen', 'ebook', 'printer', 'prepress', 'default'] = Field(
+        default='ebook',
+        description="Compression quality preset: screen (lowest/smallest), ebook (medium), printer (high), prepress (highest)."
+    )
+
+class MergePdfsInput(BaseModel):
+    """Input for merging multiple PDFs."""
+    pdf_paths: list[str] = Field(
+        ...,
+        min_length=2,
+        description="List of absolute paths to PDF files to merge, in order."
+    )
+    output_filename: Optional[str] = Field(
+        default=None,
+        description="Optional specific output filename. Checks allowed directories."
+    )
+
+class SplitPdfInput(BaseModel):
+    """Input for splitting a PDF."""
+    pdf_path: str = Field(
+        ...,
+        description="Absolute path to the PDF file to split."
+    )
+    page_ranges: str = Field(
+        ...,
+        description="Page ranges to extract (e.g. '1-5', '1,3,5', '10-end')."
+    )
+
+class ConvertPdfInput(BaseModel):
+    """Input for converting PDF to other formats."""
+    pdf_path: str = Field(
+        ...,
+        description="Absolute path to the PDF file to convert."
+    )
+    target_format: Literal['docx', 'csv', 'odt', 'txt', 'html', 'pdfa'] = Field(
+        ...,
+        description="Target format: docx, csv, odt, txt, html, pdfa"
+    )
+
+class PdfToImagesInput(BaseModel):
+    """Input for converting PDF pages to images."""
+    pdf_path: str = Field(
+        ...,
+        description="Absolute path to the PDF file."
+    )
+    output_format: Literal['png', 'jpg', 'webp', 'tiff'] = Field(
+        default='png',
+        description="Output image format (default: png)."
+    )
+
+class AskDocumentInput(BaseModel):
+    """Input for asking questions about a PDF."""
+    pdf_path: str = Field(
+        ...,
+        description="Absolute path to the PDF file."
+    )
+    question: str = Field(
+        ...,
+        description="The question to ask about the document."
+    )
+
+class SummarizeDocumentInput(BaseModel):
+    """Input for summarizing a PDF."""
+    pdf_path: str = Field(
+        ...,
+        description="Absolute path to the PDF file."
+    )
+    mode: Literal['brief', 'detailed'] = Field(
+        default='brief',
+        description="Summary mode: 'brief' for executive summary, 'detailed' for section-by-section."
+    )
+
+class GetPdfInfoInput(BaseModel):
+    """Input for getting PDF metadata."""
+    pdf_path: str = Field(
+        ...,
+        description="Absolute path to the PDF file."
+    )
